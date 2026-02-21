@@ -32,6 +32,10 @@ func InitDB() {
 		&models.Sale{},
 		&models.DerivCredentials{},
 		&models.SuperAdmin{},
+		&models.ScreenShareSession{},
+		&models.ScreenShareParticipant{},
+		&models.ScreenShareMessage{},
+		&models.ScreenShareJoinRequest{},
 	)
 	fmt.Println("database connected")
 }

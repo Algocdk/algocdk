@@ -133,6 +133,11 @@ func SetUpRouter(router *gin.Engine) {
 			admin.GET("/sites/:id/members", handlers.GetSiteMembersHandler)
 			admin.POST("/sites/:id/members", handlers.AddSiteMemberHandler)
 			admin.DELETE("/sites/:site_id/members/:user_id", handlers.RemoveSiteMemberHandler)
+
+			// Screen Sharing
+			admin.POST("/screenshare/start", handlers.StartScreenShareSession)
+			admin.POST("/screenshare/stop/:id", handlers.StopScreenShareSession)
+			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
 		}
 
 		paystackGroup := api.Group("/payment")
@@ -184,6 +189,20 @@ func SetUpRouter(router *gin.Engine) {
 			derivProtected.POST("/me/switch", handlers.SwitchDerivAccountWithStoredToken)
 			derivProtected.POST("/trade", handlers.PlaceDerivTrade)
 		}
+
+		// Screen Sharing (requires auth)
+		screenShare := api.Group("/screenshare")
+		screenShare.Use(middleware.AuthMiddleware())
+		{
+			screenShare.GET("/sessions", handlers.GetActiveSessions)
+			screenShare.GET("/messages/:id", handlers.GetSessionMessages)
+			screenShare.POST("/join/:id", handlers.RequestJoinSession)
+			screenShare.GET("/requests/:id", handlers.GetJoinRequests)
+			screenShare.POST("/requests/:request_id/review", handlers.ReviewJoinRequest)
+		}
+
+		// WebSocket for screen sharing
+		router.GET("/ws/screenshare", middleware.AuthMiddleware(), handlers.ScreenShareWebSocket)
 	}
 
 	// Frontend path
@@ -282,6 +301,14 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/global.html", func(c *gin.Context) {
 		c.File(frontendPath + "/global.html")
 	})
+	router.GET("/screenshare-admin", func(c *gin.Context) {
+		c.File(frontendPath + "/screenshare-admin.html")
+	})
+	router.GET("/screenshare-viewer", func(c *gin.Context) {
+		c.File(frontendPath + "/screenshare-viewer.html")
+	})
+	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
+	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
 
 	// Site viewer route
 	router.GET("/site/:slug", handlers.ViewSiteHandler)
