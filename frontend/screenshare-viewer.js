@@ -243,7 +243,7 @@ function connectWebSocket(sessionId) {
 }
 
 function handleWebSocketMessage(msg) {
-    console.log('WebSocket message:', msg);
+    // console.log('WebSocket message:', msg);  // Disabled to reduce spam
     switch (msg.type) {
         case 'join_response':
             if (msg.data === 'approved') {

@@ -199,6 +199,7 @@ func ScreenShareWebSocket(c *gin.Context) {
 
 	role := user.Role
 	isAdmin := role == "admin" || role == "Admin" || role == "superadmin" || role == "SuperAdmin"
+	log.Printf("User %s (ID: %d, Role: %s) connecting to session %d, isAdmin: %v", user.Name, user.ID, user.Role, sessionID, isAdmin)
 
 	hub.mu.Lock()
 	room, exists := hub.sessions[uint(sessionID)]
