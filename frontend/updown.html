@@ -236,6 +236,17 @@
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-bold">Price Chart</h3>
                         <div class="flex items-center gap-2">
+                            <select id="indicators" onchange="handleIndicatorSelect(this.value)" class="input-field text-sm">
+                                <option value="">Add Indicator</option>
+                                <option value="sma20">SMA 20</option>
+                                <option value="sma50">SMA 50</option>
+                                <option value="ema20">EMA 20</option>
+                                <option value="bb">Bollinger Bands</option>
+                                <option value="rsi">RSI</option>
+                                <option value="custom">Custom Indicator</option>
+                            </select>
+                            <div id="activeIndicators" style="display:inline-flex;gap:5px;margin-left:10px;"></div>
+                            <input type="file" id="customIndicatorFile" accept=".js" style="display:none;">
                             <select id="drawingTool" onchange="setDrawingTool(this.value)" class="input-field text-sm">
                                 <option value="">Drawing Tools</option>
                                 <option value="line">Trend Line</option>
@@ -390,6 +401,10 @@
         let currentDrawing = null;
         let drawingTool = '';
         let isDrawing = false;
+        let indicators = new Map();
+        let customIndicators = new Map();
+        let isDraggingChart = false;
+        let dragStartX = 0;
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeAccount();
@@ -397,6 +412,7 @@
             connectWebSocket();
             connectDeriv();
             updatePayout();
+            loadState();
             
             // Add drawing event listeners after canvas is initialized
             canvas.addEventListener('mousedown', e => {
@@ -417,6 +433,9 @@
                         endY: y,
                         color: color
                     };
+                } else {
+                    isDraggingChart = true;
+                    dragStartX = e.clientX;
                 }
             });
             
@@ -426,6 +445,11 @@
                     currentDrawing.endX = e.clientX - rect.left;
                     currentDrawing.endY = e.clientY - rect.top;
                     draw();
+                } else if (isDraggingChart) {
+                    offset += (e.clientX - dragStartX) / 10;
+                    dragStartX = e.clientX;
+                    saveState();
+                    draw();
                 }
             });
             
@@ -434,8 +458,42 @@
                     drawings.push({...currentDrawing});
                     currentDrawing = null;
                     isDrawing = false;
+                    saveState();
                 }
+                isDraggingChart = false;
             });
+            
+            canvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.5, Math.min(3, zoom));
+                saveState();
+                draw();
+            });
+            
+            document.getElementById('customIndicatorFile').onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const code = ev.target.result;
+                        const customInd = eval(`(${code})`);
+                        if (customInd.name && customInd.calculate) {
+                            const id = 'custom_' + customInd.name.toLowerCase().replace(/\s+/g, '_');
+                            customIndicators.set(id, customInd);
+                            addIndicator(id);
+                            saveState();
+                            alert(`Custom indicator "${customInd.name}" loaded!`);
+                        } else {
+                            alert('Invalid indicator format');
+                        }
+                    } catch (err) {
+                        alert('Error loading indicator: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
         });
 
         function initializeAccount() {
@@ -589,7 +647,121 @@
                 ctx.fillText(price.toFixed(3), pad - 5, gy + 4);
             }
             
+            drawIndicators(view, pad, candleSpacing, y);
             drawDrawings();
+        }
+        
+        function handleIndicatorSelect(type) {
+            if (type === 'custom') {
+                document.getElementById('customIndicatorFile').click();
+            } else if (type) {
+                addIndicator(type);
+            }
+            document.getElementById('indicators').value = '';
+        }
+        
+        function addIndicator(type) {
+            if (!type || indicators.has(type)) return;
+            indicators.set(type, { type, color: getIndicatorColor(type), period: getIndicatorPeriod(type) });
+            updateIndicatorTags();
+            saveState();
+            draw();
+        }
+        
+        function removeIndicator(type) {
+            indicators.delete(type);
+            updateIndicatorTags();
+            saveState();
+            draw();
+        }
+        
+        function updateIndicatorTags() {
+            const container = document.getElementById('activeIndicators');
+            container.innerHTML = '';
+            indicators.forEach((ind, type) => {
+                const tag = document.createElement('span');
+                tag.style.cssText = 'background:#2b2f3a;color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;';
+                tag.textContent = type.toUpperCase();
+                tag.onclick = () => showIndicatorConfig(type);
+                tag.title = 'Click to edit';
+                container.appendChild(tag);
+            });
+        }
+        
+        function showIndicatorConfig(type) {
+            const ind = indicators.get(type);
+            const newPeriod = prompt(`Enter period for ${type.toUpperCase()}:`, ind.period);
+            if (newPeriod && !isNaN(newPeriod)) {
+                ind.period = parseInt(newPeriod);
+                saveState();
+                draw();
+            }
+            const remove = confirm('Remove this indicator?');
+            if (remove) removeIndicator(type);
+        }
+        
+        function getIndicatorColor(type) {
+            const colors = { sma20: '#ffa500', sma50: '#00bfff', ema20: '#ff69b4', bb: '#9370db', rsi: '#32cd32' };
+            return colors[type] || '#ffffff';
+        }
+        
+        function getIndicatorPeriod(type) {
+            const periods = { sma20: 20, sma50: 50, ema20: 20, bb: 20, rsi: 14 };
+            return periods[type] || 20;
+        }
+        
+        function calculateSMA(data, period) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b.close, 0);
+                return sum / period;
+            });
+        }
+        
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1);
+            const ema = [data[0]?.close || 0];
+            for (let i = 1; i < data.length; i++) {
+                ema[i] = data[i].close * k + ema[i - 1] * (1 - k);
+            }
+            return ema;
+        }
+        
+        function drawIndicators(view, pad, spacing, yFunc) {
+            indicators.forEach((ind) => {
+                ctx.strokeStyle = ind.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                
+                let values = [];
+                const allData = [...candles, currentCandle].filter(c => c);
+                
+                if (ind.type.startsWith('custom_')) {
+                    const customInd = customIndicators.get(ind.type);
+                    if (customInd && customInd.calculate) {
+                        values = customInd.calculate(allData, { period: ind.period }).slice(-view.length);
+                    }
+                } else if (ind.type.startsWith('sma')) {
+                    values = calculateSMA(allData, ind.period).slice(-view.length);
+                } else if (ind.type.startsWith('ema')) {
+                    values = calculateEMA(allData, ind.period).slice(-view.length);
+                }
+                
+                ctx.beginPath();
+                let started = false;
+                values.forEach((val, i) => {
+                    if (val !== null) {
+                        const x = pad + i * spacing + spacing / 2;
+                        if (!started) {
+                            ctx.moveTo(x, yFunc(val));
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, yFunc(val));
+                        }
+                    }
+                });
+                ctx.stroke();
+            });
         }
         
         function setDrawingTool(tool) {
@@ -600,6 +772,7 @@
         function clearAllDrawings() {
             drawings = [];
             currentDrawing = null;
+            saveState();
             draw();
         }
         
@@ -665,9 +838,42 @@
                 const d = drawings[i];
                 if (Math.abs(d.startX - x) < tolerance && Math.abs(d.startY - y) < tolerance) {
                     drawings.splice(i, 1);
+                    saveState();
                     draw();
                     return;
                 }
+            }
+        }
+        
+        function saveState() {
+            const state = {
+                indicators: Array.from(indicators.entries()),
+                customIndicators: Array.from(customIndicators.entries()),
+                drawings: drawings,
+                zoom: zoom,
+                offset: offset
+            };
+            localStorage.setItem('updownChartState', JSON.stringify(state));
+        }
+        
+        function loadState() {
+            const saved = localStorage.getItem('updownChartState');
+            if (!saved) return;
+            try {
+                const state = JSON.parse(saved);
+                if (state.indicators) {
+                    indicators = new Map(state.indicators);
+                    updateIndicatorTags();
+                }
+                if (state.customIndicators) {
+                    customIndicators = new Map(state.customIndicators);
+                }
+                if (state.drawings) drawings = state.drawings;
+                if (state.zoom) zoom = state.zoom;
+                if (state.offset) offset = state.offset;
+                draw();
+            } catch (e) {
+                console.error('Failed to load state:', e);
             }
         }
 
