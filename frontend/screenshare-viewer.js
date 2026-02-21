@@ -25,6 +25,8 @@ const elements = {
     chatMessages: document.getElementById('chatMessages'),
     chatInput: document.getElementById('chatInput'),
     sendChatBtn: document.getElementById('sendChatBtn'),
+    emojiBtn: document.getElementById('emojiBtn'),
+    emojiPicker: document.getElementById('emojiPicker'),
     infoAdminName: document.getElementById('infoAdminName'),
     startedAt: document.getElementById('startedAt'),
     viewerCount: document.getElementById('viewerCount')
@@ -349,9 +351,10 @@ function sendChat() {
         message: message
     }));
 
-    // Show our own message immediately
     addChatMessage(message, 'user', 'You');
     elements.chatInput.value = '';
+    elements.chatInput.classList.add('chat-input-focus');
+    setTimeout(() => elements.chatInput.classList.remove('chat-input-focus'), 300);
 }
 
 function addChatMessage(message, type = 'user', username = 'You') {
@@ -363,15 +366,15 @@ function addChatMessage(message, type = 'user', username = 'You') {
         div.innerHTML = `<i class="fas fa-info-circle mr-1"></i>${message}`;
     } else {
         const isMe = username === 'You';
-        div.className += ` ${isMe ? 'bg-blue-500/20' : 'bg-slate-800/50'} rounded-lg p-3`;
+        div.className += ` ${isMe ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-500/30' : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border border-slate-600/30'} rounded-lg p-3 hover:scale-[1.02] transition-transform`;
         div.innerHTML = `
             <div class="flex items-start gap-2">
-                <div class="w-8 h-8 rounded-full ${isMe ? 'bg-blue-500' : 'bg-purple-500'} flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                    ${username.charAt(0)}
+                <div class="w-8 h-8 rounded-full ${isMe ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-purple-600'} flex items-center justify-center text-xs font-semibold flex-shrink-0 shadow-lg">
+                    ${username.charAt(0).toUpperCase()}
                 </div>
                 <div class="flex-1">
-                    <p class="text-xs ${isMe ? 'text-blue-400' : 'text-slate-400'} font-medium mb-1">${username}</p>
-                    <p class="text-white text-sm">${message}</p>
+                    <p class="text-xs ${isMe ? 'text-blue-400' : 'text-purple-400'} font-medium mb-1">${username}</p>
+                    <p class="text-white text-sm break-words">${escapeHtml(message)}</p>
                 </div>
             </div>
         `;
@@ -381,11 +384,58 @@ function addChatMessage(message, type = 'user', username = 'You') {
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Emoji functionality
+const emojis = ['😀', '😂', '😍', '🎉', '👍', '👏', '🔥', '💯', '✅', '❤️', '🚀', '💰', '📈', '📉', '💪', '🙏', '👀', '🤔', '😎', '🎯', '⚡', '💡', '🌟', '✨'];
+
+function initEmojiPicker() {
+    emojis.forEach(emoji => {
+        const btn = document.createElement('span');
+        btn.className = 'emoji-btn';
+        btn.textContent = emoji;
+        btn.onclick = () => insertEmoji(emoji);
+        elements.emojiPicker.appendChild(btn);
+    });
+}
+
+function insertEmoji(emoji) {
+    elements.chatInput.value += emoji;
+    elements.chatInput.focus();
+    elements.emojiPicker.classList.add('hidden');
+}
+
+elements.emojiBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.emojiPicker.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+    if (!elements.emojiPicker.contains(e.target) && e.target !== elements.emojiBtn) {
+        elements.emojiPicker.classList.add('hidden');
+    }
+});
+
 // Event listeners
 elements.leaveBtn.addEventListener('click', leaveSession);
 elements.sendChatBtn.addEventListener('click', sendChat);
 elements.chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendChat();
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+    }
+});
+
+elements.chatInput.addEventListener('focus', () => {
+    elements.chatInput.classList.add('ring-2', 'ring-orange-500');
+});
+
+elements.chatInput.addEventListener('blur', () => {
+    elements.chatInput.classList.remove('ring-2', 'ring-orange-500');
 });
 
 // Fullscreen functionality
@@ -519,6 +569,8 @@ if (!getToken()) {
     showNotification('Please login first', 'error');
     setTimeout(() => window.location.href = '/auth', 2000);
 } else {
+    initEmojiPicker();
+    
     // Get and store user ID for chat filtering
     fetch(`${API_BASE}/api/user/profile`, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
