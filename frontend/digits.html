@@ -464,6 +464,95 @@
             gap: 12px;
             margin-bottom: 20px;
         }
+        
+        .bot-overlay {
+            position: fixed;
+            background: rgba(10, 14, 26, 0.95);
+            border: 2px solid #FF4500;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            min-width: 300px;
+            min-height: 200px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .bot-overlay.active { display: flex; }
+        
+        .bot-header {
+            background: #FF4500;
+            padding: 12px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 10px 10px 0 0;
+            user-select: none;
+        }
+        
+        .bot-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .bot-size-input {
+            width: 60px;
+            padding: 4px 6px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            color: white;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .bot-size-input:focus {
+            outline: none;
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .bot-content {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+        }
+        
+        .bot-loader-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #FF4500, #E63900);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.4);
+            z-index: 999;
+            transition: all 0.3s ease;
+        }
+        
+        .bot-loader-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(255, 69, 0, 0.6);
+        }
+        
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, #FF4500 50%);
+            border-radius: 0 0 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -497,6 +586,50 @@
             </div>
         </div>
     </header>
+
+    <!-- Bot Loader Button -->
+    <div class="bot-loader-btn" onclick="toggleBotLoader()" title="Load Trading Bot">
+        <i class="fas fa-robot text-white text-2xl"></i>
+    </div>
+
+    <!-- Bot Overlay -->
+    <div id="botOverlay" class="bot-overlay">
+        <div class="bot-header" id="botHeader">
+            <span class="font-bold text-white"><i class="fas fa-robot mr-2"></i>Trading Bot</span>
+            <div class="bot-controls">
+                <div class="flex items-center gap-1 text-xs text-white">
+                    <span>W:</span>
+                    <input type="number" id="botWidth" class="bot-size-input" min="300" max="2000" value="600" onchange="updateBotSize()">
+                    <span>H:</span>
+                    <input type="number" id="botHeight" class="bot-size-input" min="200" max="1200" value="400" onchange="updateBotSize()">
+                </div>
+                <button onclick="minimizeBot()" class="text-white hover:text-gray-300 px-2">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button onclick="closeBot()" class="text-white hover:text-gray-300 px-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="bot-content" id="botContent">
+            <div id="botUploader">
+                <div class="text-center py-8">
+                    <i class="fas fa-upload text-6xl text-gray-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Load Your Trading Bot</h3>
+                    <p class="text-gray-400 mb-6">Upload an HTML file with your custom bot</p>
+                    <input type="file" id="botFileInput" accept=".html" class="hidden" onchange="loadBotFile(event)">
+                    <button onclick="document.getElementById('botFileInput').click()" class="trade-button">
+                        <i class="fas fa-file-upload mr-2"></i>Choose File
+                    </button>
+                    <div class="mt-4 text-xs text-gray-500">
+                        <p>Supports: HTML with embedded CSS/JS</p>
+                    </div>
+                </div>
+            </div>
+            <iframe id="botFrame" style="display:none; width:100%; height:100%; border:none; background:transparent;"></iframe>
+        </div>
+        <div class="resize-handle" id="resizeHandle"></div>
+    </div>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
@@ -1831,6 +1964,213 @@
                 alert(`Trade Lost: -$${trade.stake.toFixed(2)}`);
             }
         }
+        
+        // Bot Loader Functions
+        let isDragging = false;
+        let isResizing = false;
+        let currentX, currentY, initialX, initialY;
+        let botOverlay = null;
+        let isMinimized = false;
+        let savedSize = { width: 600, height: 400 };
+        let botState = null;
+        
+        function loadBotState() {
+            const saved = localStorage.getItem('tradingBotState');
+            if (saved) {
+                try {
+                    botState = JSON.parse(saved);
+                    savedSize = { width: botState.width || 600, height: botState.height || 400 };
+                    
+                    if (botState.isActive && botState.botContent) {
+                        setTimeout(() => {
+                            botOverlay.classList.add('active');
+                            
+                            const iframe = document.getElementById('botFrame');
+                            const uploader = document.getElementById('botUploader');
+                            uploader.style.display = 'none';
+                            iframe.style.display = 'block';
+                            iframe.srcdoc = botState.botContent;
+                            
+                            botOverlay.style.width = botState.width + 'px';
+                            botOverlay.style.height = botState.height + 'px';
+                            botOverlay.style.left = botState.left + 'px';
+                            botOverlay.style.top = botState.top + 'px';
+                            
+                            updateSizeInputs();
+                        }, 100);
+                    }
+                } catch (e) {
+                    console.error('Failed to load bot state:', e);
+                    localStorage.removeItem('tradingBotState');
+                }
+            }
+        }
+        
+        function saveBotState() {
+            if (!botOverlay) return;
+            
+            const iframe = document.getElementById('botFrame');
+            const state = {
+                isActive: botOverlay.classList.contains('active'),
+                width: botOverlay.offsetWidth,
+                height: botOverlay.offsetHeight,
+                left: botOverlay.offsetLeft,
+                top: botOverlay.offsetTop,
+                botContent: iframe.style.display === 'block' ? iframe.srcdoc : null
+            };
+            
+            localStorage.setItem('tradingBotState', JSON.stringify(state));
+        }
+        
+        function toggleBotLoader() {
+            botOverlay = document.getElementById('botOverlay');
+            if (botOverlay.classList.contains('active')) {
+                closeBot();
+            } else {
+                botOverlay.classList.add('active');
+                if (!botState || !botState.left) {
+                    centerBot();
+                }
+                updateSizeInputs();
+                saveBotState();
+            }
+        }
+        
+        function centerBot() {
+            botOverlay.style.width = savedSize.width + 'px';
+            botOverlay.style.height = savedSize.height + 'px';
+            botOverlay.style.left = (window.innerWidth - savedSize.width) / 2 + 'px';
+            botOverlay.style.top = (window.innerHeight - savedSize.height) / 2 + 'px';
+            updateSizeInputs();
+        }
+        
+        function closeBot() {
+            botOverlay.classList.remove('active');
+            saveBotState();
+        }
+        
+        function minimizeBot() {
+            const content = document.getElementById('botContent');
+            if (isMinimized) {
+                content.style.display = 'block';
+                botOverlay.style.height = savedSize.height + 'px';
+                isMinimized = false;
+            } else {
+                savedSize.height = botOverlay.offsetHeight;
+                content.style.display = 'none';
+                botOverlay.style.height = '50px';
+                isMinimized = true;
+            }
+            updateSizeInputs();
+            saveBotState();
+        }
+        
+        function updateBotSize() {
+            const width = parseInt(document.getElementById('botWidth').value);
+            const height = parseInt(document.getElementById('botHeight').value);
+            
+            if (width >= 300 && width <= 2000) {
+                botOverlay.style.width = width + 'px';
+                savedSize.width = width;
+            }
+            
+            if (height >= 200 && height <= 1200 && !isMinimized) {
+                botOverlay.style.height = height + 'px';
+                savedSize.height = height;
+            }
+            
+            saveBotState();
+        }
+        
+        function updateSizeInputs() {
+            document.getElementById('botWidth').value = botOverlay.offsetWidth;
+            document.getElementById('botHeight').value = isMinimized ? savedSize.height : botOverlay.offsetHeight;
+        }
+        
+        function loadBotFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const iframe = document.getElementById('botFrame');
+                const uploader = document.getElementById('botUploader');
+                
+                uploader.style.display = 'none';
+                iframe.style.display = 'block';
+                iframe.srcdoc = content;
+                
+                savedSize = { width: 800, height: 600 };
+                centerBot();
+                saveBotState();
+            };
+            reader.readAsText(file);
+        }
+        
+        // Dragging functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('botHeader');
+            const overlay = document.getElementById('botOverlay');
+            const resizeHandle = document.getElementById('resizeHandle');
+            
+            botOverlay = overlay;
+            loadBotState();
+            
+            header.addEventListener('mousedown', dragStart);
+            resizeHandle.addEventListener('mousedown', resizeStart);
+            
+            function dragStart(e) {
+                if (e.target.closest('button') || e.target.closest('input')) return;
+                isDragging = true;
+                initialX = e.clientX - overlay.offsetLeft;
+                initialY = e.clientY - overlay.offsetTop;
+            }
+            
+            function resizeStart(e) {
+                e.stopPropagation();
+                isResizing = true;
+                initialX = e.clientX;
+                initialY = e.clientY;
+                savedSize.width = overlay.offsetWidth;
+                savedSize.height = overlay.offsetHeight;
+            }
+            
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    overlay.style.left = currentX + 'px';
+                    overlay.style.top = currentY + 'px';
+                } else if (isResizing) {
+                    e.preventDefault();
+                    const width = savedSize.width + (e.clientX - initialX);
+                    const height = savedSize.height + (e.clientY - initialY);
+                    const newWidth = Math.max(300, Math.min(2000, width));
+                    const newHeight = Math.max(200, Math.min(1200, height));
+                    overlay.style.width = newWidth + 'px';
+                    overlay.style.height = newHeight + 'px';
+                    updateSizeInputs();
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    savedSize.width = overlay.offsetWidth;
+                    savedSize.height = overlay.offsetHeight;
+                    saveBotState();
+                }
+                if (isDragging) {
+                    saveBotState();
+                }
+                isDragging = false;
+                isResizing = false;
+            });
+            
+            // Save state before page unload
+            window.addEventListener('beforeunload', saveBotState);
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,138 @@
+// Add this CSS after .resize-handle style
+.resize-edge { position: absolute; background: transparent; }
+.resize-edge.top { top: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; }
+.resize-edge.bottom { bottom: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; }
+.resize-edge.left { left: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize; }
+.resize-edge.right { right: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize; }
+.resize-edge.top-left { top: 0; left: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+.resize-edge.top-right { top: 0; right: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize-edge.bottom-left { bottom: 0; left: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize-edge.bottom-right { bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+
+// Add these divs before the closing </div> of botOverlay (before resize-handle)
+<div class="resize-edge top"></div>
+<div class="resize-edge bottom"></div>
+<div class="resize-edge left"></div>
+<div class="resize-edge right"></div>
+<div class="resize-edge top-left"></div>
+<div class="resize-edge top-right"></div>
+<div class="resize-edge bottom-left"></div>
+<div class="resize-edge bottom-right"></div>
+
+// Replace loadBotState function with this improved version:
+function loadBotState() {
+    const saved = localStorage.getItem('tradingBotState');
+    if (saved) {
+        try {
+            botState = JSON.parse(saved);
+            savedSize = { width: botState.width || 600, height: botState.height || 400 };
+            
+            if (botState.isActive && botState.botContent) {
+                setTimeout(() => {
+                    botOverlay = document.getElementById('botOverlay');
+                    botOverlay.classList.add('active');
+                    
+                    const iframe = document.getElementById('botFrame');
+                    const uploader = document.getElementById('botUploader');
+                    uploader.style.display = 'none';
+                    iframe.style.display = 'block';
+                    iframe.srcdoc = botState.botContent;
+                    
+                    botOverlay.style.width = botState.width + 'px';
+                    botOverlay.style.height = botState.height + 'px';
+                    
+                    if (botState.left !== undefined && botState.top !== undefined) {
+                        botOverlay.style.left = botState.left + 'px';
+                        botOverlay.style.top = botState.top + 'px';
+                    } else {
+                        centerBot();
+                    }
+                    
+                    updateSizeInputs();
+                }, 100);
+            }
+        } catch (e) {
+            console.error('Failed to load bot state:', e);
+            localStorage.removeItem('tradingBotState');
+        }
+    }
+}
+
+// Update the DOMContentLoaded event to handle all resize edges:
+const resizeEdges = overlay.querySelectorAll('.resize-edge, .resize-handle');
+let resizeDirection = null;
+let initialRect = null;
+
+resizeEdges.forEach(edge => {
+    edge.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        isResizing = true;
+        
+        if (this.classList.contains('top')) resizeDirection = 'top';
+        else if (this.classList.contains('bottom') && !this.classList.contains('left') && !this.classList.contains('right')) resizeDirection = 'bottom';
+        else if (this.classList.contains('left') && !this.classList.contains('top') && !this.classList.contains('bottom')) resizeDirection = 'left';
+        else if (this.classList.contains('right') && !this.classList.contains('top') && !this.classList.contains('bottom')) resizeDirection = 'right';
+        else if (this.classList.contains('top-left')) resizeDirection = 'top-left';
+        else if (this.classList.contains('top-right')) resizeDirection = 'top-right';
+        else if (this.classList.contains('bottom-left')) resizeDirection = 'bottom-left';
+        else if (this.classList.contains('bottom-right') || this.id === 'resizeHandle') resizeDirection = 'bottom-right';
+        
+        initialX = e.clientX;
+        initialY = e.clientY;
+        initialRect = {
+            left: overlay.offsetLeft,
+            top: overlay.offsetTop,
+            width: overlay.offsetWidth,
+            height: overlay.offsetHeight
+        };
+    });
+});
+
+// Update mousemove handler for multi-directional resizing:
+document.addEventListener('mousemove', function(e) {
+    if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        overlay.style.left = currentX + 'px';
+        overlay.style.top = currentY + 'px';
+    } else if (isResizing) {
+        e.preventDefault();
+        const deltaX = e.clientX - initialX;
+        const deltaY = e.clientY - initialY;
+        
+        let newWidth = initialRect.width;
+        let newHeight = initialRect.height;
+        let newLeft = initialRect.left;
+        let newTop = initialRect.top;
+        
+        if (resizeDirection.includes('right')) newWidth = initialRect.width + deltaX;
+        if (resizeDirection.includes('left')) {
+            newWidth = initialRect.width - deltaX;
+            newLeft = initialRect.left + deltaX;
+        }
+        if (resizeDirection.includes('bottom')) newHeight = initialRect.height + deltaY;
+        if (resizeDirection.includes('top')) {
+            newHeight = initialRect.height - deltaY;
+            newTop = initialRect.top + deltaY;
+        }
+        
+        newWidth = Math.max(300, Math.min(2000, newWidth));
+        newHeight = Math.max(200, Math.min(1200, newHeight));
+        
+        if (resizeDirection.includes('left') && newWidth !== initialRect.width - deltaX) {
+            newLeft = initialRect.left + initialRect.width - newWidth;
+        }
+        if (resizeDirection.includes('top') && newHeight !== initialRect.height - deltaY) {
+            newTop = initialRect.top + initialRect.height - newHeight;
+        }
+        
+        overlay.style.width = newWidth + 'px';
+        overlay.style.height = newHeight + 'px';
+        overlay.style.left = newLeft + 'px';
+        overlay.style.top = newTop + 'px';
+        
+        updateSizeInputs();
+    }
+});
