@@ -1,0 +1,12 @@
+.git
+.gitignore
+*.md
+!README.md
+*.db
+uploads/*
+sites/*
+.env
+*.log
+*.pem
+test*.html
+*.txt
