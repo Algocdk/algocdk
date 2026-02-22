@@ -286,18 +286,60 @@
     <!-- Controls -->
     <div id="controls">
         <select id="symbol">
-            <option value="R_50">Vol 50</option>
-            <option value="R_75">Vol 75</option>
-            <option value="R_100" selected>Vol 100</option>
-            <option value="frxEURUSD">EUR/USD</option>
-            <option value="cryBTCUSD">BTC/USD</option>
+            <optgroup label="Volatility Indices">
+                <option value="R_10">Volatility 10 Index</option>
+                <option value="R_25">Volatility 25 Index</option>
+                <option value="R_50">Volatility 50 Index</option>
+                <option value="R_75">Volatility 75 Index</option>
+                <option value="R_100" selected>Volatility 100 Index</option>
+            </optgroup>
+            <optgroup label="Crash/Boom Indices">
+                <option value="BOOM300">Boom 300 Index</option>
+                <option value="BOOM500">Boom 500 Index</option>
+                <option value="BOOM1000">Boom 1000 Index</option>
+                <option value="CRASH300">Crash 300 Index</option>
+                <option value="CRASH500">Crash 500 Index</option>
+                <option value="CRASH1000">Crash 1000 Index</option>
+            </optgroup>
+            <optgroup label="Step Index">
+                <option value="stpRNG">Step Index</option>
+            </optgroup>
+            <optgroup label="Basket Indices">
+                <option value="WLDAUD">AUD Basket</option>
+                <option value="WLDEUR">EUR Basket</option>
+                <option value="WLDGBP">GBP Basket</option>
+                <option value="WLDUSD">USD Basket</option>
+            </optgroup>
+            <optgroup label="Major Pairs">
+                <option value="frxAUDJPY">AUD/JPY</option>
+                <option value="frxAUDUSD">AUD/USD</option>
+                <option value="frxEURGBP">EUR/GBP</option>
+                <option value="frxEURJPY">EUR/JPY</option>
+                <option value="frxEURUSD">EUR/USD</option>
+                <option value="frxGBPJPY">GBP/JPY</option>
+                <option value="frxGBPUSD">GBP/USD</option>
+                <option value="frxUSDCAD">USD/CAD</option>
+                <option value="frxUSDCHF">USD/CHF</option>
+                <option value="frxUSDJPY">USD/JPY</option>
+            </optgroup>
+            <optgroup label="Cryptocurrencies">
+                <option value="cryBTCUSD">BTC/USD</option>
+                <option value="cryETHUSD">ETH/USD</option>
+                <option value="cryLTCUSD">LTC/USD</option>
+            </optgroup>
         </select>
 
         <select id="timeframe">
             <option value="10">10s</option>
             <option value="30">30s</option>
             <option value="60" selected>1m</option>
+            <option value="180">3m</option>
             <option value="300">5m</option>
+            <option value="900">15m</option>
+            <option value="1800">30m</option>
+            <option value="3600">1h</option>
+            <option value="14400">4h</option>
+            <option value="86400">1D</option>
         </select>
         
         <select id="indicators">
@@ -671,8 +713,81 @@
         });
 
         /* ================= DRAWING TOOLS ================= */
+        function getCandleIndexFromX(x) {
+            const pad = window.innerWidth <= 768 ? 40 : 70;
+            const baseCandleSpacing = window.innerWidth <= 768 ? 4 : 6;
+            const candleSpacing = baseCandleSpacing * zoom;
+            const w = canvas.width - pad * 2;
+            const visible = Math.floor(w / candleSpacing);
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const relativeIndex = Math.floor((x - pad) / candleSpacing);
+            return start + relativeIndex;
+        }
+        
+        function getPriceFromY(y) {
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            if (!data.length) return 0;
+            const pad = window.innerWidth <= 768 ? 40 : 70;
+            const h = canvas.height - pad * 2;
+            const baseCandleSpacing = window.innerWidth <= 768 ? 4 : 6;
+            const candleSpacing = baseCandleSpacing * zoom;
+            const w = canvas.width - pad * 2;
+            const visible = Math.floor(w / candleSpacing);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const view = data.slice(start, start + visible);
+            if (!view.length) return 0;
+            const max = Math.max(...view.map(c => c.high));
+            const min = Math.min(...view.map(c => c.low));
+            const range = max - min || 1;
+            return max - ((y - pad) / h) * range;
+        }
+        
+        function getXFromCandleIndex(index) {
+            const pad = window.innerWidth <= 768 ? 40 : 70;
+            const baseCandleSpacing = window.innerWidth <= 768 ? 4 : 6;
+            const candleSpacing = baseCandleSpacing * zoom;
+            const w = canvas.width - pad * 2;
+            const visible = Math.floor(w / candleSpacing);
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const relativeIndex = index - start;
+            return pad + relativeIndex * candleSpacing + candleSpacing / 2;
+        }
+        
+        function getYFromPrice(price) {
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            if (!data.length) return 0;
+            const pad = window.innerWidth <= 768 ? 40 : 70;
+            const h = canvas.height - pad * 2;
+            const baseCandleSpacing = window.innerWidth <= 768 ? 4 : 6;
+            const candleSpacing = baseCandleSpacing * zoom;
+            const w = canvas.width - pad * 2;
+            const visible = Math.floor(w / candleSpacing);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const view = data.slice(start, start + visible);
+            if (!view.length) return pad;
+            const max = Math.max(...view.map(c => c.high));
+            const min = Math.min(...view.map(c => c.low));
+            const range = max - min || 1;
+            return pad + h - ((price - min) / range) * h;
+        }
+        
         function startDrawing(x, y) {
-            const obj = { type: selectedTool, x1: x, y1: y, x2: x, y2: y, color: "#FF4500" };
+            const candleIndex = getCandleIndexFromX(x);
+            const price = getPriceFromY(y);
+            const obj = { 
+                type: selectedTool, 
+                startIndex: candleIndex,
+                startPrice: price,
+                endIndex: candleIndex,
+                endPrice: price,
+                color: "#FF4500" 
+            };
             if (selectedTool === "text") {
                 obj.text = prompt("Enter text:") || "Text";
             }
@@ -681,8 +796,8 @@
         
         function updateDrawing(x, y) {
             if (drawingInProgress) {
-                drawingInProgress.x2 = x;
-                drawingInProgress.y2 = y;
+                drawingInProgress.endIndex = getCandleIndexFromX(x);
+                drawingInProgress.endPrice = getPriceFromY(y);
             }
         }
         
@@ -705,17 +820,22 @@
         }
         
         function isPointNearObject(obj, x, y, threshold = 15) {
+            const x1 = getXFromCandleIndex(obj.startIndex);
+            const y1 = getYFromPrice(obj.startPrice);
+            const x2 = getXFromCandleIndex(obj.endIndex);
+            const y2 = getYFromPrice(obj.endPrice);
+            
             if (obj.type === "trendline" || obj.type === "ray" || obj.type === "arrow") {
-                return distanceToLine(x, y, obj.x1, obj.y1, obj.x2, obj.y2) < threshold;
+                return distanceToLine(x, y, x1, y1, x2, y2) < threshold;
             } else if (obj.type === "horizontal") {
-                return Math.abs(y - obj.y1) < threshold;
+                return Math.abs(y - y1) < threshold;
             } else if (obj.type === "vertical") {
-                return Math.abs(x - obj.x1) < threshold;
+                return Math.abs(x - x1) < threshold;
             } else if (obj.type === "rectangle") {
-                const minX = Math.min(obj.x1, obj.x2);
-                const maxX = Math.max(obj.x1, obj.x2);
-                const minY = Math.min(obj.y1, obj.y2);
-                const maxY = Math.max(obj.y1, obj.y2);
+                const minX = Math.min(x1, x2);
+                const maxX = Math.max(x1, x2);
+                const minY = Math.min(y1, y2);
+                const maxY = Math.max(y1, y2);
                 const onBorder = (
                     (Math.abs(x - minX) < threshold && y >= minY && y <= maxY) ||
                     (Math.abs(x - maxX) < threshold && y >= minY && y <= maxY) ||
@@ -725,27 +845,27 @@
                 const inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
                 return onBorder || inside;
             } else if (obj.type === "triangle") {
-                const midX = (obj.x1 + obj.x2) / 2;
-                return distanceToLine(x, y, midX, obj.y1, obj.x1, obj.y2) < threshold ||
-                       distanceToLine(x, y, obj.x1, obj.y2, obj.x2, obj.y2) < threshold ||
-                       distanceToLine(x, y, obj.x2, obj.y2, midX, obj.y1) < threshold;
+                const midX = (x1 + x2) / 2;
+                return distanceToLine(x, y, midX, y1, x1, y2) < threshold ||
+                       distanceToLine(x, y, x1, y2, x2, y2) < threshold ||
+                       distanceToLine(x, y, x2, y2, midX, y1) < threshold;
             } else if (obj.type === "circle") {
-                const radius = Math.abs(obj.x2 - obj.x1) / 2;
-                const centerX = (obj.x1 + obj.x2) / 2;
-                const centerY = (obj.y1 + obj.y2) / 2;
+                const radius = Math.abs(x2 - x1) / 2;
+                const centerX = (x1 + x2) / 2;
+                const centerY = (y1 + y2) / 2;
                 const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
                 return Math.abs(dist - radius) < threshold;
             } else if (obj.type === "fibonacci" || obj.type === "fibext" || obj.type === "channel" || obj.type === "pitchfork" || obj.type === "gann") {
-                const minX = Math.min(obj.x1, obj.x2);
-                const maxX = Math.max(obj.x1, obj.x2);
-                const minY = Math.min(obj.y1, obj.y2);
-                const maxY = Math.max(obj.y1, obj.y2);
+                const minX = Math.min(x1, x2);
+                const maxX = Math.max(x1, x2);
+                const minY = Math.min(y1, y2);
+                const maxY = Math.max(y1, y2);
                 return x >= minX - threshold && x <= maxX + threshold && y >= minY - threshold && y <= maxY + threshold;
             } else if (obj.type === "text") {
                 ctx.font = "14px Arial";
                 const metrics = ctx.measureText(obj.text || "Text");
-                return x >= obj.x1 - 5 && x <= obj.x1 + metrics.width + 5 && 
-                       y >= obj.y1 - 20 && y <= obj.y1 + 5;
+                return x >= x1 - 5 && x <= x1 + metrics.width + 5 && 
+                       y >= y1 - 20 && y <= y1 + 5;
             }
             return false;
         }
@@ -770,147 +890,159 @@
         
         function findHandle(obj, x, y) {
             const threshold = 15;
-            if (Math.abs(x - obj.x1) < threshold && Math.abs(y - obj.y1) < threshold) return "start";
-            if (Math.abs(x - obj.x2) < threshold && Math.abs(y - obj.y2) < threshold) return "end";
+            const x1 = getXFromCandleIndex(obj.startIndex);
+            const y1 = getYFromPrice(obj.startPrice);
+            const x2 = getXFromCandleIndex(obj.endIndex);
+            const y2 = getYFromPrice(obj.endPrice);
+            if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+            if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
             return "move";
         }
         
         function updateObjectHandle(obj, handle, x, y) {
+            const newIndex = getCandleIndexFromX(x);
+            const newPrice = getPriceFromY(y);
+            
             if (handle === "start") {
-                obj.x1 = x;
-                obj.y1 = y;
+                obj.startIndex = newIndex;
+                obj.startPrice = newPrice;
                 if (obj.type === "horizontal") {
-                    obj.y2 = y;
+                    obj.endPrice = newPrice;
                 }
             } else if (handle === "end") {
-                obj.x2 = x;
-                obj.y2 = y;
+                obj.endIndex = newIndex;
+                obj.endPrice = newPrice;
                 if (obj.type === "horizontal") {
-                    obj.y1 = y;
+                    obj.startPrice = newPrice;
                 }
             } else if (handle === "move") {
-                const dx = x - dragStartX;
-                const dy = y - dragStartY;
-                obj.x1 = objStartX1 + dx;
-                obj.y1 = objStartY1 + dy;
-                obj.x2 = objStartX2 + dx;
-                obj.y2 = objStartY2 + dy;
+                const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+                const deltaPrice = newPrice - getPriceFromY(dragStartY);
+                obj.startIndex = objStartX1 + deltaIndex;
+                obj.startPrice = objStartY1 + deltaPrice;
+                obj.endIndex = objStartX2 + deltaIndex;
+                obj.endPrice = objStartY2 + deltaPrice;
             }
             saveDrawings();
         }
         
         function drawObjects() {
             [...drawingObjects, drawingInProgress].filter(Boolean).forEach(obj => {
+                const x1 = getXFromCandleIndex(obj.startIndex);
+                const y1 = getYFromPrice(obj.startPrice);
+                const x2 = getXFromCandleIndex(obj.endIndex);
+                const y2 = getYFromPrice(obj.endPrice);
+                
                 ctx.strokeStyle = obj.color;
                 ctx.fillStyle = obj.color;
                 ctx.lineWidth = 2;
                 
                 if (obj.type === "trendline") {
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1);
-                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
                     ctx.stroke();
                 } else if (obj.type === "ray") {
-                    const dx = obj.x2 - obj.x1;
-                    const dy = obj.y2 - obj.y1;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
                     const length = Math.sqrt(dx * dx + dy * dy);
                     if (length > 0) {
-                        const extendX = obj.x1 + (dx / length) * canvas.width;
-                        const extendY = obj.y1 + (dy / length) * canvas.width;
+                        const extendX = x1 + (dx / length) * canvas.width;
+                        const extendY = y1 + (dy / length) * canvas.width;
                         ctx.beginPath();
-                        ctx.moveTo(obj.x1, obj.y1);
+                        ctx.moveTo(x1, y1);
                         ctx.lineTo(extendX, extendY);
                         ctx.stroke();
                     }
                 } else if (obj.type === "horizontal") {
                     ctx.beginPath();
-                    ctx.moveTo(0, obj.y1);
-                    ctx.lineTo(canvas.width, obj.y1);
+                    ctx.moveTo(0, y1);
+                    ctx.lineTo(canvas.width, y1);
                     ctx.stroke();
                 } else if (obj.type === "vertical") {
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, 0);
-                    ctx.lineTo(obj.x1, canvas.height);
+                    ctx.moveTo(x1, 0);
+                    ctx.lineTo(x1, canvas.height);
                     ctx.stroke();
                 } else if (obj.type === "arrow") {
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1);
-                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
                     ctx.stroke();
-                    const angle = Math.atan2(obj.y2 - obj.y1, obj.x2 - obj.x1);
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
                     const headLength = 15;
                     ctx.beginPath();
-                    ctx.moveTo(obj.x2, obj.y2);
-                    ctx.lineTo(obj.x2 - headLength * Math.cos(angle - Math.PI / 6), obj.y2 - headLength * Math.sin(angle - Math.PI / 6));
-                    ctx.moveTo(obj.x2, obj.y2);
-                    ctx.lineTo(obj.x2 - headLength * Math.cos(angle + Math.PI / 6), obj.y2 - headLength * Math.sin(angle + Math.PI / 6));
+                    ctx.moveTo(x2, y2);
+                    ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+                    ctx.moveTo(x2, y2);
+                    ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
                     ctx.stroke();
                 } else if (obj.type === "rectangle") {
-                    ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
+                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
                 } else if (obj.type === "triangle") {
-                    const midX = (obj.x1 + obj.x2) / 2;
+                    const midX = (x1 + x2) / 2;
                     ctx.beginPath();
-                    ctx.moveTo(midX, obj.y1);
-                    ctx.lineTo(obj.x1, obj.y2);
-                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.moveTo(midX, y1);
+                    ctx.lineTo(x1, y2);
+                    ctx.lineTo(x2, y2);
                     ctx.closePath();
                     ctx.stroke();
                 } else if (obj.type === "circle") {
-                    const radius = Math.abs(obj.x2 - obj.x1) / 2;
-                    const centerX = (obj.x1 + obj.x2) / 2;
-                    const centerY = (obj.y1 + obj.y2) / 2;
+                    const radius = Math.abs(x2 - x1) / 2;
+                    const centerX = (x1 + x2) / 2;
+                    const centerY = (y1 + y2) / 2;
                     ctx.beginPath();
                     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                     ctx.stroke();
                 } else if (obj.type === "fibonacci") {
                     const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
-                    const height = obj.y2 - obj.y1;
+                    const height = y2 - y1;
                     levels.forEach(level => {
-                        const y = obj.y1 + height * level;
+                        const y = y1 + height * level;
                         ctx.globalAlpha = 0.7;
                         ctx.beginPath();
-                        ctx.moveTo(Math.min(obj.x1, obj.x2), y);
-                        ctx.lineTo(Math.max(obj.x1, obj.x2), y);
+                        ctx.moveTo(Math.min(x1, x2), y);
+                        ctx.lineTo(Math.max(x1, x2), y);
                         ctx.stroke();
-                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(obj.x1, obj.x2) + 5, y - 5);
+                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(x1, x2) + 5, y - 5);
                     });
                     ctx.globalAlpha = 1;
                 } else if (obj.type === "fibext") {
                     const levels = [0, 0.618, 1, 1.272, 1.618, 2.618];
-                    const height = obj.y2 - obj.y1;
+                    const height = y2 - y1;
                     levels.forEach(level => {
-                        const y = obj.y1 + height * level;
+                        const y = y1 + height * level;
                         ctx.globalAlpha = 0.7;
                         ctx.beginPath();
-                        ctx.moveTo(Math.min(obj.x1, obj.x2), y);
-                        ctx.lineTo(Math.max(obj.x1, obj.x2), y);
+                        ctx.moveTo(Math.min(x1, x2), y);
+                        ctx.lineTo(Math.max(x1, x2), y);
                         ctx.stroke();
-                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(obj.x1, obj.x2) + 5, y - 5);
+                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(x1, x2) + 5, y - 5);
                     });
                     ctx.globalAlpha = 1;
                 } else if (obj.type === "channel") {
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1);
-                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
                     ctx.stroke();
-                    const offset = (obj.y2 - obj.y1) * 0.5;
+                    const offset = (y2 - y1) * 0.5;
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1 + offset);
-                    ctx.lineTo(obj.x2, obj.y2 + offset);
+                    ctx.moveTo(x1, y1 + offset);
+                    ctx.lineTo(x2, y2 + offset);
                     ctx.stroke();
                 } else if (obj.type === "pitchfork") {
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1);
-                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
                     ctx.stroke();
-                    const diff = (obj.y2 - obj.y1) * 0.3;
+                    const diff = (y2 - y1) * 0.3;
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1 - diff);
-                    ctx.lineTo(obj.x2, obj.y2 - diff);
+                    ctx.moveTo(x1, y1 - diff);
+                    ctx.lineTo(x2, y2 - diff);
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.moveTo(obj.x1, obj.y1 + diff);
-                    ctx.lineTo(obj.x2, obj.y2 + diff);
+                    ctx.moveTo(x1, y1 + diff);
+                    ctx.lineTo(x2, y2 + diff);
                     ctx.stroke();
                 } else if (obj.type === "gann") {
                     const angles = [15, 30, 45, 60, 75];
@@ -919,18 +1051,18 @@
                         const radians = (angle * Math.PI) / 180;
                         ctx.globalAlpha = 0.5;
                         ctx.beginPath();
-                        ctx.moveTo(obj.x1, obj.y1);
-                        ctx.lineTo(obj.x1 + length * Math.cos(radians), obj.y1 - length * Math.sin(radians));
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x1 + length * Math.cos(radians), y1 - length * Math.sin(radians));
                         ctx.stroke();
                         ctx.beginPath();
-                        ctx.moveTo(obj.x1, obj.y1);
-                        ctx.lineTo(obj.x1 + length * Math.cos(-radians), obj.y1 - length * Math.sin(-radians));
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x1 + length * Math.cos(-radians), y1 - length * Math.sin(-radians));
                         ctx.stroke();
                     });
                     ctx.globalAlpha = 1;
                 } else if (obj.type === "text") {
                     ctx.font = "14px Arial";
-                    ctx.fillText(obj.text, obj.x1, obj.y1);
+                    ctx.fillText(obj.text, x1, y1);
                 }
                 
                 if (obj === selectedObject) {
@@ -940,13 +1072,13 @@
                     
                     // Draw handles for all types
                     ctx.beginPath();
-                    ctx.arc(obj.x1, obj.y1, 6, 0, Math.PI * 2);
+                    ctx.arc(x1, y1, 6, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                     
                     if (obj.type !== "horizontal" && obj.type !== "vertical") {
                         ctx.beginPath();
-                        ctx.arc(obj.x2, obj.y2, 6, 0, Math.PI * 2);
+                        ctx.arc(x2, y2, 6, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
                     }
@@ -957,16 +1089,16 @@
                         ctx.lineWidth = 1;
                         ctx.setLineDash([5, 5]);
                         if (obj.type === "rectangle") {
-                            ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
+                            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
                         } else if (obj.type === "text") {
                             ctx.font = "14px Arial";
                             const metrics = ctx.measureText(obj.text);
-                            ctx.strokeRect(obj.x1 - 5, obj.y1 - 20, metrics.width + 10, 25);
+                            ctx.strokeRect(x1 - 5, y1 - 20, metrics.width + 10, 25);
                         } else if (obj.type === "triangle" || obj.type === "circle") {
-                            const minX = Math.min(obj.x1, obj.x2);
-                            const maxX = Math.max(obj.x1, obj.x2);
-                            const minY = Math.min(obj.y1, obj.y2);
-                            const maxY = Math.max(obj.y1, obj.y2);
+                            const minX = Math.min(x1, x2);
+                            const maxX = Math.max(x1, x2);
+                            const minY = Math.min(y1, y2);
+                            const maxY = Math.max(y1, y2);
                             ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
                         }
                         ctx.setLineDash([]);
