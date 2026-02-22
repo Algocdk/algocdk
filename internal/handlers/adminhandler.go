@@ -37,19 +37,27 @@ func AdminDashboardHandler(ctx *gin.Context) {
 		return
 	}
 
-	var admin models.User
-	if err := database.DB.First(&admin, userID).Error; err != nil {
+	// Get user info
+	var user models.User
+	if err := database.DB.First(&user, userID).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
 		return
 	}
 
-	// Get admin's bots
+	// Get admin record to find admin.ID
+	var admin models.Admin
+	if err := database.DB.Where("person_id = ?", userID).First(&admin).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "admin not found"})
+		return
+	}
+
+	// Get admin's bots (owned by this user)
 	var bots []models.Bot
 	database.DB.Where("owner_id = ?", userID).Find(&bots)
 
-	// Get admin's transactions
+	// Get admin's transactions using admin.ID
 	var transactions []models.Transaction
-	database.DB.Where("admin_id = ?", userID).Order("created_at DESC").Find(&transactions)
+	database.DB.Where("admin_id = ? AND status = ?", admin.ID, "success").Order("created_at DESC").Find(&transactions)
 
 	// Calculate metrics
 	totalRevenue := 0.0
@@ -63,24 +71,55 @@ func AdminDashboardHandler(ctx *gin.Context) {
 		}
 		// Count users for this bot
 		var userCount int64
-		database.DB.Table("bot_users").Where("bot_id = ?", bot.ID).Count(&userCount)
+		database.DB.Table("user_bots").Where("bot_id = ?", bot.ID).Count(&userCount)
 		totalUsers += int(userCount)
 	}
 
 	for _, tx := range transactions {
-		if tx.Status == "success" {
-			totalRevenue += tx.Amount
-			adminShare += tx.AdminShare
+		totalRevenue += tx.Amount
+		adminShare += tx.AdminShare
+	}
+
+	// Build recent transactions with buyer and bot info
+	var recentTransactions []gin.H
+	for i, tx := range transactions {
+		if i >= 5 {
+			break
 		}
+
+		// Get buyer info
+		var buyer models.User
+		var buyerName string
+		if err := database.DB.First(&buyer, tx.UserID).Error; err == nil {
+			buyerName = buyer.Name
+		}
+
+		// Get bot info
+		var bot models.Bot
+		var botName string
+		if err := database.DB.First(&bot, tx.BotID).Error; err == nil {
+			botName = bot.Name
+		}
+
+		recentTransactions = append(recentTransactions, gin.H{
+			"id":           tx.ID,
+			"amount":       tx.Amount,
+			"admin_share":  tx.AdminShare,
+			"status":       tx.Status,
+			"payment_type": tx.PaymentType,
+			"created_at":   tx.CreatedAt,
+			"buyer_name":   buyerName,
+			"bot_name":     botName,
+		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Dashboard data loaded successfully",
 		"data": gin.H{
 			"admin": gin.H{
-				"id":    admin.ID,
-				"name":  admin.Name,
-				"email": admin.Email,
+				"id":    userID,
+				"name":  user.Name,
+				"email": user.Email,
 			},
 			"totalRevenue":       totalRevenue,
 			"adminShare":         adminShare,
@@ -88,7 +127,7 @@ func AdminDashboardHandler(ctx *gin.Context) {
 			"totalBots":          len(bots),
 			"totalUsers":         totalUsers,
 			"totalTransactions":  len(transactions),
-			"recentTransactions": transactions[:min(5, len(transactions))],
+			"recentTransactions": recentTransactions,
 		},
 	})
 }
@@ -657,15 +696,22 @@ func BotUsersHandler(c *gin.Context) {
 		return
 	}
 
-	// Get users from bot_users table (assuming many-to-many relationship)
-	var users []models.User
-	database.DB.Joins("JOIN user_bots ON user_bots.user_id = users.id").
-		Where("user_bots.bot_id = ?", bot.ID).
-		Find(&users)
+	// Get users from user_bots table with access type
+	var userBots []models.UserBot
+	database.DB.Where("bot_id = ?", bot.ID).Find(&userBots)
 
 	userList := []gin.H{}
-	for _, u := range users {
-		userList = append(userList, gin.H{"id": u.ID, "name": u.Name, "email": u.Email})
+	for _, ub := range userBots {
+		var user models.User
+		if err := database.DB.First(&user, ub.UserID).Error; err == nil {
+			userList = append(userList, gin.H{
+				"id":          user.ID,
+				"name":        user.Name,
+				"email":       user.Email,
+				"access_type": ub.AccessType,
+				"can_remove":  ub.AccessType != "purchase",
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"bot_id": bot.ID, "bot_name": bot.Name, "users": userList})
@@ -716,20 +762,27 @@ func RemoveUserFromBotHandler(c *gin.Context) {
 		return
 	}
 
-	// delete relationship
+	// Check if user purchased the bot (cannot remove purchased users)
+	var userBot models.UserBot
+	if err := database.DB.Where("bot_id = ? AND user_id = ?", bot.ID, removeUserID).First(&userBot).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not attached to this bot"})
+		return
+	}
+
+	if userBot.AccessType == "purchase" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "cannot remove users who purchased the bot"})
+		return
+	}
+
+	// delete relationship (only rental users)
 	res := database.DB.Exec(
-		"DELETE FROM bot_users WHERE bot_id = ? AND user_id = ?",
+		"DELETE FROM user_bots WHERE bot_id = ? AND user_id = ?",
 		bot.ID,
 		removeUserID,
 	)
 
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user"})
-		return
-	}
-
-	if res.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not attached to this bot"})
 		return
 	}
 

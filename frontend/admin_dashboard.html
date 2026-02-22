@@ -6,6 +6,7 @@
     <title>Admin Dashboard - AlgoCDK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/theme-enhanced.css">
     <script>
         tailwind.config = {
@@ -252,11 +253,11 @@
                     <div class="bg-gray-800 rounded-xl p-6 card-hover transition-all">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-400 text-sm">Total Revenue</p>
+                                <p class="text-gray-400 text-sm">My Revenue</p>
                                 <p class="text-3xl font-bold" id="totalRevenue">$0</p>
                                 <p class="text-success text-sm mt-1">
-                                    <i class="fas fa-arrow-up mr-1"></i>
-                                    <span id="revenueGrowth">+0%</span>
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    <span>From sales</span>
                                 </p>
                             </div>
                             <div class="bg-success bg-opacity-20 p-3 rounded-lg">
@@ -268,11 +269,11 @@
                     <div class="bg-gray-800 rounded-xl p-6 card-hover transition-all">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-400 text-sm">Active Bots</p>
+                                <p class="text-gray-400 text-sm">My Active Bots</p>
                                 <p class="text-3xl font-bold" id="activeBots">0</p>
                                 <p class="text-warning text-sm mt-1">
                                     <i class="fas fa-robot mr-1"></i>
-                                    Running
+                                    Deployed
                                 </p>
                             </div>
                             <div class="bg-warning bg-opacity-20 p-3 rounded-lg">
@@ -422,6 +423,13 @@
 
             <!-- Transactions View -->
             <div id="transactionsView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-6">Revenue Performance</h3>
+                    <div class="bg-gray-700 rounded-lg p-4" style="height: 300px;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
                 <div class="bg-gray-800 rounded-xl p-6">
                     <h3 class="text-xl font-semibold mb-6">Transaction History</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -479,7 +487,7 @@
                                 <tr class="border-b border-gray-700">
                                     <th class="text-left py-3 px-4">User Name</th>
                                     <th class="text-left py-3 px-4">Email</th>
-                                    <th class="text-left py-3 px-4">Joined</th>
+                                    <th class="text-left py-3 px-4">Access Type</th>
                                     <th class="text-left py-3 px-4">Actions</th>
                                 </tr>
                             </thead>
@@ -530,26 +538,143 @@
 
             <!-- Profile View -->
             <div id="profileView" class="view-content hidden">
-                <div class="bg-gray-800 rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-6">Profile Settings</h3>
-                    <div class="max-w-md">
-                        <div class="flex items-center mb-6">
-                            <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center mr-4">
-                                <i class="fas fa-user text-white text-2xl"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold" id="profileName">Admin Name</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Profile Card -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-gray-800 rounded-xl p-6">
+                            <div class="text-center">
+                                <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-user text-white text-4xl"></i>
+                                </div>
+                                <h3 class="text-xl font-bold" id="profileName">Admin Name</h3>
                                 <p class="text-gray-400" id="profileEmail">admin@example.com</p>
-                                <p class="text-sm text-primary">Administrator</p>
+                                <span class="inline-block mt-2 px-3 py-1 bg-primary rounded-full text-sm" id="profileRole">Administrator</span>
+                                <div class="mt-4 pt-4 border-t border-gray-700">
+                                    <p class="text-sm text-gray-400">Member since</p>
+                                    <p class="font-medium" id="profileJoinDate">-</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                                <div>
-                                    <h4 class="font-medium">Account Status</h4>
-                                    <p class="text-sm text-gray-400">Active administrator account</p>
+                    </div>
+
+                    <!-- Profile Details -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Account Information -->
+                        <div class="bg-gray-800 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-user-circle text-primary mr-2"></i>
+                                Account Information
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-sm text-gray-400 mb-1">Full Name</p>
+                                    <p class="font-medium" id="profileFullName">-</p>
                                 </div>
-                                <span class="bg-success px-3 py-1 rounded-full text-sm">Active</span>
+                                <div class="p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-sm text-gray-400 mb-1">Email Address</p>
+                                    <p class="font-medium" id="profileEmailFull">-</p>
+                                </div>
+                                <div class="p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-sm text-gray-400 mb-1">Country</p>
+                                    <p class="font-medium" id="profileCountry">-</p>
+                                </div>
+                                <div class="p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-sm text-gray-400 mb-1">Account Status</p>
+                                    <span class="inline-block px-2 py-1 bg-success rounded text-sm">Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Statistics -->
+                        <div class="bg-gray-800 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-chart-bar text-primary mr-2"></i>
+                                Admin Statistics
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="text-center p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-2xl font-bold text-primary" id="profileTotalBots">0</p>
+                                    <p class="text-sm text-gray-400 mt-1">Total Bots</p>
+                                </div>
+                                <div class="text-center p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-2xl font-bold text-success" id="profileActiveBots">0</p>
+                                    <p class="text-sm text-gray-400 mt-1">Active Bots</p>
+                                </div>
+                                <div class="text-center p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-2xl font-bold text-warning" id="profileTotalUsers">0</p>
+                                    <p class="text-sm text-gray-400 mt-1">Bot Users</p>
+                                </div>
+                                <div class="text-center p-4 bg-gray-700 rounded-lg">
+                                    <p class="text-2xl font-bold text-primary" id="profileTotalRevenue">$0</p>
+                                    <p class="text-sm text-gray-400 mt-1">Revenue</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Details -->
+                        <div class="bg-gray-800 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-university text-primary mr-2"></i>
+                                Payment Information
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-sm text-gray-400">Bank Code</p>
+                                        <p class="font-medium" id="profileBankCode">Not set</p>
+                                    </div>
+                                    <i class="fas fa-building text-gray-500"></i>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-sm text-gray-400">Account Number</p>
+                                        <p class="font-medium" id="profileAccountNumber">Not set</p>
+                                    </div>
+                                    <i class="fas fa-credit-card text-gray-500"></i>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-sm text-gray-400">Account Name</p>
+                                        <p class="font-medium" id="profileAccountName">Not set</p>
+                                    </div>
+                                    <i class="fas fa-user text-gray-500"></i>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-sm text-gray-400">Paystack Subaccount</p>
+                                        <p class="font-medium text-xs" id="profileSubaccount">Not configured</p>
+                                    </div>
+                                    <i class="fas fa-link text-gray-500"></i>
+                                </div>
+                            </div>
+                            <button onclick="switchView('bank')" class="mt-4 w-full bg-primary hover:bg-secondary px-4 py-2 rounded-lg transition-colors">
+                                <i class="fas fa-edit mr-2"></i>Update Bank Details
+                            </button>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-gray-800 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-bolt text-primary mr-2"></i>
+                                Quick Actions
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <button onclick="switchView('bots')" class="flex items-center justify-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="fas fa-robot mr-2"></i>
+                                    Manage Bots
+                                </button>
+                                <button onclick="switchView('transactions')" class="flex items-center justify-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="fas fa-chart-line mr-2"></i>
+                                    View Transactions
+                                </button>
+                                <button onclick="switchView('users')" class="flex items-center justify-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="fas fa-users mr-2"></i>
+                                    Bot Users
+                                </button>
+                                <button onclick="switchView('sites')" class="flex items-center justify-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                    <i class="fas fa-globe mr-2"></i>
+                                    My Sites
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -754,6 +879,9 @@
                 document.getElementById('modalAdminShare').textContent = utils.formatCurrency(response.total_admin_share || 0);
                 document.getElementById('modalTotalTx').textContent = response.total_transactions || 0;
                 
+                // Render chart
+                renderRevenueChart(response.transactions || []);
+                
                 if (response.transactions && response.transactions.length > 0) {
                     tbody.innerHTML = response.transactions.map(tx => `
                         <tr>
@@ -772,6 +900,134 @@
             } catch (error) {
                 utils.notify('Failed to load transactions', 'error');
             }
+        }
+
+        let revenueChart = null;
+        function renderRevenueChart(transactions) {
+            const canvas = document.getElementById('revenueChart');
+            if (!canvas) return;
+            
+            // Destroy existing chart
+            if (revenueChart) {
+                revenueChart.destroy();
+            }
+            
+            // Group transactions by date
+            const dailyRevenue = {};
+            transactions.forEach(tx => {
+                if (tx.status === 'success') {
+                    const date = new Date(tx.created_at).toLocaleDateString();
+                    if (!dailyRevenue[date]) {
+                        dailyRevenue[date] = { total: 0, adminShare: 0, count: 0 };
+                    }
+                    dailyRevenue[date].total += tx.amount || 0;
+                    dailyRevenue[date].adminShare += tx.admin_share || 0;
+                    dailyRevenue[date].count += 1;
+                }
+            });
+            
+            // Sort dates and prepare data
+            const dates = Object.keys(dailyRevenue).sort((a, b) => new Date(a) - new Date(b));
+            const totals = dates.map(date => dailyRevenue[date].total);
+            const adminShares = dates.map(date => dailyRevenue[date].adminShare);
+            
+            // If no data, show empty state
+            if (dates.length === 0) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#9CA3AF';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('No transaction data available', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            revenueChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Total Sales',
+                            data: totals,
+                            backgroundColor: 'rgba(16, 185, 129, 0.9)',
+                            borderColor: '#10B981',
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        },
+                        {
+                            label: 'Your Share',
+                            data: adminShares,
+                            backgroundColor: 'rgba(255, 69, 0, 0.9)',
+                            borderColor: '#FF4500',
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { 
+                                color: '#fff', 
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + utils.formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#9CA3AF',
+                                font: { size: 12 },
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: { 
+                                color: '#9CA3AF',
+                                font: { size: 12 }
+                            },
+                            grid: { 
+                                display: false,
+                                drawBorder: false
+                            }
+                        }
+                    },
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
+                }
+            });
         }
 
         async function loadBankDetails() {
@@ -823,11 +1079,19 @@
                         <tr>
                             <td class="py-3 px-4">${user.name}</td>
                             <td class="py-3 px-4">${user.email}</td>
-                            <td class="py-3 px-4">${new Date().toLocaleDateString()}</td>
                             <td class="py-3 px-4">
-                                <button onclick="removeUserFromBot('${botId}', '${user.id}')" class="bg-danger hover:bg-red-600 px-3 py-1 rounded text-sm">
-                                    Remove
-                                </button>
+                                <span class="px-2 py-1 rounded text-xs ${user.access_type === 'purchase' ? 'bg-success' : 'bg-warning'}">
+                                    ${user.access_type || 'N/A'}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                ${user.can_remove ? `
+                                    <button onclick="removeUserFromBot('${botId}', '${user.id}')" class="bg-danger hover:bg-red-600 px-3 py-1 rounded text-sm">
+                                        Remove
+                                    </button>
+                                ` : `
+                                    <span class="text-gray-500 text-sm">Cannot remove (purchased)</span>
+                                `}
                             </td>
                         </tr>
                     `).join('');
@@ -841,16 +1105,57 @@
 
         async function loadProfile() {
             try {
-                const response = await api.admin.getProfile();
-                const admin = response.admin;
+                const [profileResponse, dashboardResponse] = await Promise.all([
+                    api.admin.getProfile(),
+                    api.admin.getDashboard()
+                ]);
+                
+                const admin = profileResponse.admin;
+                const dashboard = dashboardResponse.data;
                 
                 if (admin) {
+                    // Basic info
                     document.getElementById('profileName').textContent = admin.name || 'Admin';
                     document.getElementById('profileEmail').textContent = admin.email || '';
+                    document.getElementById('profileFullName').textContent = admin.name || '-';
+                    document.getElementById('profileEmailFull').textContent = admin.email || '-';
+                    document.getElementById('profileRole').textContent = admin.role || 'Administrator';
+                    
+                    // Handle country - check if it's a valid country or error message
+                    let country = admin.country || 'Not specified';
+                    if (country.includes('RateLimited') || country.includes('error') || country.includes('{')) {
+                        country = 'Not specified';
+                    }
+                    document.getElementById('profileCountry').textContent = country;
                     document.getElementById('currentUserName').textContent = admin.name || 'Admin';
+                    
+                    // Join date
+                    if (admin.created_at) {
+                        const joinDate = new Date(admin.created_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        });
+                        document.getElementById('profileJoinDate').textContent = joinDate;
+                    }
+                    
+                    // Statistics
+                    if (dashboard) {
+                        document.getElementById('profileTotalBots').textContent = dashboard.totalBots || 0;
+                        document.getElementById('profileActiveBots').textContent = dashboard.activeBots || 0;
+                        document.getElementById('profileTotalUsers').textContent = dashboard.totalUsers || 0;
+                        document.getElementById('profileTotalRevenue').textContent = utils.formatCurrency(dashboard.adminShare || 0);
+                    }
+                    
+                    // Bank details
+                    document.getElementById('profileBankCode').textContent = admin.bank_code || 'Not set';
+                    document.getElementById('profileAccountNumber').textContent = admin.account_number || 'Not set';
+                    document.getElementById('profileAccountName').textContent = admin.account_name || 'Not set';
+                    document.getElementById('profileSubaccount').textContent = admin.paystack_subaccount || 'Not configured';
                 }
             } catch (error) {
                 console.error('Failed to load profile:', error);
+                utils.notify('Failed to load profile data', 'error');
             }
         }
         
