@@ -129,6 +129,7 @@ func SetUpRouter(router *gin.Engine) {
 			admin.POST("/reset_password/:id", handlers.ResetPasswordHandler)
 
 			// Chart Indicators Management
+			admin.GET("/indicators", handlers.GetChartIndicators)
 			admin.POST("/indicators", handlers.CreateChartIndicator)
 			admin.PUT("/indicators/:id", handlers.UpdateChartIndicator)
 			admin.DELETE("/indicators/:id", handlers.DeleteChartIndicator)
@@ -324,6 +325,9 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/global.html", func(c *gin.Context) {
 		c.File(frontendPath + "/global.html")
 	})
+	router.GET("/indicator-template", func(c *gin.Context) {
+		c.File(frontendPath + "/indicator-template.html")
+	})
 	router.GET("/screenshare-admin", func(c *gin.Context) {
 		c.File(frontendPath + "/screenshare-admin.html")
 	})
@@ -332,6 +336,8 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
+	router.StaticFile("/admin-indicators.html", frontendPath+"/admin-indicators.html")
+	router.StaticFile("/custom_strategy_template.js", frontendPath+"/custom_strategy_template.js")
 
 	// Site viewer route
 	router.GET("/site/:slug", handlers.ViewSiteHandler)

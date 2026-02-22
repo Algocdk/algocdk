@@ -53,9 +53,18 @@ func CreateChartIndicator(c *gin.Context) {
 func GetChartIndicators(c *gin.Context) {
 	var indicators []models.ChartIndicator
 
-	if err := database.DB.Preload("Admin").Find(&indicators).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch indicators"})
-		return
+	// Check if admin is requesting their own indicators
+	if adminID, exists := c.Get("admin_id"); exists {
+		if err := database.DB.Where("admin_id = ?", adminID).Preload("Admin").Find(&indicators).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch indicators"})
+			return
+		}
+	} else {
+		// Public marketplace - all indicators
+		if err := database.DB.Preload("Admin").Find(&indicators).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch indicators"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"indicators": indicators})

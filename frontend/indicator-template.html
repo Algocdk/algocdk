@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicator Template - AlgoCDK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-gray-800 rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-3xl font-bold text-primary">Chart Indicator Template</h1>
+                <button onclick="downloadTemplate()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
+                    <i class="fas fa-download mr-2"></i>Download Template
+                </button>
+            </div>
+            <p class="text-gray-400 mb-4">Use this template to create custom chart indicators for the AlgoCDK platform.</p>
+            
+            <!-- Example Selector -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Load Example:</label>
+                <select id="exampleSelector" onchange="loadExample(this.value)" class="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 w-full max-w-md">
+                    <option value="sma">Simple Moving Average (SMA)</option>
+                    <option value="ema">Exponential Moving Average (EMA)</option>
+                    <option value="rsi">Relative Strength Index (RSI)</option>
+                    <option value="macd">MACD (Moving Average Convergence Divergence)</option>
+                    <option value="bollinger">Bollinger Bands</option>
+                    <option value="stochastic">Stochastic Oscillator</option>
+                    <option value="atr">Average True Range (ATR)</option>
+                    <option value="volume">Volume Indicator</option>
+                    <option value="ml_regression">🤖 ML: Linear Regression Trend</option>
+                    <option value="ml_momentum">🤖 ML: Momentum Predictor</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Code Editor -->
+            <div class="bg-gray-800 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Template Code</h2>
+                    <button onclick="testIndicator()" class="bg-success hover:bg-green-600 px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-play mr-2"></i>Test Code
+                    </button>
+                </div>
+                <textarea id="codeEditor" class="w-full h-96 bg-gray-900 text-gray-300 font-mono text-sm p-4 rounded-lg border border-gray-700" spellcheck="false">// Chart Indicator Template for AlgoCDK
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 14;
+    const color = params.color || '#FF4500';
+    
+    const values = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            values.push(null);
+            continue;
+        }
+        
+        // Simple Moving Average
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += candles[i - j].close;
+        }
+        values.push(sum / period);
+    }
+    
+    return {
+        name: 'SMA ' + period,
+        type: 'line',
+        data: values,
+        color: color,
+        lineWidth: 2
+    };
+}</textarea>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="bg-gray-800 rounded-xl p-6">
+                <h2 class="text-xl font-semibold mb-4">Live Preview</h2>
+                <div id="exampleDescription" class="bg-gray-700 rounded-lg p-4 mb-4 text-sm text-gray-300"></div>
+                <div class="bg-gray-900 rounded-lg p-4" style="height: 400px;">
+                    <canvas id="previewChart"></canvas>
+                </div>
+                <div id="testResult" class="mt-4 p-3 rounded-lg hidden"></div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-xl p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">How to Create Custom Indicators</h2>
+            <div class="space-y-6 text-gray-300">
+                
+                <!-- Step 1 -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-white mb-3 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">1</span>
+                        Define the calculateIndicator Function
+                    </h3>
+                    <p class="mb-2">Your indicator must have a function named <code class="bg-gray-800 px-2 py-1 rounded">calculateIndicator</code> that accepts two parameters:</p>
+                    <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
+                        <li><code class="bg-gray-800 px-2 py-1 rounded">candles</code> - Array of OHLCV objects with properties: open, high, low, close, volume, time</li>
+                        <li><code class="bg-gray-800 px-2 py-1 rounded">params</code> - Optional configuration object (e.g., {period: 14, color: '#FF4500'})</li>
+                    </ul>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-white mb-3 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>
+                        Process the Candle Data
+                    </h3>
+                    <p class="mb-2">Loop through the candles array and calculate your indicator values:</p>
+                    <pre class="bg-gray-800 p-3 rounded text-xs overflow-x-auto"><code>for (let i = 0; i < candles.length; i++) {
+    // Access candle data
+    const close = candles[i].close;
+    const high = candles[i].high;
+    const low = candles[i].low;
+    
+    // Your calculation logic here
+    const value = yourCalculation(candles, i);
+    values.push(value);
+}</code></pre>
+                    <p class="text-sm mt-2"><i class="fas fa-lightbulb text-warning mr-1"></i><strong>Tip:</strong> Use <code class="bg-gray-800 px-2 py-1 rounded">null</code> for periods where calculation isn't possible yet.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-white mb-3 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">3</span>
+                        Return the Correct Format
+                    </h3>
+                    <p class="mb-2">Your function must return an object with these properties:</p>
+                    <pre class="bg-gray-800 p-3 rounded text-xs overflow-x-auto"><code>return {
+    name: 'My Indicator',        // Display name
+    type: 'line',                // 'line', 'bar', or 'histogram'
+    data: values,                // Array of calculated values
+    color: '#FF4500',            // Hex color code
+    lineWidth: 2,                // Line thickness
+    
+    // Optional: Additional lines/series
+    series: [
+        {
+            name: 'Signal Line',
+            data: signalValues,
+            color: '#10B981',
+            lineWidth: 1
+        }
+    ]
+};</code></pre>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-white mb-3 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">4</span>
+                        Test Your Indicator
+                    </h3>
+                    <p class="mb-2">Use the code editor above to write your indicator, then click <strong>Test Code</strong> to see it visualized with sample data.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                        <div class="bg-gray-800 p-3 rounded">
+                            <p class="text-success font-semibold mb-1"><i class="fas fa-check-circle mr-1"></i>Best Practices</p>
+                            <ul class="text-xs space-y-1">
+                                <li>• Handle edge cases (insufficient data)</li>
+                                <li>• Use meaningful parameter defaults</li>
+                                <li>• Add comments to explain logic</li>
+                                <li>• Test with different timeframes</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded">
+                            <p class="text-danger font-semibold mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>Common Mistakes</p>
+                            <ul class="text-xs space-y-1">
+                                <li>• Not returning the correct object format</li>
+                                <li>• Accessing array indices out of bounds</li>
+                                <li>• Forgetting to handle null values</li>
+                                <li>• Using wrong property names</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-white mb-3 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">5</span>
+                        Save and Deploy
+                    </h3>
+                    <p class="mb-2">Once your indicator works correctly:</p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Click <strong>Download Template</strong> to save your code as a .js file</li>
+                        <li>Go to Admin Dashboard → Chart Indicators</li>
+                        <li>Click <strong>Create Indicator</strong></li>
+                        <li>Fill in the details and upload your .js file</li>
+                        <li>Set it as Free or Paid</li>
+                        <li>Users can now add it to their charts!</li>
+                    </ol>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-xl p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">Technical Reference</h2>
+            <div class="space-y-4 text-gray-300">
+                <div>
+                    <h3 class="font-semibold text-white mb-2"><i class="fas fa-database text-primary mr-2"></i>Candle Object Structure</h3>
+                    <pre class="bg-gray-700 p-3 rounded text-sm overflow-x-auto"><code>{
+    time: 1234567890000,  // Unix timestamp in milliseconds
+    open: 100.50,         // Opening price
+    high: 101.20,         // Highest price
+    low: 99.80,           // Lowest price
+    close: 100.90,        // Closing price
+    volume: 15000         // Trading volume
+}</code></pre>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-white mb-2"><i class="fas fa-palette text-primary mr-2"></i>Visualization Types</h3>
+                    <ul class="list-disc list-inside ml-4 space-y-1">
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">line</code> - Continuous line chart (best for moving averages, trends)</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">bar</code> - Bar chart (good for MACD histogram)</li>
+                        <li><code class="bg-gray-700 px-2 py-1 rounded">histogram</code> - Volume-style bars (best for volume indicators)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-white mb-2"><i class="fas fa-code text-primary mr-2"></i>Helper Functions Example</h3>
+                    <p class="text-sm mb-2">You can define helper functions within your code:</p>
+                    <pre class="bg-gray-700 p-3 rounded text-sm overflow-x-auto"><code>function calculateSMA(data, period) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+            result.push(null);
+        } else {
+            let sum = 0;
+            for (let j = 0; j < period; j++) {
+                sum += data[i - j];
+            }
+            result.push(sum / period);
+        }
+    }
+    return result;
+}
+
+function calculateIndicator(candles, params = {}) {
+    const closes = candles.map(c => c.close);
+    const sma = calculateSMA(closes, params.period || 20);
+    return { name: 'SMA', type: 'line', data: sma, color: '#FF4500', lineWidth: 2 };
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8">
+            <a href="/admin" class="text-primary hover:text-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let previewChart = null;
+        let sampleData = null; // Store sample data
+        
+        // Example indicators library
+        const examples = {
+            sma: {
+                name: 'Simple Moving Average (SMA)',
+                description: 'The SMA calculates the average price over a specified period. It smooths out price data to identify trends. Commonly used periods are 20, 50, and 200.',
+                code: `// Simple Moving Average (SMA)
+// Smooths price data by averaging over a period
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 20;
+    const values = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            values.push(null);
+            continue;
+        }
+        
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += candles[i - j].close;
+        }
+        values.push(sum / period);
+    }
+    
+    return {
+        name: 'SMA(' + period + ')',
+        type: 'line',
+        data: values,
+        color: '#FF4500',
+        lineWidth: 2
+    };
+}`
+            },
+            ema: {
+                name: 'Exponential Moving Average (EMA)',
+                description: 'The EMA gives more weight to recent prices, making it more responsive to new information than SMA. Popular for short-term trading.',
+                code: `// Exponential Moving Average (EMA)
+// Gives more weight to recent prices
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 12;
+    const multiplier = 2 / (period + 1);
+    const values = [];
+    
+    // Start with SMA for first value
+    let ema = 0;
+    for (let i = 0; i < period; i++) {
+        ema += candles[i].close;
+    }
+    ema = ema / period;
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            values.push(null);
+        } else if (i === period - 1) {
+            values.push(ema);
+        } else {
+            ema = (candles[i].close - ema) * multiplier + ema;
+            values.push(ema);
+        }
+    }
+    
+    return {
+        name: 'EMA(' + period + ')',
+        type: 'line',
+        data: values,
+        color: '#10B981',
+        lineWidth: 2
+    };
+}`
+            },
+            rsi: {
+                name: 'Relative Strength Index (RSI)',
+                description: 'RSI measures momentum on a scale of 0-100. Values above 70 indicate overbought conditions, below 30 indicate oversold. Default period is 14.',
+                code: `// Relative Strength Index (RSI)
+// Momentum oscillator (0-100)
+// >70 = Overbought, <30 = Oversold
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 14;
+    const values = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period) {
+            values.push(null);
+            continue;
+        }
+        
+        let gains = 0;
+        let losses = 0;
+        
+        for (let j = 1; j <= period; j++) {
+            const change = candles[i - j + 1].close - candles[i - j].close;
+            if (change > 0) gains += change;
+            else losses -= change;
+        }
+        
+        const avgGain = gains / period;
+        const avgLoss = losses / period;
+        const rs = avgGain / avgLoss;
+        const rsi = 100 - (100 / (1 + rs));
+        
+        values.push(rsi);
+    }
+    
+    return {
+        name: 'RSI(' + period + ')',
+        type: 'line',
+        data: values,
+        color: '#8B5CF6',
+        lineWidth: 2
+    };
+}`
+            },
+            macd: {
+                name: 'MACD',
+                description: 'MACD shows the relationship between two moving averages. The MACD line (12-26 EMA difference), signal line (9 EMA of MACD), and histogram (MACD - Signal) help identify trend changes and momentum.',
+                code: `// MACD (Moving Average Convergence Divergence)
+// Standard: MACD Line, Signal Line, and Histogram
+
+function calculateIndicator(candles, params = {}) {
+    const fastPeriod = params.fast || 12;
+    const slowPeriod = params.slow || 26;
+    const signalPeriod = params.signal || 9;
+    
+    // Calculate EMAs
+    const fastEMA = calculateEMA(candles, fastPeriod);
+    const slowEMA = calculateEMA(candles, slowPeriod);
+    
+    // MACD line = Fast EMA - Slow EMA
+    const macdLine = [];
+    for (let i = 0; i < candles.length; i++) {
+        if (fastEMA[i] === null || slowEMA[i] === null) {
+            macdLine.push(null);
+        } else {
+            macdLine.push(fastEMA[i] - slowEMA[i]);
+        }
+    }
+    
+    // Signal line = EMA of MACD
+    const signalLine = calculateEMAFromArray(macdLine, signalPeriod);
+    
+    // Histogram = MACD - Signal
+    const histogram = [];
+    for (let i = 0; i < candles.length; i++) {
+        if (macdLine[i] === null || signalLine[i] === null) {
+            histogram.push(null);
+        } else {
+            histogram.push(macdLine[i] - signalLine[i]);
+        }
+    }
+    
+    return {
+        name: 'MACD',
+        type: 'line',
+        data: macdLine,
+        color: '#3B82F6',
+        lineWidth: 2,
+        series: [
+            {
+                name: 'Signal',
+                data: signalLine,
+                color: '#EF4444',
+                lineWidth: 2
+            },
+            {
+                name: 'Histogram',
+                data: histogram,
+                color: '#10B981',
+                type: 'bar',
+                lineWidth: 1
+            }
+        ]
+    };
+}
+
+function calculateEMA(candles, period) {
+    const multiplier = 2 / (period + 1);
+    const values = [];
+    let ema = 0;
+    
+    for (let i = 0; i < period; i++) {
+        ema += candles[i].close;
+    }
+    ema = ema / period;
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            values.push(null);
+        } else if (i === period - 1) {
+            values.push(ema);
+        } else {
+            ema = (candles[i].close - ema) * multiplier + ema;
+            values.push(ema);
+        }
+    }
+    return values;
+}
+
+function calculateEMAFromArray(data, period) {
+    const multiplier = 2 / (period + 1);
+    const values = [];
+    let ema = 0;
+    let count = 0;
+    
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] === null) {
+            values.push(null);
+            continue;
+        }
+        
+        if (count < period) {
+            ema += data[i];
+            count++;
+            if (count === period) {
+                ema = ema / period;
+                values.push(ema);
+            } else {
+                values.push(null);
+            }
+        } else {
+            ema = (data[i] - ema) * multiplier + ema;
+            values.push(ema);
+        }
+    }
+    return values;
+}`
+            },
+            bollinger: {
+                name: 'Bollinger Bands',
+                description: 'Bollinger Bands consist of a middle band (SMA) and two outer bands (standard deviations). They expand during volatility and contract during calm periods.',
+                code: `// Bollinger Bands
+// Middle band (SMA) + Upper/Lower bands (std dev)
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 20;
+    const stdDev = params.stdDev || 2;
+    
+    const middle = [];
+    const upper = [];
+    const lower = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            middle.push(null);
+            upper.push(null);
+            lower.push(null);
+            continue;
+        }
+        
+        // Calculate SMA
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += candles[i - j].close;
+        }
+        const sma = sum / period;
+        
+        // Calculate standard deviation
+        let variance = 0;
+        for (let j = 0; j < period; j++) {
+            variance += Math.pow(candles[i - j].close - sma, 2);
+        }
+        const std = Math.sqrt(variance / period);
+        
+        middle.push(sma);
+        upper.push(sma + (stdDev * std));
+        lower.push(sma - (stdDev * std));
+    }
+    
+    return {
+        name: 'BB Middle',
+        type: 'line',
+        data: middle,
+        color: '#F59E0B',
+        lineWidth: 1,
+        series: [
+            {
+                name: 'BB Upper',
+                data: upper,
+                color: '#10B981',
+                lineWidth: 1
+            },
+            {
+                name: 'BB Lower',
+                data: lower,
+                color: '#EF4444',
+                lineWidth: 1
+            }
+        ]
+    };
+}`
+            },
+            stochastic: {
+                name: 'Stochastic Oscillator',
+                description: 'Compares closing price to price range over time (0-100). Values above 80 suggest overbought, below 20 suggest oversold conditions.',
+                code: `// Stochastic Oscillator
+// Compares close to high-low range
+// >80 = Overbought, <20 = Oversold
+
+function calculateIndicator(candles, params = {}) {
+    const kPeriod = params.kPeriod || 14;
+    const dPeriod = params.dPeriod || 3;
+    
+    const kValues = [];
+    const dValues = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < kPeriod - 1) {
+            kValues.push(null);
+            dValues.push(null);
+            continue;
+        }
+        
+        // Find highest high and lowest low
+        let highest = candles[i].high;
+        let lowest = candles[i].low;
+        
+        for (let j = 0; j < kPeriod; j++) {
+            if (candles[i - j].high > highest) highest = candles[i - j].high;
+            if (candles[i - j].low < lowest) lowest = candles[i - j].low;
+        }
+        
+        // Calculate %K
+        const k = ((candles[i].close - lowest) / (highest - lowest)) * 100;
+        kValues.push(k);
+        
+        // Calculate %D (SMA of %K)
+        if (i < kPeriod + dPeriod - 2) {
+            dValues.push(null);
+        } else {
+            let sum = 0;
+            for (let j = 0; j < dPeriod; j++) {
+                sum += kValues[i - j];
+            }
+            dValues.push(sum / dPeriod);
+        }
+    }
+    
+    return {
+        name: 'Stochastic %K',
+        type: 'line',
+        data: kValues,
+        color: '#3B82F6',
+        lineWidth: 2,
+        series: [{
+            name: 'Stochastic %D',
+            data: dValues,
+            color: '#EF4444',
+            lineWidth: 1
+        }]
+    };
+}`
+            },
+            atr: {
+                name: 'Average True Range (ATR)',
+                description: 'ATR measures market volatility by calculating the average range between high and low prices. Higher values indicate higher volatility.',
+                code: `// Average True Range (ATR)
+// Measures market volatility
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 14;
+    const values = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i === 0) {
+            values.push(null);
+            continue;
+        }
+        
+        // True Range = max of:
+        // 1. Current High - Current Low
+        // 2. |Current High - Previous Close|
+        // 3. |Current Low - Previous Close|
+        const tr1 = candles[i].high - candles[i].low;
+        const tr2 = Math.abs(candles[i].high - candles[i - 1].close);
+        const tr3 = Math.abs(candles[i].low - candles[i - 1].close);
+        const tr = Math.max(tr1, tr2, tr3);
+        
+        if (i < period) {
+            values.push(null);
+        } else if (i === period) {
+            // First ATR is simple average
+            let sum = 0;
+            for (let j = 1; j <= period; j++) {
+                const tr1 = candles[j].high - candles[j].low;
+                const tr2 = Math.abs(candles[j].high - candles[j - 1].close);
+                const tr3 = Math.abs(candles[j].low - candles[j - 1].close);
+                sum += Math.max(tr1, tr2, tr3);
+            }
+            values.push(sum / period);
+        } else {
+            // Subsequent ATR = ((Prior ATR * (period - 1)) + TR) / period
+            const atr = ((values[i - 1] * (period - 1)) + tr) / period;
+            values.push(atr);
+        }
+    }
+    
+    return {
+        name: 'ATR(' + period + ')',
+        type: 'line',
+        data: values,
+        color: '#F59E0B',
+        lineWidth: 2
+    };
+}`
+            },
+            volume: {
+                name: 'Volume Indicator',
+                description: 'Displays trading volume with color coding. Green bars indicate price increase, red bars indicate price decrease. Helps confirm trend strength.',
+                code: `// Volume Indicator
+// Shows trading volume with color coding
+
+function calculateIndicator(candles, params = {}) {
+    const volumes = [];
+    const colors = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        volumes.push(candles[i].volume);
+        
+        // Color based on price movement
+        if (i === 0) {
+            colors.push('#10B981');
+        } else {
+            colors.push(candles[i].close >= candles[i - 1].close ? '#10B981' : '#EF4444');
+        }
+    }
+    
+    return {
+        name: 'Volume',
+        type: 'histogram',
+        data: volumes,
+        color: colors,
+        lineWidth: 1
+    };
+}`
+            },
+            ml_regression: {
+                name: 'ML: Linear Regression Trend',
+                description: 'Uses linear regression machine learning to predict price trends. Calculates the best-fit line through recent prices and projects future direction. The prediction line shows where the ML model expects prices to move.',
+                code: `// ML Linear Regression Trend Predictor
+// Uses least squares regression to predict trend
+
+function calculateIndicator(candles, params = {}) {
+    const period = params.period || 20;
+    const forecast = params.forecast || 5;
+    
+    const actual = [];
+    const predicted = [];
+    const futurePredict = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+            actual.push(candles[i].close);
+            predicted.push(null);
+            continue;
+        }
+        
+        // Get data window
+        const window = [];
+        for (let j = 0; j < period; j++) {
+            window.push(candles[i - j].close);
+        }
+        window.reverse();
+        
+        // Linear regression calculation
+        const regression = linearRegression(window);
+        const predictedValue = regression.slope * (period - 1) + regression.intercept;
+        
+        actual.push(candles[i].close);
+        predicted.push(predictedValue);
+    }
+    
+    // Forecast future values
+    if (candles.length >= period) {
+        const lastWindow = [];
+        for (let j = 0; j < period; j++) {
+            lastWindow.push(candles[candles.length - 1 - j].close);
+        }
+        lastWindow.reverse();
+        
+        const regression = linearRegression(lastWindow);
+        
+        for (let i = 0; i < forecast; i++) {
+            const futureValue = regression.slope * (period + i) + regression.intercept;
+            futurePredict.push(futureValue);
+        }
+    }
+    
+    return {
+        name: 'ML Regression',
+        type: 'line',
+        data: predicted,
+        color: '#8B5CF6',
+        lineWidth: 2,
+        series: [
+            {
+                name: 'Forecast',
+                data: [...Array(candles.length - forecast).fill(null), ...futurePredict],
+                color: '#F59E0B',
+                lineWidth: 2,
+                borderDash: [5, 5]
+            }
+        ]
+    };
+}
+
+// Linear regression helper
+function linearRegression(values) {
+    const n = values.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += values[i];
+        sumXY += i * values[i];
+        sumXX += i * i;
+    }
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    return { slope, intercept };
+}`
+            },
+            ml_momentum: {
+                name: 'ML: Momentum Predictor',
+                description: 'Machine learning indicator that analyzes price momentum patterns using weighted moving averages and rate of change. Predicts bullish (>50) or bearish (<50) momentum based on historical patterns.',
+                code: `// ML Momentum Predictor
+// Analyzes momentum patterns to predict direction
+
+function calculateIndicator(candles, params = {}) {
+    const lookback = params.lookback || 14;
+    const values = [];
+    const signals = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+        if (i < lookback) {
+            values.push(50); // Neutral
+            signals.push(null);
+            continue;
+        }
+        
+        // Feature extraction
+        const features = extractFeatures(candles, i, lookback);
+        
+        // Simple ML model: weighted score
+        const momentum = predictMomentum(features);
+        values.push(momentum);
+        
+        // Generate signals
+        if (momentum > 70) {
+            signals.push(100); // Strong buy
+        } else if (momentum < 30) {
+            signals.push(0); // Strong sell
+        } else {
+            signals.push(null);
+        }
+    }
+    
+    return {
+        name: 'ML Momentum',
+        type: 'line',
+        data: values,
+        color: '#3B82F6',
+        lineWidth: 2,
+        series: [
+            {
+                name: 'Signals',
+                data: signals,
+                color: '#10B981',
+                lineWidth: 0,
+                pointRadius: 4,
+                pointStyle: 'circle'
+            }
+        ]
+    };
+}
+
+function extractFeatures(candles, index, lookback) {
+    // Price momentum
+    const priceChange = (candles[index].close - candles[index - lookback].close) / candles[index - lookback].close;
+    
+    // Volume trend
+    let volumeUp = 0;
+    for (let i = 1; i < lookback; i++) {
+        if (candles[index - i].volume > candles[index - i - 1].volume) volumeUp++;
+    }
+    const volumeTrend = volumeUp / lookback;
+    
+    // Price volatility
+    let volatility = 0;
+    for (let i = 1; i < lookback; i++) {
+        volatility += Math.abs(candles[index - i].close - candles[index - i - 1].close);
+    }
+    volatility = volatility / lookback / candles[index].close;
+    
+    // Trend strength (higher highs/lower lows)
+    let upTrend = 0;
+    for (let i = 1; i < lookback; i++) {
+        if (candles[index - i].close > candles[index - i - 1].close) upTrend++;
+    }
+    const trendStrength = upTrend / lookback;
+    
+    return { priceChange, volumeTrend, volatility, trendStrength };
+}
+
+function predictMomentum(features) {
+    // Weighted scoring model (simplified ML)
+    let score = 50; // Neutral baseline
+    
+    // Price change impact (40% weight)
+    score += features.priceChange * 100 * 0.4;
+    
+    // Trend strength impact (30% weight)
+    score += (features.trendStrength - 0.5) * 100 * 0.3;
+    
+    // Volume trend impact (20% weight)
+    score += (features.volumeTrend - 0.5) * 100 * 0.2;
+    
+    // Volatility impact (10% weight) - high volatility reduces confidence
+    score -= features.volatility * 100 * 0.1;
+    
+    // Normalize to 0-100
+    return Math.max(0, Math.min(100, score));
+}`
+            }
+        };
+        
+        // Generate sample candle data with seed for consistency
+        function generateSampleData() {
+            const data = [];
+            let price = 100;
+            
+            // Use seeded random for consistent data
+            let seed = 12345;
+            const seededRandom = () => {
+                seed = (seed * 9301 + 49297) % 233280;
+                return seed / 233280;
+            };
+            
+            for (let i = 0; i < 50; i++) {
+                const change = (seededRandom() - 0.5) * 2;
+                price += change;
+                const open = price;
+                const close = price + (seededRandom() - 0.5);
+                const high = Math.max(open, close) + seededRandom();
+                const low = Math.min(open, close) - seededRandom();
+                
+                data.push({
+                    time: Date.now() - (50 - i) * 60000,
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: close,
+                    volume: seededRandom() * 1000 + 500
+                });
+            }
+            return data;
+        }
+        
+        function loadExample(exampleKey) {
+            const example = examples[exampleKey];
+            if (!example) return;
+            
+            document.getElementById('codeEditor').value = example.code;
+            document.getElementById('exampleDescription').innerHTML = 
+                '<strong>' + example.name + ':</strong> ' + example.description;
+            
+            // Don't reset sampleData - reuse existing data
+            testIndicator();
+        }
+        
+        function testIndicator() {
+            const code = document.getElementById('codeEditor').value;
+            const resultDiv = document.getElementById('testResult');
+            
+            try {
+                // Execute the code
+                eval(code);
+                
+                // Generate sample data once if not exists
+                if (!sampleData) {
+                    sampleData = generateSampleData();
+                }
+                
+                // Test the function
+                const result = calculateIndicator(sampleData, { period: 14 });
+                
+                // Validate result
+                if (!result || !result.data || !Array.isArray(result.data)) {
+                    throw new Error('Invalid return format. Must return object with data array.');
+                }
+                
+                // Show success
+                resultDiv.className = 'mt-4 p-3 rounded-lg bg-success/20 text-success border border-success';
+                resultDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Code executed successfully! Check the chart preview.';
+                resultDiv.classList.remove('hidden');
+                
+                // Update chart
+                updateChart(sampleData, result);
+                
+            } catch (error) {
+                resultDiv.className = 'mt-4 p-3 rounded-lg bg-red-500/20 text-red-400 border border-red-500';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i><strong>Error:</strong> ' + error.message;
+                resultDiv.classList.remove('hidden');
+            }
+        }
+        
+        function updateChart(candles, indicator) {
+            const canvas = document.getElementById('previewChart');
+            const ctx = canvas.getContext('2d');
+            
+            if (previewChart) {
+                previewChart.destroy();
+            }
+            
+            const labels = candles.map((c, i) => i);
+            const priceData = candles.map(c => c.close);
+            
+            const datasets = [
+                {
+                    label: 'Price',
+                    data: priceData,
+                    borderColor: '#9CA3AF',
+                    backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    yAxisID: 'y'
+                },
+                {
+                    label: indicator.name || 'Indicator',
+                    data: indicator.data,
+                    borderColor: indicator.color || '#FF4500',
+                    backgroundColor: 'transparent',
+                    borderWidth: indicator.lineWidth || 2,
+                    pointRadius: 0,
+                    yAxisID: 'y1'
+                }
+            ];
+            
+            // Add series if present
+            if (indicator.series) {
+                indicator.series.forEach(series => {
+                    datasets.push({
+                        label: series.name,
+                        data: series.data,
+                        borderColor: series.color,
+                        backgroundColor: series.type === 'bar' ? series.color : 'transparent',
+                        borderWidth: series.lineWidth || 1,
+                        pointRadius: series.pointRadius || 0,
+                        pointStyle: series.pointStyle || 'circle',
+                        borderDash: series.borderDash || [],
+                        type: series.type === 'bar' ? 'bar' : 'line',
+                        yAxisID: 'y1'
+                    });
+                });
+            }
+            
+            previewChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: '#9CA3AF' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: { color: '#9CA3AF' },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: {
+                            ticks: { color: '#9CA3AF' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function downloadTemplate() {
+            const code = document.getElementById('codeEditor').value;
+            const blob = new Blob([code], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'indicator_template.js';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            loadExample('sma');
+        });
+    </script>
+</body>
+</html>

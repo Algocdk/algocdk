@@ -178,6 +178,11 @@
                     <i class="fas fa-users mr-3"></i>
                     Bot Users
                 </a>
+                <a href="#indicators" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    Chart Indicators
+                    <span id="indicatorsBadge" class="ml-auto bg-primary px-2 py-1 rounded-full text-xs">0</span>
+                </a>
                 <a href="/screenshare-admin" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
                     <i class="fas fa-desktop mr-3"></i>
                     Screen Share
@@ -697,6 +702,9 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Chart Indicators View -->
+            <div id="indicatorsView" class="view-content hidden"></div>
         </main>
     </div>
 
@@ -755,6 +763,22 @@
     <script src="notifications.js"></script>
     <script src="admin-dashboard.js"></script>
     <script src="/theme-toggle.js"></script>
+    
+    <!-- Load Chart Indicators Module -->
+    <script>
+        fetch('/admin-indicators.html')
+            .then(r => r.text())
+            .then(html => {
+                document.getElementById('indicatorsView').innerHTML = html;
+                // Execute scripts in the loaded HTML
+                const scripts = document.getElementById('indicatorsView').querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
+                });
+            });
+    </script>
 
     <script>
         // Navigation handling
@@ -780,6 +804,7 @@
                 sites: 'My Sites',
                 transactions: 'Transactions',
                 users: 'Bot Users',
+                indicators: 'Chart Indicators',
                 bank: 'Bank Details',
                 profile: 'Profile'
             };
