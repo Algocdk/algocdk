@@ -40,6 +40,8 @@ func AdminOnly() gin.HandlerFunc {
 			return
 		}
 
+		// Set admin_id for handlers that need it
+		ctx.Set("admin_id", userID)
 		ctx.Next()
 	}
 }

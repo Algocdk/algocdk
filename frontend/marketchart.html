@@ -2049,7 +2049,8 @@
             const isMobile = window.innerWidth <= 768;
             const pad = isMobile ? 40 : 70;
             const w = canvas.width - pad * 2;
-            const h = canvas.height - pad * 2;
+            const indicatorPanelHeight = window.indicatorRenderer && window.indicatorRenderer.window2Indicators.length > 0 ? 180 : 0;
+            const h = canvas.height - pad * 2 - indicatorPanelHeight;
 
             // Responsive candle spacing
             const baseCandleSpacing = isMobile ? 4 : 6;
@@ -2202,6 +2203,11 @@
             
             // Draw drawing objects
             drawObjects();
+            
+            // Sync data with indicator renderer
+            if (window.indicatorRenderer && data.length > 0) {
+                window.indicatorRenderer.setChartData(data);
+            }
         }
         
         function drawLine(values, spacing, yFunc, pad) {
@@ -2987,6 +2993,9 @@
             }
         }
     </script>
+    
+    <!-- User Indicators Renderer (Full Visualization) -->
+    <script src="/indicator-renderer.js"></script>
 
 </body>
 
