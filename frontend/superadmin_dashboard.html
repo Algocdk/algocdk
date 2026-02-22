@@ -199,6 +199,10 @@
                     <i class="fas fa-chart-bar mr-3"></i>
                     Analytics
                 </a>
+                <a href="#messages" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-envelope mr-3"></i>
+                    Send Messages
+                </a>
                 <a href="#security" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
                     <i class="fas fa-shield-alt mr-3"></i>
                     Security
@@ -561,6 +565,69 @@
                 </div>
             </div>
 
+            <!-- Messages View -->
+            <div id="messagesView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6">
+                    <h3 class="text-xl font-semibold mb-6">Send Message to Users/Admins</h3>
+                    
+                    <form id="messageForm" onsubmit="sendMessage(event)" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Recipient Type</label>
+                            <select id="recipientType" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" onchange="loadRecipients()">
+                                <option value="">Select recipient type...</option>
+                                <option value="user">Users</option>
+                                <option value="admin">Admins</option>
+                                <option value="all">All Users & Admins</option>
+                            </select>
+                        </div>
+                        
+                        <div id="recipientSelectionDiv" style="display: none;">
+                            <label class="block text-sm font-medium mb-2">Select Recipients</label>
+                            <div class="mb-2">
+                                <button type="button" onclick="selectAllRecipients()" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm mr-2">
+                                    <i class="fas fa-check-square mr-1"></i>Select All
+                                </button>
+                                <button type="button" onclick="deselectAllRecipients()" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">
+                                    <i class="fas fa-square mr-1"></i>Deselect All
+                                </button>
+                            </div>
+                            <div class="bg-gray-700 border border-gray-600 rounded-lg p-4 max-h-64 overflow-y-auto">
+                                <div id="recipientsList" class="space-y-2"></div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Selected: <span id="selectedCount">0</span></p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Subject</label>
+                            <input type="text" id="messageSubject" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="Enter message subject">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Message</label>
+                            <textarea id="messageContent" required rows="6" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="Enter your message..."></textarea>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="sendEmail" checked class="mr-2">
+                                <span class="text-sm">Send as Email</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="sendNotification" checked class="mr-2">
+                                <span class="text-sm">Send as In-App Notification</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button type="submit" class="flex-1 bg-primary hover:bg-secondary px-6 py-3 rounded-lg font-semibold">
+                                <i class="fas fa-paper-plane mr-2"></i>Send Message
+                            </button>
+                            <button type="button" onclick="resetMessageForm()" class="bg-gray-600 hover:bg-gray-500 px-6 py-3 rounded-lg">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Admin Requests View -->
             <div id="admin-requestsView" class="view-content hidden">
                 <div class="bg-gray-800 rounded-xl p-6 mb-6">
@@ -683,6 +750,7 @@
                 bots: 'Bots Management',
                 sales: 'Sales Overview',
                 analytics: 'Platform Analytics',
+                messages: 'Send Messages',
                 settings: 'Settings'
             };
             const title = titles[view] || 'Dashboard';
@@ -1090,6 +1158,104 @@
         }
         
         // Search/Filter functions
+        function loadRecipients() {
+            const type = document.getElementById('recipientType').value;
+            const div = document.getElementById('recipientSelectionDiv');
+            const list = document.getElementById('recipientsList');
+            
+            if (!type) {
+                div.style.display = 'none';
+                return;
+            }
+            
+            div.style.display = 'block';
+            list.innerHTML = '';
+            
+            let recipients = [];
+            if (type === 'user' || type === 'all') {
+                recipients = recipients.concat(window.superAdminDashboard.data.users.map(u => ({...u, type: 'user'})));
+            }
+            if (type === 'admin' || type === 'all') {
+                recipients = recipients.concat(window.superAdminDashboard.data.admins.map(a => ({...a, type: 'admin'})));
+            }
+            
+            recipients.forEach(r => {
+                list.innerHTML += `
+                    <label class="flex items-center p-2 hover:bg-gray-600 rounded cursor-pointer">
+                        <input type="checkbox" class="recipient-checkbox mr-3" value="${r.id}" data-type="${r.type}" data-email="${r.email}" onchange="updateSelectedCount()">
+                        <div class="flex-1">
+                            <p class="font-medium">${r.name}</p>
+                            <p class="text-xs text-gray-400">${r.email} - ${r.type}</p>
+                        </div>
+                    </label>
+                `;
+            });
+        }
+        
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.recipient-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+        
+        function selectAllRecipients() {
+            document.querySelectorAll('.recipient-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+        
+        function deselectAllRecipients() {
+            document.querySelectorAll('.recipient-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+        
+        async function sendMessage(event) {
+            event.preventDefault();
+            
+            const recipients = Array.from(document.querySelectorAll('.recipient-checkbox:checked')).map(cb => ({
+                id: cb.value,
+                type: cb.dataset.type,
+                email: cb.dataset.email
+            }));
+            
+            if (recipients.length === 0) {
+                utils.notify('Please select at least one recipient', 'error');
+                return;
+            }
+            
+            const data = {
+                recipients: recipients,
+                subject: document.getElementById('messageSubject').value,
+                message: document.getElementById('messageContent').value,
+                send_email: document.getElementById('sendEmail').checked,
+                send_notification: document.getElementById('sendNotification').checked
+            };
+            
+            try {
+                const response = await fetch('/api/superadmin/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    utils.notify('Message sent successfully', 'success');
+                    resetMessageForm();
+                } else {
+                    throw new Error('Failed to send message');
+                }
+            } catch (error) {
+                utils.notify('Failed to send message', 'error');
+            }
+        }
+        
+        function resetMessageForm() {
+            document.getElementById('messageForm').reset();
+            document.getElementById('recipientSelectionDiv').style.display = 'none';
+            document.getElementById('selectedCount').textContent = '0';
+        }
+        
         function filterUsers() {
             const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
             const rows = document.querySelectorAll('#usersTableBody tr');

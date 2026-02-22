@@ -839,3 +839,42 @@ func GetUserTradesHandler(ctx *gin.Context) {
 		"total_profit": totalProfit,
 	})
 }
+
+// GetNotifications returns user notifications
+func GetNotifications(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	
+	userID := fmt.Sprintf("%v", userIDInterface)
+
+	var notifications []models.Notification
+	database.DB.Where("user_id = ?", userID).Order("created_at DESC").Limit(50).Find(&notifications)
+
+	c.JSON(http.StatusOK, gin.H{"notifications": notifications})
+}
+
+// MarkNotificationRead marks a notification as read
+func MarkNotificationRead(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	
+	userID := fmt.Sprintf("%v", userIDInterface)
+	notificationID := c.Param("id")
+
+	result := database.DB.Model(&models.Notification{}).
+		Where("id = ? AND user_id = ?", notificationID, userID).
+		Update("read", true)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Notification marked as read"})
+}

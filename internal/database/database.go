@@ -33,6 +33,7 @@ func InitDB() {
 		&models.DerivCredentials{},
 		&models.SuperAdmin{},
 		&models.ScreenShareSession{},
+		&models.Notification{},
 		&models.ScreenShareParticipant{},
 		&models.ScreenShareMessage{},
 		&models.ScreenShareJoinRequest{},

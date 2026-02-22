@@ -764,6 +764,14 @@
                     <div class="font-mono font-bold" id="topAccountBalance">$10,000.00</div>
                 </div>
                 
+                <!-- Notifications -->
+                <div class="relative">
+                    <a href="/notifications" class="relative bg-accent hover:bg-gray-600 p-2 rounded transition-colors block">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </a>
+                </div>
+                
                 <!-- Navigation Menu -->
                 <div class="relative">
                     <button id="navMenuBtn" class="flex items-center space-x-2 bg-accent hover:bg-gray-600 px-3 py-2 rounded transition-colors">
@@ -956,7 +964,13 @@
                     <option value="10">10s</option>
                     <option value="30">30s</option>
                     <option value="60" selected>1m</option>
+                    <option value="180">3m</option>
                     <option value="300">5m</option>
+                    <option value="900">15m</option>
+                    <option value="1800">30m</option>
+                    <option value="3600">1h</option>
+                    <option value="14400">4h</option>
+                    <option value="86400">1D</option>
                 </select>
                 <select id="indicators">
                     <option value="">Add Indicator</option>
@@ -995,7 +1009,10 @@
             <canvas id="chart"></canvas>
             
             <!-- Professional Chart Info Panel -->
-            <div class="chart-info" id="chartInfo">
+            <div class="chart-info" id="chartInfo" style="cursor: move;">
+                <div class="chart-info-header" style="padding: 4px 8px; background: rgba(0,0,0,0.3); cursor: move; user-select: none;">
+                    <i class="fas fa-grip-vertical" style="opacity: 0.5;"></i>
+                </div>
                 <div class="chart-info-row">
                     <span class="chart-info-label">Open:</span>
                     <span class="chart-info-value" id="infoOpen">-</span>
@@ -2348,6 +2365,59 @@
             updateChartInfo();
             setInterval(updateNavPriceTicker, 2000);
             setInterval(updateChartInfo, 1000);
+            makeDraggable('chartInfo');
+        }
+        
+        function makeDraggable(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.style.position = 'absolute';
+            
+            element.onmousedown = dragMouseDown;
+            element.ontouchstart = dragTouchStart;
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function dragTouchStart(e) {
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+            
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + 'px';
+                element.style.left = (element.offsetLeft - pos1) + 'px';
+            }
+            
+            function elementTouchDrag(e) {
+                pos1 = pos3 - e.touches[0].clientX;
+                pos2 = pos4 - e.touches[0].clientY;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                element.style.top = (element.offsetTop - pos2) + 'px';
+                element.style.left = (element.offsetLeft - pos1) + 'px';
+            }
+            
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
         }
         
         function updateNavPriceTicker() {
@@ -3842,8 +3912,9 @@
             connect();
             updateBotDisplay();
             startBackgroundUpdates();
-            await initializeAccountDisplay(); // Initialize account display with proper token handling
-            initProfessionalFeatures(); // Initialize professional features
+            await initializeAccountDisplay();
+            initProfessionalFeatures();
+            loadNotifications();
             
             // Notification permission should be requested from a user gesture.
             // Call `requestNotificationPermission()` from a click handler when appropriate.
@@ -3856,6 +3927,30 @@
                     Notification.requestPermission().catch(()=>{});
                 }
             }catch(e){}
+        }
+        
+        // Notification functions
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/user/notifications', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await response.json();
+                const notifications = data.notifications || [];
+                
+                const unreadCount = notifications.filter(n => !n.read).length;
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+            }
         }
 
         initializeApp();

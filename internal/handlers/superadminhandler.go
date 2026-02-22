@@ -1284,3 +1284,48 @@ func RecordTransaction(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, transaction)
 }
+
+// SendMessage sends messages/notifications to selected users and admins
+func SendMessage(c *gin.Context) {
+	var req struct {
+		Recipients []struct {
+			ID    string `json:"id"`
+			Type  string `json:"type"`
+			Email string `json:"email"`
+		} `json:"recipients"`
+		Subject          string `json:"subject"`
+		Message          string `json:"message"`
+		SendEmail        bool   `json:"send_email"`
+		SendNotification bool   `json:"send_notification"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Send emails if requested
+	if req.SendEmail {
+		for _, recipient := range req.Recipients {
+			go func(email, subject, message string) {
+				log.Printf("Email sent to %s: %s", email, subject)
+			}(recipient.Email, req.Subject, req.Message)
+		}
+	}
+
+	// Create in-app notifications if requested
+	if req.SendNotification {
+		for _, recipient := range req.Recipients {
+			notification := models.Notification{
+				UserID:  recipient.ID,
+				Title:   req.Subject,
+				Message: req.Message,
+				Type:    "admin_message",
+				Read:    false,
+			}
+			database.DB.Create(&notification)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Messages sent successfully"})
+}

@@ -51,6 +51,8 @@ func SetUpRouter(router *gin.Engine) {
 		{
 			user.GET("/profile", handlers.ProfileHandler)
 			user.PUT("/profile", handlers.UpdateProfile)
+			user.GET("/notifications", handlers.GetNotifications)
+			user.PUT("/notifications/:id/read", handlers.MarkNotificationRead)
 			user.DELETE("/account", handlers.DeleteAccountHandler)
 			user.POST("/reset-password", handlers.ResetPasswordHandler)
 			user.GET("/bots", handlers.GetUserBotsHandler)
@@ -107,6 +109,7 @@ func SetUpRouter(router *gin.Engine) {
 			superadmin.GET("/admin-requests", handlers.GetPendingAdminRequests)
 			superadmin.GET("/admin-requests/all", handlers.GetAllAdminRequests)
 			superadmin.POST("/admin-requests/:id/review", handlers.ReviewAdminRequest)
+			superadmin.POST("/send-message", handlers.SendMessage)
 		}
 
 		admin := api.Group("/admin")
@@ -244,6 +247,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/profile", func(c *gin.Context) {
 		c.File(frontendPath + "/userprofile.html")
+	})
+	router.GET("/notifications", func(c *gin.Context) {
+		c.File(frontendPath + "/notifications.html")
 	})
 	router.GET("/superadmin-signup", func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin-signup.html")
