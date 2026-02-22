@@ -4031,11 +4031,20 @@
             
             if (drawingTool === 'delete') {
                 deleteDrawingAt(x, y);
-            } else if (drawingTool) {
+                return;
+            }
+            
+            if (drawingTool) {
                 const clickedDrawing = findDrawingAt(x, y);
                 if (clickedDrawing) {
                     selectedDrawing = clickedDrawing;
                     isDraggingDrawing = true;
+                    dragStartX = x;
+                    dragStartY = y;
+                    objStartIndex1 = clickedDrawing.startIndex;
+                    objStartPrice1 = clickedDrawing.startPrice;
+                    objStartIndex2 = clickedDrawing.endIndex;
+                    objStartPrice2 = clickedDrawing.endPrice;
                     
                     const startScreenX = getXFromCandleIndex(clickedDrawing.startIndex);
                     const endScreenX = getXFromCandleIndex(clickedDrawing.endIndex);
@@ -4045,12 +4054,20 @@
                     const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
                     const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
                     
-                    dragPoint = distToStart < distToEnd ? 'start' : 'end';
+                    dragPoint = distToStart < 20 ? 'start' : (distToEnd < 20 ? 'end' : 'move');
                     draw();
-                } else {
-                    startDrawing(x, y);
+                    return;
                 }
+                startDrawing(x, y);
+                return;
+            }
+            
+            const clickedDrawing = findDrawingAt(x, y);
+            if (clickedDrawing) {
+                selectedDrawing = clickedDrawing;
+                draw();
             } else {
+                selectedDrawing = null;
                 isDragging = true;
                 lastX = touch.clientX;
             }
@@ -4059,27 +4076,31 @@
         canvas.addEventListener('touchmove', e => {
             e.preventDefault();
             const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
             
-            if (isDrawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                updateDrawing(x, y);
-            } else if (isDraggingDrawing && selectedDrawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                
+            if (isDraggingDrawing && selectedDrawing) {
                 const newIndex = getCandleIndexFromX(x);
                 const newPrice = getPriceFromY(y);
                 
                 if (dragPoint === 'start') {
                     selectedDrawing.startIndex = newIndex;
                     selectedDrawing.startPrice = newPrice;
-                } else {
+                } else if (dragPoint === 'end') {
                     selectedDrawing.endIndex = newIndex;
                     selectedDrawing.endPrice = newPrice;
+                } else if (dragPoint === 'move') {
+                    const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+                    const deltaPrice = newPrice - getPriceFromY(dragStartY);
+                    selectedDrawing.startIndex = objStartIndex1 + deltaIndex;
+                    selectedDrawing.startPrice = objStartPrice1 + deltaPrice;
+                    selectedDrawing.endIndex = objStartIndex2 + deltaIndex;
+                    selectedDrawing.endPrice = objStartPrice2 + deltaPrice;
                 }
+                draw();
+            } else if (isDrawing) {
+                updateDrawing(x, y);
                 draw();
             } else if (isDragging && !drawingTool) {
                 offset += (touch.clientX - lastX) / 10;

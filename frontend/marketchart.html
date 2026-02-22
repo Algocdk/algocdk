@@ -304,17 +304,32 @@
             <option value="">Add Indicator</option>
             <option value="sma20">SMA 20</option>
             <option value="sma50">SMA 50</option>
+            <option value="sma100">SMA 100</option>
             <option value="ema20">EMA 20</option>
+            <option value="ema50">EMA 50</option>
             <option value="bb">Bollinger Bands</option>
             <option value="rsi">RSI</option>
+            <option value="macd">MACD</option>
+            <option value="stoch">Stochastic</option>
+            <option value="atr">ATR</option>
         </select>
         
         <select id="drawingTools">
             <option value="">Drawing Tools</option>
+            <option value="text">Text Label</option>
             <option value="trendline">Trendline</option>
+            <option value="ray">Ray</option>
             <option value="horizontal">Horizontal Line</option>
+            <option value="vertical">Vertical Line</option>
+            <option value="arrow">Arrow</option>
             <option value="rectangle">Rectangle</option>
-            <option value="text">Text</option>
+            <option value="triangle">Triangle</option>
+            <option value="circle">Circle</option>
+            <option value="fibonacci">Fibonacci</option>
+            <option value="fibext">Fib Extension</option>
+            <option value="channel">Channel</option>
+            <option value="pitchfork">Pitchfork</option>
+            <option value="gann">Gann Fan</option>
         </select>
         
         <div id="activeIndicators"></div>
@@ -690,10 +705,12 @@
         }
         
         function isPointNearObject(obj, x, y, threshold = 15) {
-            if (obj.type === "trendline") {
+            if (obj.type === "trendline" || obj.type === "ray" || obj.type === "arrow") {
                 return distanceToLine(x, y, obj.x1, obj.y1, obj.x2, obj.y2) < threshold;
             } else if (obj.type === "horizontal") {
                 return Math.abs(y - obj.y1) < threshold;
+            } else if (obj.type === "vertical") {
+                return Math.abs(x - obj.x1) < threshold;
             } else if (obj.type === "rectangle") {
                 const minX = Math.min(obj.x1, obj.x2);
                 const maxX = Math.max(obj.x1, obj.x2);
@@ -707,6 +724,23 @@
                 );
                 const inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
                 return onBorder || inside;
+            } else if (obj.type === "triangle") {
+                const midX = (obj.x1 + obj.x2) / 2;
+                return distanceToLine(x, y, midX, obj.y1, obj.x1, obj.y2) < threshold ||
+                       distanceToLine(x, y, obj.x1, obj.y2, obj.x2, obj.y2) < threshold ||
+                       distanceToLine(x, y, obj.x2, obj.y2, midX, obj.y1) < threshold;
+            } else if (obj.type === "circle") {
+                const radius = Math.abs(obj.x2 - obj.x1) / 2;
+                const centerX = (obj.x1 + obj.x2) / 2;
+                const centerY = (obj.y1 + obj.y2) / 2;
+                const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                return Math.abs(dist - radius) < threshold;
+            } else if (obj.type === "fibonacci" || obj.type === "fibext" || obj.type === "channel" || obj.type === "pitchfork" || obj.type === "gann") {
+                const minX = Math.min(obj.x1, obj.x2);
+                const maxX = Math.max(obj.x1, obj.x2);
+                const minY = Math.min(obj.y1, obj.y2);
+                const maxY = Math.max(obj.y1, obj.y2);
+                return x >= minX - threshold && x <= maxX + threshold && y >= minY - threshold && y <= maxY + threshold;
             } else if (obj.type === "text") {
                 ctx.font = "14px Arial";
                 const metrics = ctx.measureText(obj.text || "Text");
@@ -776,13 +810,124 @@
                     ctx.moveTo(obj.x1, obj.y1);
                     ctx.lineTo(obj.x2, obj.y2);
                     ctx.stroke();
+                } else if (obj.type === "ray") {
+                    const dx = obj.x2 - obj.x1;
+                    const dy = obj.y2 - obj.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    if (length > 0) {
+                        const extendX = obj.x1 + (dx / length) * canvas.width;
+                        const extendY = obj.y1 + (dy / length) * canvas.width;
+                        ctx.beginPath();
+                        ctx.moveTo(obj.x1, obj.y1);
+                        ctx.lineTo(extendX, extendY);
+                        ctx.stroke();
+                    }
                 } else if (obj.type === "horizontal") {
                     ctx.beginPath();
                     ctx.moveTo(0, obj.y1);
                     ctx.lineTo(canvas.width, obj.y1);
                     ctx.stroke();
+                } else if (obj.type === "vertical") {
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, 0);
+                    ctx.lineTo(obj.x1, canvas.height);
+                    ctx.stroke();
+                } else if (obj.type === "arrow") {
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1);
+                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.stroke();
+                    const angle = Math.atan2(obj.y2 - obj.y1, obj.x2 - obj.x1);
+                    const headLength = 15;
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x2, obj.y2);
+                    ctx.lineTo(obj.x2 - headLength * Math.cos(angle - Math.PI / 6), obj.y2 - headLength * Math.sin(angle - Math.PI / 6));
+                    ctx.moveTo(obj.x2, obj.y2);
+                    ctx.lineTo(obj.x2 - headLength * Math.cos(angle + Math.PI / 6), obj.y2 - headLength * Math.sin(angle + Math.PI / 6));
+                    ctx.stroke();
                 } else if (obj.type === "rectangle") {
                     ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
+                } else if (obj.type === "triangle") {
+                    const midX = (obj.x1 + obj.x2) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(midX, obj.y1);
+                    ctx.lineTo(obj.x1, obj.y2);
+                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.closePath();
+                    ctx.stroke();
+                } else if (obj.type === "circle") {
+                    const radius = Math.abs(obj.x2 - obj.x1) / 2;
+                    const centerX = (obj.x1 + obj.x2) / 2;
+                    const centerY = (obj.y1 + obj.y2) / 2;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                } else if (obj.type === "fibonacci") {
+                    const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+                    const height = obj.y2 - obj.y1;
+                    levels.forEach(level => {
+                        const y = obj.y1 + height * level;
+                        ctx.globalAlpha = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(Math.min(obj.x1, obj.x2), y);
+                        ctx.lineTo(Math.max(obj.x1, obj.x2), y);
+                        ctx.stroke();
+                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(obj.x1, obj.x2) + 5, y - 5);
+                    });
+                    ctx.globalAlpha = 1;
+                } else if (obj.type === "fibext") {
+                    const levels = [0, 0.618, 1, 1.272, 1.618, 2.618];
+                    const height = obj.y2 - obj.y1;
+                    levels.forEach(level => {
+                        const y = obj.y1 + height * level;
+                        ctx.globalAlpha = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(Math.min(obj.x1, obj.x2), y);
+                        ctx.lineTo(Math.max(obj.x1, obj.x2), y);
+                        ctx.stroke();
+                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(obj.x1, obj.x2) + 5, y - 5);
+                    });
+                    ctx.globalAlpha = 1;
+                } else if (obj.type === "channel") {
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1);
+                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.stroke();
+                    const offset = (obj.y2 - obj.y1) * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1 + offset);
+                    ctx.lineTo(obj.x2, obj.y2 + offset);
+                    ctx.stroke();
+                } else if (obj.type === "pitchfork") {
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1);
+                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.stroke();
+                    const diff = (obj.y2 - obj.y1) * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1 - diff);
+                    ctx.lineTo(obj.x2, obj.y2 - diff);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1 + diff);
+                    ctx.lineTo(obj.x2, obj.y2 + diff);
+                    ctx.stroke();
+                } else if (obj.type === "gann") {
+                    const angles = [15, 30, 45, 60, 75];
+                    const length = 200;
+                    angles.forEach(angle => {
+                        const radians = (angle * Math.PI) / 180;
+                        ctx.globalAlpha = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(obj.x1, obj.y1);
+                        ctx.lineTo(obj.x1 + length * Math.cos(radians), obj.y1 - length * Math.sin(radians));
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(obj.x1, obj.y1);
+                        ctx.lineTo(obj.x1 + length * Math.cos(-radians), obj.y1 - length * Math.sin(-radians));
+                        ctx.stroke();
+                    });
+                    ctx.globalAlpha = 1;
                 } else if (obj.type === "text") {
                     ctx.font = "14px Arial";
                     ctx.fillText(obj.text, obj.x1, obj.y1);
@@ -793,30 +938,36 @@
                     ctx.strokeStyle = "#FFFFFF";
                     ctx.lineWidth = 2;
                     
-                    // Draw handles
+                    // Draw handles for all types
                     ctx.beginPath();
                     ctx.arc(obj.x1, obj.y1, 6, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                     
-                    if (obj.type !== "horizontal") {
+                    if (obj.type !== "horizontal" && obj.type !== "vertical") {
                         ctx.beginPath();
                         ctx.arc(obj.x2, obj.y2, 6, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
                     }
                     
-                    // Draw selection box for rectangles and text
-                    if (obj.type === "rectangle" || obj.type === "text") {
+                    // Draw selection box for complex shapes
+                    if (obj.type === "rectangle" || obj.type === "text" || obj.type === "triangle" || obj.type === "circle") {
                         ctx.strokeStyle = "#00FF00";
                         ctx.lineWidth = 1;
                         ctx.setLineDash([5, 5]);
                         if (obj.type === "rectangle") {
                             ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
-                        } else {
+                        } else if (obj.type === "text") {
                             ctx.font = "14px Arial";
                             const metrics = ctx.measureText(obj.text);
                             ctx.strokeRect(obj.x1 - 5, obj.y1 - 20, metrics.width + 10, 25);
+                        } else if (obj.type === "triangle" || obj.type === "circle") {
+                            const minX = Math.min(obj.x1, obj.x2);
+                            const maxX = Math.max(obj.x1, obj.x2);
+                            const minY = Math.min(obj.y1, obj.y2);
+                            const maxY = Math.max(obj.y1, obj.y2);
+                            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
                         }
                         ctx.setLineDash([]);
                     }
@@ -876,16 +1027,18 @@
         
         function getIndicatorName(type) {
             const names = {
-                sma20: "SMA 20", sma50: "SMA 50", ema20: "EMA 20",
-                bb: "BB", rsi: "RSI"
+                sma20: "SMA 20", sma50: "SMA 50", sma100: "SMA 100",
+                ema20: "EMA 20", ema50: "EMA 50",
+                bb: "BB", rsi: "RSI", macd: "MACD", stoch: "Stoch", atr: "ATR"
             };
             return names[type] || type;
         }
         
         function getIndicatorColor(type) {
             const colors = {
-                sma20: "#ffa500", sma50: "#00bfff", ema20: "#ff69b4",
-                bb: "#9370db", rsi: "#32cd32"
+                sma20: "#ffa500", sma50: "#00bfff", sma100: "#ff00ff",
+                ema20: "#ff69b4", ema50: "#00ff00",
+                bb: "#9370db", rsi: "#32cd32", macd: "#ffff00", stoch: "#00ffff", atr: "#ff6347"
             };
             return colors[type] || "#ffffff";
         }
@@ -941,6 +1094,58 @@
                 rsi.push(100 - (100 / (1 + rs)));
             }
             return rsi;
+        }
+        
+        function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+            const prices = data.map(c => c.close);
+            const fastEMA = calculateEMAFromPrices(prices, fastPeriod);
+            const slowEMA = calculateEMAFromPrices(prices, slowPeriod);
+            const macdLine = fastEMA.map((fast, i) => fast - slowEMA[i]);
+            const signalLine = calculateEMAFromPrices(macdLine.filter(v => v !== null), signalPeriod);
+            return { macd: macdLine, signal: signalLine };
+        }
+        
+        function calculateEMAFromPrices(prices, period) {
+            const k = 2 / (period + 1);
+            const ema = [prices[0] || 0];
+            for (let i = 1; i < prices.length; i++) {
+                ema[i] = prices[i] * k + ema[i - 1] * (1 - k);
+            }
+            return ema;
+        }
+        
+        function calculateStochastic(data, kPeriod = 14, dPeriod = 3) {
+            const stochK = data.map((_, i) => {
+                if (i < kPeriod - 1) return null;
+                const slice = data.slice(i - kPeriod + 1, i + 1);
+                const highest = Math.max(...slice.map(c => c.high));
+                const lowest = Math.min(...slice.map(c => c.low));
+                return ((data[i].close - lowest) / (highest - lowest)) * 100;
+            });
+            const stochD = stochK.filter(v => v !== null);
+            const d = calculateSMAFromPrices(stochD, dPeriod);
+            return { k: stochK, d };
+        }
+        
+        function calculateSMAFromPrices(prices, period) {
+            return prices.map((_, i) => {
+                if (i < period - 1) return null;
+                return prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+            });
+        }
+        
+        function calculateATR(data, period = 14) {
+            const tr = data.slice(1).map((c, i) => {
+                const prev = data[i];
+                return Math.max(c.high - c.low, Math.abs(c.high - prev.close), Math.abs(c.low - prev.close));
+            });
+            const atr = [null];
+            let sum = tr.slice(0, period).reduce((a, b) => a + b, 0);
+            atr.push(sum / period);
+            for (let i = period; i < tr.length; i++) {
+                atr.push((atr[atr.length - 1] * (period - 1) + tr[i]) / period);
+            }
+            return atr;
         }
         
         /* ================= DRAW ================= */
@@ -1019,8 +1224,16 @@
                         const sma = calculateSMA(fullData, 50);
                         drawLine(sma.slice(start, start + visible), candleSpacing, y, pad);
                     }
+                    else if (type === 'sma100') {
+                        const sma = calculateSMA(fullData, 100);
+                        drawLine(sma.slice(start, start + visible), candleSpacing, y, pad);
+                    }
                     else if (type === 'ema20') {
                         const ema = calculateEMA(fullData, 20);
+                        drawLine(ema.slice(start, start + visible), candleSpacing, y, pad);
+                    }
+                    else if (type === 'ema50') {
+                        const ema = calculateEMA(fullData, 50);
                         drawLine(ema.slice(start, start + visible), candleSpacing, y, pad);
                     }
                     else if (type === 'bb') {
@@ -1030,6 +1243,18 @@
                     else if (type === 'rsi') {
                         const rsi = calculateRSI(fullData);
                         drawRSI(rsi.slice(start, start + visible), candleSpacing, pad);
+                    }
+                    else if (type === 'macd') {
+                        const macd = calculateMACD(fullData);
+                        drawMACD(macd, start, visible, candleSpacing, pad);
+                    }
+                    else if (type === 'stoch') {
+                        const stoch = calculateStochastic(fullData);
+                        drawStoch(stoch, start, visible, candleSpacing, pad);
+                    }
+                    else if (type === 'atr') {
+                        const atr = calculateATR(fullData);
+                        drawATR(atr.slice(start, start + visible), candleSpacing, pad);
                     }
                 });
             }
@@ -1126,6 +1351,63 @@
             ctx.fillStyle = "#d1d4dc";
             ctx.font = "10px Arial";
             ctx.fillText("RSI", pad + 5, rsiY + 12);
+        }
+        
+        function drawMACD(macd, start, visible, spacing, pad) {
+            const h = 60;
+            const y = canvas.height - h - 10;
+            ctx.fillStyle = "#161b22";
+            ctx.fillRect(pad, y, canvas.width - pad * 2, h);
+            const visibleMacd = macd.macd.slice(start, start + visible);
+            const visibleSignal = macd.signal.slice(start, start + visible);
+            ctx.strokeStyle = "#ffff00";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            visibleMacd.forEach((val, i) => {
+                if (val) {
+                    const x = pad + i * spacing + spacing / 2;
+                    const py = y + h / 2 - val * 10;
+                    i === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py);
+                }
+            });
+            ctx.stroke();
+        }
+        
+        function drawStoch(stoch, start, visible, spacing, pad) {
+            const h = 60;
+            const y = canvas.height - h - 10;
+            ctx.fillStyle = "#161b22";
+            ctx.fillRect(pad, y, canvas.width - pad * 2, h);
+            const visibleK = stoch.k.slice(start, start + visible);
+            ctx.strokeStyle = "#00ffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            visibleK.forEach((val, i) => {
+                if (val !== null) {
+                    const x = pad + i * spacing + spacing / 2;
+                    const py = y + h - (val / 100) * h;
+                    i === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py);
+                }
+            });
+            ctx.stroke();
+        }
+        
+        function drawATR(atr, spacing, pad) {
+            const h = 60;
+            const y = canvas.height - h - 10;
+            ctx.fillStyle = "#161b22";
+            ctx.fillRect(pad, y, canvas.width - pad * 2, h);
+            ctx.strokeStyle = "#ff6347";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            atr.forEach((val, i) => {
+                if (val) {
+                    const x = pad + i * spacing + spacing / 2;
+                    const py = y + h - val * 10;
+                    i === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py);
+                }
+            });
+            ctx.stroke();
         }
 
         function drawPriceLabels(min, max, range, pad, h) {

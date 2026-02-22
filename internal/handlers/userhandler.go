@@ -847,7 +847,7 @@ func GetNotifications(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	userID := fmt.Sprintf("%v", userIDInterface)
 
 	var notifications []models.Notification
@@ -863,7 +863,7 @@ func MarkNotificationRead(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	
+
 	userID := fmt.Sprintf("%v", userIDInterface)
 	notificationID := c.Param("id")
 
