@@ -89,23 +89,17 @@
             border: 1px solid #2b2f3a;
         }
 
-        .brand-icon {
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, #FF4500, #FF6347);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-        }
-
         .brand-text {
-            color: #d1d4dc;
-            font-weight: 600;
-            font-size: 14px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .brand-text .brand-algo {
+            color: #FF4500;
+        }
+        
+        .brand-text .brand-cdk {
+            color: white;
         }
 
         /* Navigation */
@@ -200,14 +194,8 @@
                 padding: 6px 10px;
             }
             
-            .brand-icon {
-                width: 20px;
-                height: 20px;
-                font-size: 10px;
-            }
-            
             .brand-text {
-                font-size: 12px;
+                font-size: 14px;
             }
             
             .price-display {
@@ -284,8 +272,9 @@
 <body>
     <!-- Brand Header -->
     <div class="brand-header">
-        <div class="brand-icon">A</div>
-        <div class="brand-text">AlgoCDK</div>
+        <div class="brand-text">
+            <span class="brand-algo">Algo</span><span class="brand-cdk">cdk</span>
+        </div>
     </div>
 
     <!-- Price Display -->
@@ -320,6 +309,14 @@
             <option value="rsi">RSI</option>
         </select>
         
+        <select id="drawingTools">
+            <option value="">Drawing Tools</option>
+            <option value="trendline">Trendline</option>
+            <option value="horizontal">Horizontal Line</option>
+            <option value="rectangle">Rectangle</option>
+            <option value="text">Text</option>
+        </select>
+        
         <div id="activeIndicators"></div>
     </div>
 
@@ -345,6 +342,17 @@
         let currentCandle = null;
         let ws = null;
         let indicators = new Map();
+        let drawingObjects = [];
+        let selectedTool = null;
+        let drawingInProgress = null;
+        let selectedObject = null;
+        let dragHandle = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let objStartX1 = 0;
+        let objStartY1 = 0;
+        let objStartX2 = 0;
+        let objStartY2 = 0;
 
         /* ================= VIEWPORT ================= */
         let zoom = 1;              // candle width multiplier
@@ -377,6 +385,14 @@
         document.getElementById("indicators").onchange = e => {
             if (e.target.value) {
                 addIndicator(e.target.value);
+                e.target.value = "";
+            }
+        };
+        
+        document.getElementById("drawingTools").onchange = e => {
+            if (e.target.value) {
+                selectedTool = e.target.value;
+                canvas.style.cursor = "crosshair";
                 e.target.value = "";
             }
         };
@@ -425,7 +441,10 @@
             currentCandle = null;
             zoom = 1;
             offset = 0;
+            drawingObjects = [];
+            selectedObject = null;
             connect();
+            loadDrawings();
         }
 
         /* ================= CANDLE ENGINE ================= */
@@ -471,32 +490,119 @@
         /* ================= INTERACTION ================= */
         // Mouse interaction
         canvas.addEventListener("mousedown", e => {
-            isDragging = true;
-            lastX = e.clientX;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (selectedTool) {
+                startDrawing(x, y);
+            } else {
+                const clicked = findObjectAt(x, y);
+                if (clicked) {
+                    selectedObject = clicked;
+                    dragHandle = findHandle(clicked, x, y);
+                    dragStartX = x;
+                    dragStartY = y;
+                    objStartX1 = clicked.x1;
+                    objStartY1 = clicked.y1;
+                    objStartX2 = clicked.x2;
+                    objStartY2 = clicked.y2;
+                    canvas.style.cursor = "move";
+                    draw();
+                } else {
+                    selectedObject = null;
+                    isDragging = true;
+                    lastX = e.clientX;
+                }
+            }
         });
-        window.addEventListener("mouseup", () => isDragging = false);
+        
+        window.addEventListener("mouseup", e => {
+            if (drawingInProgress) {
+                finishDrawing();
+            }
+            isDragging = false;
+            dragHandle = null;
+            if (!selectedObject) {
+                canvas.style.cursor = "grab";
+            }
+        });
+        
         window.addEventListener("mousemove", e => {
-            if (!isDragging) return;
-            offset += (e.clientX - lastX) / 10;
-            lastX = e.clientX;
-            draw();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (drawingInProgress) {
+                updateDrawing(x, y);
+                draw();
+            } else if (selectedObject && dragHandle) {
+                updateObjectHandle(selectedObject, dragHandle, x, y);
+                draw();
+            } else if (isDragging) {
+                offset += (e.clientX - lastX) / 10;
+                lastX = e.clientX;
+                draw();
+            } else {
+                const obj = findObjectAt(x, y);
+                if (obj) {
+                    const handle = findHandle(obj, x, y);
+                    canvas.style.cursor = handle === "move" ? "move" : "nwse-resize";
+                } else {
+                    canvas.style.cursor = selectedTool ? "crosshair" : "grab";
+                }
+            }
         });
 
         // Touch interaction for mobile
         canvas.addEventListener("touchstart", e => {
             e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches[0].clientX - rect.left;
+            const y = e.touches[0].clientY - rect.top;
+            
             if (e.touches.length === 1) {
-                isDragging = true;
-                lastX = e.touches[0].clientX;
+                if (selectedTool) {
+                    startDrawing(x, y);
+                } else {
+                    const clicked = findObjectAt(x, y);
+                    if (clicked) {
+                        selectedObject = clicked;
+                        dragHandle = findHandle(clicked, x, y);
+                        dragStartX = x;
+                        dragStartY = y;
+                        objStartX1 = clicked.x1;
+                        objStartY1 = clicked.y1;
+                        objStartX2 = clicked.x2;
+                        objStartY2 = clicked.y2;
+                        draw();
+                    } else {
+                        selectedObject = null;
+                        isDragging = true;
+                        lastX = e.touches[0].clientX;
+                    }
+                }
             }
         });
         
         canvas.addEventListener("touchmove", e => {
             e.preventDefault();
-            if (e.touches.length === 1 && isDragging) {
-                offset += (e.touches[0].clientX - lastX) / 10;
-                lastX = e.touches[0].clientX;
-                draw();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches[0].clientX - rect.left;
+            const y = e.touches[0].clientY - rect.top;
+            
+            if (e.touches.length === 1) {
+                if (drawingInProgress) {
+                    updateDrawing(x, y);
+                    draw();
+                } else if (selectedObject && dragHandle) {
+                    updateObjectHandle(selectedObject, dragHandle, x, y);
+                    draw();
+                } else if (isDragging) {
+                    offset += (e.touches[0].clientX - lastX) / 10;
+                    lastX = e.touches[0].clientX;
+                    draw();
+                }
             } else if (e.touches.length === 2) {
                 // Pinch zoom
                 const touch1 = e.touches[0];
@@ -518,7 +624,11 @@
         
         canvas.addEventListener("touchend", e => {
             e.preventDefault();
+            if (drawingInProgress) {
+                finishDrawing();
+            }
             isDragging = false;
+            dragHandle = null;
             window.lastTouchDistance = null;
         });
 
@@ -529,7 +639,215 @@
             zoom = Math.max(0.5, Math.min(3, zoom));
             draw();
         });
+        
+        // Delete selected object
+        window.addEventListener("keydown", e => {
+            if ((e.key === "Delete" || e.key === "Backspace") && selectedObject) {
+                drawingObjects = drawingObjects.filter(obj => obj !== selectedObject);
+                selectedObject = null;
+                saveDrawings();
+                draw();
+            } else if (e.key === "Escape") {
+                selectedTool = null;
+                selectedObject = null;
+                canvas.style.cursor = "grab";
+                draw();
+            }
+        });
 
+        /* ================= DRAWING TOOLS ================= */
+        function startDrawing(x, y) {
+            const obj = { type: selectedTool, x1: x, y1: y, x2: x, y2: y, color: "#FF4500" };
+            if (selectedTool === "text") {
+                obj.text = prompt("Enter text:") || "Text";
+            }
+            drawingInProgress = obj;
+        }
+        
+        function updateDrawing(x, y) {
+            if (drawingInProgress) {
+                drawingInProgress.x2 = x;
+                drawingInProgress.y2 = y;
+            }
+        }
+        
+        function finishDrawing() {
+            if (drawingInProgress) {
+                drawingObjects.push(drawingInProgress);
+                saveDrawings();
+                drawingInProgress = null;
+                selectedTool = null;
+                canvas.style.cursor = "grab";
+            }
+        }
+        
+        function findObjectAt(x, y) {
+            for (let i = drawingObjects.length - 1; i >= 0; i--) {
+                const obj = drawingObjects[i];
+                if (isPointNearObject(obj, x, y)) return obj;
+            }
+            return null;
+        }
+        
+        function isPointNearObject(obj, x, y, threshold = 15) {
+            if (obj.type === "trendline") {
+                return distanceToLine(x, y, obj.x1, obj.y1, obj.x2, obj.y2) < threshold;
+            } else if (obj.type === "horizontal") {
+                return Math.abs(y - obj.y1) < threshold;
+            } else if (obj.type === "rectangle") {
+                const minX = Math.min(obj.x1, obj.x2);
+                const maxX = Math.max(obj.x1, obj.x2);
+                const minY = Math.min(obj.y1, obj.y2);
+                const maxY = Math.max(obj.y1, obj.y2);
+                const onBorder = (
+                    (Math.abs(x - minX) < threshold && y >= minY && y <= maxY) ||
+                    (Math.abs(x - maxX) < threshold && y >= minY && y <= maxY) ||
+                    (Math.abs(y - minY) < threshold && x >= minX && x <= maxX) ||
+                    (Math.abs(y - maxY) < threshold && x >= minX && x <= maxX)
+                );
+                const inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
+                return onBorder || inside;
+            } else if (obj.type === "text") {
+                ctx.font = "14px Arial";
+                const metrics = ctx.measureText(obj.text || "Text");
+                return x >= obj.x1 - 5 && x <= obj.x1 + metrics.width + 5 && 
+                       y >= obj.y1 - 20 && y <= obj.y1 + 5;
+            }
+            return false;
+        }
+        
+        function distanceToLine(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+            let xx, yy;
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * C; yy = y1 + param * D; }
+            const dx = px - xx;
+            const dy = py - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        function findHandle(obj, x, y) {
+            const threshold = 15;
+            if (Math.abs(x - obj.x1) < threshold && Math.abs(y - obj.y1) < threshold) return "start";
+            if (Math.abs(x - obj.x2) < threshold && Math.abs(y - obj.y2) < threshold) return "end";
+            return "move";
+        }
+        
+        function updateObjectHandle(obj, handle, x, y) {
+            if (handle === "start") {
+                obj.x1 = x;
+                obj.y1 = y;
+                if (obj.type === "horizontal") {
+                    obj.y2 = y;
+                }
+            } else if (handle === "end") {
+                obj.x2 = x;
+                obj.y2 = y;
+                if (obj.type === "horizontal") {
+                    obj.y1 = y;
+                }
+            } else if (handle === "move") {
+                const dx = x - dragStartX;
+                const dy = y - dragStartY;
+                obj.x1 = objStartX1 + dx;
+                obj.y1 = objStartY1 + dy;
+                obj.x2 = objStartX2 + dx;
+                obj.y2 = objStartY2 + dy;
+            }
+            saveDrawings();
+        }
+        
+        function drawObjects() {
+            [...drawingObjects, drawingInProgress].filter(Boolean).forEach(obj => {
+                ctx.strokeStyle = obj.color;
+                ctx.fillStyle = obj.color;
+                ctx.lineWidth = 2;
+                
+                if (obj.type === "trendline") {
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x1, obj.y1);
+                    ctx.lineTo(obj.x2, obj.y2);
+                    ctx.stroke();
+                } else if (obj.type === "horizontal") {
+                    ctx.beginPath();
+                    ctx.moveTo(0, obj.y1);
+                    ctx.lineTo(canvas.width, obj.y1);
+                    ctx.stroke();
+                } else if (obj.type === "rectangle") {
+                    ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
+                } else if (obj.type === "text") {
+                    ctx.font = "14px Arial";
+                    ctx.fillText(obj.text, obj.x1, obj.y1);
+                }
+                
+                if (obj === selectedObject) {
+                    ctx.fillStyle = "#00FF00";
+                    ctx.strokeStyle = "#FFFFFF";
+                    ctx.lineWidth = 2;
+                    
+                    // Draw handles
+                    ctx.beginPath();
+                    ctx.arc(obj.x1, obj.y1, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    if (obj.type !== "horizontal") {
+                        ctx.beginPath();
+                        ctx.arc(obj.x2, obj.y2, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    
+                    // Draw selection box for rectangles and text
+                    if (obj.type === "rectangle" || obj.type === "text") {
+                        ctx.strokeStyle = "#00FF00";
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        if (obj.type === "rectangle") {
+                            ctx.strokeRect(obj.x1, obj.y1, obj.x2 - obj.x1, obj.y2 - obj.y1);
+                        } else {
+                            ctx.font = "14px Arial";
+                            const metrics = ctx.measureText(obj.text);
+                            ctx.strokeRect(obj.x1 - 5, obj.y1 - 20, metrics.width + 10, 25);
+                        }
+                        ctx.setLineDash([]);
+                    }
+                }
+            });
+        }
+        
+        /* ================= PERSISTENCE ================= */
+        function saveDrawings() {
+            try {
+                const key = `chart_drawings_${SYMBOL}_${TIMEFRAME}`;
+                localStorage.setItem(key, JSON.stringify(drawingObjects));
+            } catch (e) {
+                console.error('Failed to save drawings:', e);
+            }
+        }
+        
+        function loadDrawings() {
+            try {
+                const key = `chart_drawings_${SYMBOL}_${TIMEFRAME}`;
+                const saved = localStorage.getItem(key);
+                if (saved) {
+                    drawingObjects = JSON.parse(saved);
+                    draw();
+                }
+            } catch (e) {
+                console.error('Failed to load drawings:', e);
+                drawingObjects = [];
+            }
+        }
+        
         /* ================= INDICATORS ================= */
         function addIndicator(type) {
             if (indicators.has(type)) return;
@@ -718,6 +1036,9 @@
 
             // Draw price labels
             drawPriceLabels(min, max, range, pad, h);
+            
+            // Draw drawing objects
+            drawObjects();
         }
         
         function drawLine(values, spacing, yFunc, pad) {
@@ -826,6 +1147,7 @@
 
         /* ================= START ================= */
         connect();
+        loadDrawings();
     </script>
 
 </body>

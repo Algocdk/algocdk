@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algocdk Trading Platform</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -1284,8 +1287,14 @@
         let priceAlerts = [];
         let showAlerts = false;
         let selectedDrawing = null;
-        let textInput = null;
-        let isEditingText = false;
+        let isDraggingDrawing = false;
+        let dragPoint = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let objStartIndex1 = 0;
+        let objStartPrice1 = 0;
+        let objStartIndex2 = 0;
+        let objStartPrice2 = 0;
 
         /* ================= VIEWPORT ================= */
         let zoom = 1;
@@ -1543,7 +1552,10 @@
             currentCandle = null;
             zoom = 1;
             offset = 0;
+            drawings = [];
+            selectedDrawing = null;
             connect();
+            loadDrawingsFromStorage();
         }
 
         /* ================= CANDLE ENGINE ================= */
@@ -1576,9 +1588,45 @@
             
             if (drawingTool === 'delete') {
                 deleteDrawingAt(x, y);
-            } else if (drawingTool) {
+                return;
+            }
+            
+            if (drawingTool) {
+                const clickedDrawing = findDrawingAt(x, y);
+                
+                if (clickedDrawing) {
+                    selectedDrawing = clickedDrawing;
+                    isDraggingDrawing = true;
+                    dragStartX = x;
+                    dragStartY = y;
+                    objStartIndex1 = clickedDrawing.startIndex;
+                    objStartPrice1 = clickedDrawing.startPrice;
+                    objStartIndex2 = clickedDrawing.endIndex;
+                    objStartPrice2 = clickedDrawing.endPrice;
+                    
+                    const startScreenX = getXFromCandleIndex(clickedDrawing.startIndex);
+                    const endScreenX = getXFromCandleIndex(clickedDrawing.endIndex);
+                    const startScreenY = getYFromPrice(clickedDrawing.startPrice);
+                    const endScreenY = getYFromPrice(clickedDrawing.endPrice);
+                    
+                    const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                    const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                    
+                    dragPoint = distToStart < 15 ? 'start' : (distToEnd < 15 ? 'end' : 'move');
+                    canvas.style.cursor = 'move';
+                    draw();
+                    return;
+                }
                 startDrawing(x, y);
+                return;
+            }
+            
+            const clickedDrawing = findDrawingAt(x, y);
+            if (clickedDrawing) {
+                selectedDrawing = clickedDrawing;
+                draw();
             } else {
+                selectedDrawing = null;
                 isDragging = true;
                 lastX = e.clientX;
             }
@@ -1588,19 +1636,48 @@
             if (isDrawing) {
                 finishDrawing();
             }
+            if (isDraggingDrawing) {
+                isDraggingDrawing = false;
+                dragPoint = null;
+                canvas.style.cursor = drawingTool ? 'crosshair' : 'grab';
+                saveDrawingsToStorage();
+            }
             isDragging = false;
         });
         
         window.addEventListener("mousemove", e => {
-            if (isDrawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (isDraggingDrawing && selectedDrawing) {
+                const newIndex = getCandleIndexFromX(x);
+                const newPrice = getPriceFromY(y);
+                
+                if (dragPoint === 'start') {
+                    selectedDrawing.startIndex = newIndex;
+                    selectedDrawing.startPrice = newPrice;
+                } else if (dragPoint === 'end') {
+                    selectedDrawing.endIndex = newIndex;
+                    selectedDrawing.endPrice = newPrice;
+                } else if (dragPoint === 'move') {
+                    const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+                    const deltaPrice = newPrice - getPriceFromY(dragStartY);
+                    selectedDrawing.startIndex = objStartIndex1 + deltaIndex;
+                    selectedDrawing.startPrice = objStartPrice1 + deltaPrice;
+                    selectedDrawing.endIndex = objStartIndex2 + deltaIndex;
+                    selectedDrawing.endPrice = objStartPrice2 + deltaPrice;
+                }
+                draw();
+            } else if (isDrawing) {
                 updateDrawing(x, y);
             } else if (isDragging && !drawingTool) {
                 offset += (e.clientX - lastX) / 10;
                 lastX = e.clientX;
                 draw();
+            } else if (!isDragging && !isDrawing) {
+                const obj = findDrawingAt(x, y);
+                canvas.style.cursor = obj ? 'pointer' : (drawingTool ? 'crosshair' : 'grab');
             }
         });
 
@@ -3038,6 +3115,16 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     navMenu.classList.add('hidden');
+                    selectedDrawing = null;
+                    draw();
+                } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDrawing) {
+                    const index = drawings.indexOf(selectedDrawing);
+                    if (index > -1) {
+                        drawings.splice(index, 1);
+                        selectedDrawing = null;
+                        saveDrawingsToStorage();
+                        draw();
+                    }
                 }
             });
         });
@@ -3293,7 +3380,7 @@
         }
         
         function startDrawing(x, y) {
-            if (!drawingTool || drawingTool === 'delete') return;
+            if (!drawingTool || drawingTool === 'delete' || isDraggingDrawing) return;
             
             if (drawingTool === 'text') {
                 addTextLabel(x, y);
@@ -3301,6 +3388,7 @@
             }
             
             isDrawing = true;
+            selectedDrawing = null;
             const candleIndex = getCandleIndexFromX(x);
             const price = getPriceFromY(y);
             const color = document.getElementById('drawingColor').value;
@@ -3341,6 +3429,7 @@
                 currentDrawing = null;
                 isDrawing = false;
                 saveDrawingsToStorage();
+                // Tool stays active for continuous drawing
             }
         }
         
@@ -3365,6 +3454,109 @@
             drawings.push(textDrawing);
             saveDrawingsToStorage();
             draw();
+        }
+        
+        function findDrawingEndpointAt(x, y) {
+            const endpointTolerance = 20;
+            
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const drawing = drawings[i];
+                
+                const startScreenX = getXFromCandleIndex(drawing.startIndex);
+                const endScreenX = getXFromCandleIndex(drawing.endIndex);
+                const startScreenY = getYFromPrice(drawing.startPrice);
+                const endScreenY = getYFromPrice(drawing.endPrice);
+                
+                const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                
+                if (distToStart < endpointTolerance) {
+                    return { drawing, point: 'start' };
+                }
+                if (distToEnd < endpointTolerance) {
+                    return { drawing, point: 'end' };
+                }
+            }
+            return null;
+        }
+        
+        function findDrawingAt(x, y) {
+            const clickTolerance = window.innerWidth < 768 ? 25 : 15;
+            
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const drawing = drawings[i];
+                
+                const startScreenX = getXFromCandleIndex(drawing.startIndex);
+                const endScreenX = getXFromCandleIndex(drawing.endIndex);
+                const startScreenY = getYFromPrice(drawing.startPrice);
+                const endScreenY = getYFromPrice(drawing.endPrice);
+                
+                let isNear = false;
+                
+                switch (drawing.type) {
+                    case 'line':
+                    case 'ray':
+                    case 'arrow':
+                        isNear = distanceToLine(x, y, startScreenX, startScreenY, endScreenX, endScreenY) < clickTolerance;
+                        break;
+                    case 'horizontal':
+                        isNear = Math.abs(y - startScreenY) < clickTolerance;
+                        break;
+                    case 'vertical':
+                        isNear = Math.abs(x - startScreenX) < clickTolerance;
+                        break;
+                    case 'rectangle':
+                        const minX = Math.min(startScreenX, endScreenX);
+                        const maxX = Math.max(startScreenX, endScreenX);
+                        const minY = Math.min(startScreenY, endScreenY);
+                        const maxY = Math.max(startScreenY, endScreenY);
+                        const onBorder = (
+                            (Math.abs(x - minX) < clickTolerance && y >= minY - clickTolerance && y <= maxY + clickTolerance) ||
+                            (Math.abs(x - maxX) < clickTolerance && y >= minY - clickTolerance && y <= maxY + clickTolerance) ||
+                            (Math.abs(y - minY) < clickTolerance && x >= minX - clickTolerance && x <= maxX + clickTolerance) ||
+                            (Math.abs(y - maxY) < clickTolerance && x >= minX - clickTolerance && x <= maxX + clickTolerance)
+                        );
+                        const inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
+                        isNear = onBorder || inside;
+                        break;
+                    case 'triangle':
+                        const midX = (startScreenX + endScreenX) / 2;
+                        isNear = distanceToLine(x, y, midX, startScreenY, startScreenX, endScreenY) < clickTolerance ||
+                                distanceToLine(x, y, startScreenX, endScreenY, endScreenX, endScreenY) < clickTolerance ||
+                                distanceToLine(x, y, endScreenX, endScreenY, midX, startScreenY) < clickTolerance;
+                        break;
+                    case 'circle':
+                        const radius = Math.abs(endScreenX - startScreenX) / 2;
+                        const centerX = (startScreenX + endScreenX) / 2;
+                        const centerY = (startScreenY + endScreenY) / 2;
+                        const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                        isNear = Math.abs(dist - radius) < clickTolerance;
+                        break;
+                    case 'text':
+                        ctx.font = `${drawing.fontSize || 14}px Arial`;
+                        const metrics = ctx.measureText(drawing.text || 'Text');
+                        isNear = x >= startScreenX - 5 && x <= startScreenX + metrics.width + 5 && 
+                               y >= startScreenY - 20 && y <= startScreenY + 5;
+                        break;
+                    case 'fibonacci':
+                    case 'fibext':
+                    case 'channel':
+                    case 'pitchfork':
+                    case 'gann':
+                        const boxMinX = Math.min(startScreenX, endScreenX);
+                        const boxMaxX = Math.max(startScreenX, endScreenX);
+                        const boxMinY = Math.min(startScreenY, endScreenY);
+                        const boxMaxY = Math.max(startScreenY, endScreenY);
+                        isNear = x >= boxMinX - clickTolerance && x <= boxMaxX + clickTolerance && 
+                                y >= boxMinY - clickTolerance && y <= boxMaxY + clickTolerance;
+                        break;
+                }
+                
+                if (isNear) {
+                    return drawing;
+                }
+            }
+            return null;
         }
         
         function deleteDrawingAt(x, y) {
@@ -3547,17 +3739,17 @@
         function drawDrawings() {
             // Draw saved drawings
             drawings.forEach(drawing => {
-                drawSingleDrawing(drawing);
+                const isSelected = drawing === selectedDrawing;
+                drawSingleDrawing(drawing, isSelected);
             });
             
             // Draw current drawing being created
             if (currentDrawing) {
-                drawSingleDrawing(currentDrawing);
+                drawSingleDrawing(currentDrawing, false);
             }
         }
         
-        function drawSingleDrawing(drawing) {
-            // Convert stored candle indices and prices to current screen coordinates
+        function drawSingleDrawing(drawing, isSelected = false) {
             let data = [...candles];
             if (currentCandle) data.push(currentCandle);
             if (!data.length) return;
@@ -3567,19 +3759,22 @@
             const visible = Math.floor((canvas.width - pad * 2) / candleSpacing);
             const start = Math.max(0, data.length - visible - Math.floor(offset));
             
-            // Calculate current screen positions from stored data positions
             const startScreenX = pad + (drawing.startIndex - start) * candleSpacing + candleSpacing / 2;
             const endScreenX = pad + (drawing.endIndex - start) * candleSpacing + candleSpacing / 2;
             const startScreenY = getYFromPrice(drawing.startPrice);
             const endScreenY = getYFromPrice(drawing.endPrice);
             
-            // Skip drawing if it's outside visible area
             if (startScreenX < 0 && endScreenX < 0) return;
             if (startScreenX > canvas.width && endScreenX > canvas.width) return;
             
             ctx.strokeStyle = drawing.color;
             ctx.fillStyle = drawing.color;
             ctx.lineWidth = drawing.lineWidth || 2;
+            
+            if (isSelected) {
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = (drawing.lineWidth || 2) + 1;
+            }
             
             // Set line style
             switch (drawing.lineStyle) {
@@ -3770,16 +3965,60 @@
                     ctx.stroke();
                     break;
             }
+            
+            if (isSelected) {
+                ctx.fillStyle = '#00FF00';
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.arc(startScreenX, startScreenY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                if (drawing.type !== 'horizontal' && drawing.type !== 'vertical') {
+                    ctx.beginPath();
+                    ctx.arc(endScreenX, endScreenY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                
+                if (drawing.type === 'rectangle' || drawing.type === 'text') {
+                    ctx.strokeStyle = '#00FF00';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    if (drawing.type === 'rectangle') {
+                        ctx.strokeRect(startScreenX, startScreenY, endScreenX - startScreenX, endScreenY - startScreenY);
+                    } else {
+                        ctx.font = `${drawing.fontSize || 14}px Arial`;
+                        const metrics = ctx.measureText(drawing.text);
+                        ctx.strokeRect(startScreenX - 5, startScreenY - 20, metrics.width + 10, 25);
+                    }
+                    ctx.setLineDash([]);
+                }
+            }
         }
         
         function saveDrawingsToStorage() {
-            localStorage.setItem('chartDrawings', JSON.stringify(drawings));
+            const key = `app_drawings_${SYMBOL}_${TIMEFRAME}`;
+            try {
+                localStorage.setItem(key, JSON.stringify(drawings));
+            } catch (e) {
+                console.error('Failed to save drawings:', e);
+            }
         }
         
         function loadDrawingsFromStorage() {
-            const saved = localStorage.getItem('chartDrawings');
-            if (saved) {
-                drawings = JSON.parse(saved);
+            const key = `app_drawings_${SYMBOL}_${TIMEFRAME}`;
+            try {
+                const saved = localStorage.getItem(key);
+                if (saved) {
+                    drawings = JSON.parse(saved);
+                    draw();
+                }
+            } catch (e) {
+                console.error('Failed to load drawings:', e);
+                drawings = [];
             }
         }
         
@@ -3793,7 +4032,24 @@
             if (drawingTool === 'delete') {
                 deleteDrawingAt(x, y);
             } else if (drawingTool) {
-                startDrawing(x, y);
+                const clickedDrawing = findDrawingAt(x, y);
+                if (clickedDrawing) {
+                    selectedDrawing = clickedDrawing;
+                    isDraggingDrawing = true;
+                    
+                    const startScreenX = getXFromCandleIndex(clickedDrawing.startIndex);
+                    const endScreenX = getXFromCandleIndex(clickedDrawing.endIndex);
+                    const startScreenY = getYFromPrice(clickedDrawing.startPrice);
+                    const endScreenY = getYFromPrice(clickedDrawing.endPrice);
+                    
+                    const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                    const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                    
+                    dragPoint = distToStart < distToEnd ? 'start' : 'end';
+                    draw();
+                } else {
+                    startDrawing(x, y);
+                }
             } else {
                 isDragging = true;
                 lastX = touch.clientX;
@@ -3809,6 +4065,22 @@
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
                 updateDrawing(x, y);
+            } else if (isDraggingDrawing && selectedDrawing) {
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                const newIndex = getCandleIndexFromX(x);
+                const newPrice = getPriceFromY(y);
+                
+                if (dragPoint === 'start') {
+                    selectedDrawing.startIndex = newIndex;
+                    selectedDrawing.startPrice = newPrice;
+                } else {
+                    selectedDrawing.endIndex = newIndex;
+                    selectedDrawing.endPrice = newPrice;
+                }
+                draw();
             } else if (isDragging && !drawingTool) {
                 offset += (touch.clientX - lastX) / 10;
                 lastX = touch.clientX;
@@ -3820,6 +4092,11 @@
             e.preventDefault();
             if (isDrawing) {
                 finishDrawing();
+            }
+            if (isDraggingDrawing) {
+                isDraggingDrawing = false;
+                dragPoint = null;
+                saveDrawingsToStorage();
             }
             isDragging = false;
         });
