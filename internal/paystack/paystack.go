@@ -167,28 +167,40 @@ func InitializePayment(ctx *gin.Context) {
 
 	var subaccountCode string
 	var companyPercent float64
-	if admin.PaystackSubaccountCode == "" && (admin.BankCode == "" || admin.AccountNumber == "" || admin.AccountName == "") {
-		log.Printf("No subaccount or bank details for admin ID %d, company takes 100%%", admin.ID)
+	if admin.BankCode == "" || admin.AccountNumber == "" || admin.AccountName == "" {
+		log.Printf("No bank details for admin ID %d, company takes 100%%", admin.ID)
 		companyPercent = 1.0
 	} else {
 		if admin.PaystackSubaccountCode == "" {
 			log.Printf("Creating subaccount for admin ID %d", admin.ID)
 			if err := CreatePaystackSubaccount(&admin); err != nil {
-				log.Printf("Failed to create Paystack subaccount: %v", err)
-				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create Paystack subaccount", "error": err.Error()})
+				log.Printf("Failed to create Paystack subaccount: %v, proceeding without split", err)
+				companyPercent = 1.0
+			} else {
+				subaccountCode = admin.PaystackSubaccountCode
+				switch input.PaymentType {
+				case "purchase":
+					companyPercent = 0.30
+				case "rent":
+					companyPercent = 0.20
+				default:
+					log.Printf("Invalid payment type: %s", input.PaymentType)
+					ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid payment type"})
+					return
+				}
+			}
+		} else {
+			subaccountCode = admin.PaystackSubaccountCode
+			switch input.PaymentType {
+			case "purchase":
+				companyPercent = 0.30
+			case "rent":
+				companyPercent = 0.20
+			default:
+				log.Printf("Invalid payment type: %s", input.PaymentType)
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid payment type"})
 				return
 			}
-		}
-		subaccountCode = admin.PaystackSubaccountCode
-		switch input.PaymentType {
-		case "purchase":
-			companyPercent = 0.30
-		case "rent":
-			companyPercent = 0.20
-		default:
-			log.Printf("Invalid payment type: %s", input.PaymentType)
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid payment type"})
-			return
 		}
 	}
 
@@ -227,7 +239,7 @@ func InitializePayment(ctx *gin.Context) {
 		"email":        user.Email,
 		"amount":       int(input.Amount * 100),
 		"reference":    reference,
-		"callback_url": os.Getenv("PAYSTACK_CALLBACK_URL"),
+		"callback_url": os.Getenv("BASE_URL") + "/api/payment/callback?reference=" + reference,
 		"currency":     "KES",
 	}
 	if subaccountCode != "" {

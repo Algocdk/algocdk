@@ -799,11 +799,11 @@
                             <i class="fas fa-video"></i>
                             <span>Live Sessions</span>
                         </a>
-                        <a id="adminDashboardLink" href="/admin_dashboard.html" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
+                        <a id="adminDashboardLink" href="/admin" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
                             <i class="fas fa-user-shield"></i>
                             <span>Admin Dashboard</span>
                         </a>
-                        <a id="superadminDashboardLink" href="/superadmin_dashboard.html" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
+                        <a id="superadminDashboardLink" href="/superadmin" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
                             <i class="fas fa-crown"></i>
                             <span>SuperAdmin Dashboard</span>
                         </a>
@@ -2639,22 +2639,11 @@
                 tradeMarket.value = SYMBOL;
             }
             
-            // Show cached balance immediately for better UX
-            const cachedBalance = localStorage.getItem(`${preferredType}Balance`);
-            if (cachedBalance) {
-                if (preferredType === 'demo') {
-                    demoBalance = parseFloat(cachedBalance);
-                } else {
-                    realBalance = parseFloat(cachedBalance);
-                }
-                isRealAccount = preferredType === 'real';
-                updateAccountDisplay();
-            }
-            
             if (!token) {
-                console.log('No auth token found, using local demo mode');
+                console.log('No auth token found');
                 isRealAccount = false;
-                updateAccountDisplay();
+                document.getElementById('accountBalance').textContent = 'Not Available';
+                document.getElementById('topAccountBalance').textContent = 'Not Available';
                 return;
             }
             
@@ -2673,16 +2662,20 @@
                         isRealAccount = preferredType === 'real';
                     } else {
                         isRealAccount = false;
+                        document.getElementById('accountBalance').textContent = 'Not Available';
+                        document.getElementById('topAccountBalance').textContent = 'Not Available';
                     }
                 } else {
                     isRealAccount = false;
+                    document.getElementById('accountBalance').textContent = 'Not Available';
+                    document.getElementById('topAccountBalance').textContent = 'Not Available';
                 }
             } catch (error) {
                 isRealAccount = false;
-                console.log('Failed to initialize account, using local demo:', error);
+                document.getElementById('accountBalance').textContent = 'Not Available';
+                document.getElementById('topAccountBalance').textContent = 'Not Available';
+                console.log('Failed to initialize account:', error);
             }
-            
-            updateAccountDisplay();
         }
         
         function connectDeriv(token, isDemo = true) {
@@ -2769,8 +2762,9 @@
             const durationUnit = document.getElementById('durationUnit').value;
             
             if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
-                // Simulate trade for demo purposes when not connected to Deriv
-                simulateTrade(tradeType, market, stake, duration, durationUnit);
+                if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
+                    window.location.href = '/settings';
+                }
                 return;
             }
             
@@ -2836,96 +2830,6 @@
             }
             
             return params;
-        }
-        
-        function simulateTrade(tradeType, market, stake, duration, durationUnit) {
-            // Show professional notification
-            showNotification(`Trade placed: ${tradeType} on ${market} for $${stake}`, 'success');
-            
-            // Simulate trade execution for demo purposes
-            const tradeTypeNames = {
-                'CALL': 'Rise',
-                'PUT': 'Fall',
-                'DIGITEVEN': 'Even',
-                'DIGITODD': 'Odd',
-                'DIGITMATCH': 'Matches',
-                'DIGITDIFF': 'Differs',
-                'DIGITOVER': 'Over',
-                'DIGITUNDER': 'Under',
-                'ONETOUCH': 'Touch',
-                'NOTOUCH': 'No Touch',
-                'RANGE': 'Stays Between',
-                'UPORDOWN': 'Goes Outside'
-            };
-            
-            const tradeName = tradeTypeNames[tradeType] || tradeType;
-            const contractId = 'DEMO_' + Date.now();
-            
-            // Update balance
-            if (isRealAccount) {
-                realBalance -= stake;
-            } else {
-                demoBalance -= stake;
-            }
-            updateAccountDisplay();
-            
-            // Add to recent trades
-            const trade = {
-                id: contractId,
-                symbol: market,
-                type: tradeName,
-                stake: stake,
-                time: new Date().toLocaleTimeString()
-            };
-            addLiveTrade(trade);
-            
-            // Simulate trade outcome after duration (for demo)
-            setTimeout(() => {
-                simulateTradeOutcome(trade);
-            }, Math.min(duration * 1000, 10000)); // Max 10 seconds for demo
-        }
-        
-        function simulateTradeOutcome(trade) {
-            // Random outcome for demo
-            const isWin = Math.random() > 0.4; // 60% win rate for demo
-            const multiplier = isWin ? 1.85 : 0; // Simplified payout
-            const payout = trade.stake * multiplier;
-            const profit = payout - trade.stake;
-            
-            if (isWin && payout > 0) {
-                if (isRealAccount) {
-                    realBalance += payout;
-                } else {
-                    demoBalance += payout;
-                }
-                updateAccountDisplay();
-                
-                // Update recent trades with outcome
-                updateTradeOutcome(trade.id, profit, true);
-                
-                // Professional notification
-                showNotification(`Trade Won! Profit: $${profit.toFixed(2)}`, 'success');
-            } else {
-                updateTradeOutcome(trade.id, -trade.stake, false);
-                showNotification(`Trade Lost: -$${trade.stake.toFixed(2)}`, 'error');
-            }
-        }
-        
-        function updateTradeOutcome(tradeId, profit, isWin) {
-            // Find and update the trade in recent trades display
-            const recentTrades = document.getElementById('recentTradesList');
-            const tradeElements = recentTrades.querySelectorAll('.bg-accent');
-            
-            tradeElements.forEach(element => {
-                const profitElement = element.querySelector('.text-warning, .text-danger, .text-success');
-                if (profitElement && profitElement.textContent.includes('Stake')) {
-                    const parentDiv = profitElement.parentElement;
-                    parentDiv.innerHTML = `
-                        <div class="${profit >= 0 ? 'text-success' : 'text-danger'} font-mono">${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}</div>
-                        <div class="text-gray-400 text-xs">${profit >= 0 ? 'Profit' : 'Loss'}</div>
-                    `;
-                }
-            });
         }
         
         function placeCustomTrade() {

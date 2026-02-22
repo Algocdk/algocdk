@@ -527,9 +527,9 @@ func UpdateAdminBankDetails(ctx *gin.Context) {
 		return
 	}
 
-	adminID := ctx.GetUint("admin_id") // Assuming middleware provides admin_id
+	userID := ctx.GetUint("user_id")
 	var admin models.Admin
-	if err := database.DB.First(&admin, adminID).Error; err != nil {
+	if err := database.DB.Where("person_id = ?", userID).First(&admin).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "Admin not found"})
 		return
 	}

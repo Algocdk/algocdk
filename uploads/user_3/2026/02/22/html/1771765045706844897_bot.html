@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Simple Deriv Algo Bot</title>
+<style>
+body{
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+.container{
+    margin-top:30px;
+}
+.card{
+    background:#1e293b;
+    padding:20px;
+    margin:10px auto;
+    width:300px;
+    border-radius:10px;
+}
+button{
+    padding:10px 20px;
+    background:#22c55e;
+    border:none;
+    border-radius:5px;
+    color:white;
+    cursor:pointer;
+}
+button:hover{
+    background:#16a34a;
+}
+input{
+    padding:8px;
+    width:250px;
+    margin:5px;
+}
+</style>
+</head>
+<body>
+
+<h1>Deriv Moving Average Bot</h1>
+
+<div class="container">
+
+<div class="card">
+<input type="text" id="token" placeholder="Enter Deriv API Token">
+<br>
+<button onclick="startBot()">Start Bot</button>
+</div>
+
+<div class="card">
+<p>Price: <span id="price">-</span></p>
+<p>Moving Avg: <span id="ma">-</span></p>
+<p>Status: <span id="status">Stopped</span></p>
+<p>Balance: <span id="balance">-</span></p>
+</div>
+
+</div>
+
+<script>
+
+let ws;
+let prices = [];
+let positionOpen = false;
+let app_id = YOUR_APP_ID; // <-- replace with your Deriv app id
+let symbol = "R_100"; // Volatility 100 Index
+let amount = 1; // trade amount
+
+function startBot(){
+    const token = document.getElementById("token").value;
+    ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=" + app_id);
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({authorize: token}));
+    };
+
+    ws.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+
+        if(data.msg_type === "authorize"){
+            document.getElementById("status").innerText = "Authorized";
+            ws.send(JSON.stringify({balance:1, subscribe:1}));
+            ws.send(JSON.stringify({ticks:symbol, subscribe:1}));
+        }
+
+        if(data.msg_type === "balance"){
+            document.getElementById("balance").innerText = data.balance.balance;
+        }
+
+        if(data.msg_type === "tick"){
+            handleTick(data.tick.quote);
+        }
+
+        if(data.msg_type === "buy"){
+            positionOpen = true;
+            document.getElementById("status").innerText = "Trade Opened";
+        }
+
+        if(data.msg_type === "proposal_open_contract"){
+            if(data.proposal_open_contract.is_sold){
+                positionOpen = false;
+                document.getElementById("status").innerText = "Trade Closed";
+            }
+        }
+    };
+}
+
+function handleTick(price){
+    prices.push(price);
+    if(prices.length > 5){
+        prices.shift();
+    }
+
+    let ma = prices.reduce((a,b)=>a+b,0)/prices.length;
+
+    document.getElementById("price").innerText = price;
+    document.getElementById("ma").innerText = ma.toFixed(2);
+
+    runStrategy(price, ma);
+}
+
+function runStrategy(price, ma){
+    if(positionOpen) return;
+
+    if(price > ma){
+        buyContract("CALL");
+    }
+    else if(price < ma){
+        buyContract("PUT");
+    }
+}
+
+function buyContract(type){
+    ws.send(JSON.stringify({
+        buy: 1,
+        price: amount,
+        parameters:{
+            amount: amount,
+            basis: "stake",
+            contract_type: type,
+            currency: "USD",
+            duration: 1,
+            duration_unit: "m",
+            symbol: symbol
+        }
+    }));
+}
+
+</script>
+</body>
+</html>

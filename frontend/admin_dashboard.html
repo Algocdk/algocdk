@@ -499,18 +499,27 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium mb-2">Bank Code *</label>
-                                <input type="text" name="bank_code" required placeholder="e.g., 044" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                                <input type="text" name="bank_code" required placeholder="e.g., 044 (Access Bank)" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                                <p class="text-xs text-gray-400 mt-1">Get bank codes from <a href="https://paystack.com/docs/api/miscellaneous/#bank" target="_blank" class="text-primary">Paystack docs</a></p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-2">Account Number *</label>
-                                <input type="text" name="account_number" required placeholder="Enter account number" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                                <input type="text" name="account_number" required placeholder="10 digit account number" maxlength="10" pattern="[0-9]{10}" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-2">Account Name *</label>
-                                <input type="text" name="account_name" required placeholder="Enter account name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
+                                <input type="text" name="account_name" required placeholder="Account holder name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2">
                             </div>
-                            <button type="submit" class="bg-primary hover:bg-secondary px-6 py-2 rounded-lg">
-                                Update Details
+                            <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                                <h4 class="font-medium mb-2 flex items-center">
+                                    <i class="fas fa-info-circle text-primary mr-2"></i>
+                                    Paystack Split Payment
+                                </h4>
+                                <p class="text-sm text-gray-400 mb-2">Your account will be set up as a Paystack subaccount for automatic payment splits.</p>
+                                <p class="text-xs text-gray-500">Subaccount code will be generated automatically after verification.</p>
+                            </div>
+                            <button type="submit" class="bg-primary hover:bg-secondary px-6 py-2 rounded-lg w-full">
+                                <i class="fas fa-save mr-2"></i>Update Bank Details
                             </button>
                         </div>
                     </form>

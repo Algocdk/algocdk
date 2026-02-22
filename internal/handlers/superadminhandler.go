@@ -157,7 +157,7 @@ func SuperAdminLoginHandler(ctx *gin.Context) {
 		superadmin.Role = "superadmin"
 	}
 
-	token, err := utils.GenerateToken(superadmin.ID, superadmin.Email)
+	token, err := utils.GenerateToken(superadmin.ID, superadmin.Email, "superadmin")
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return

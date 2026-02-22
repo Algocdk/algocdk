@@ -1101,13 +1101,16 @@
                 const response = await authFetch('/api/payment/initialize', {
                     method: 'POST',
                     body: JSON.stringify({
-                        amount: bot.price * 100, // Convert to cents
+                        amount: bot.price,
                         bot_id: bot.id,
-                        type: 'purchase'
+                        payment_type: 'purchase',
+                        description: `Purchase of ${bot.name}`
                     })
                 });
 
-                if (response.authorization_url) {
+                if (response.data && response.data.authorization_url) {
+                    window.location.href = response.data.authorization_url;
+                } else if (response.authorization_url) {
                     window.location.href = response.authorization_url;
                 } else {
                     showNotification('Payment initialization failed', 'error');
