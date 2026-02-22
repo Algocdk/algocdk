@@ -3,6 +3,7 @@ class SuperAdminDashboard {
   constructor() {
     this.currentUser = null;
     this.currentView = 'dashboard';
+    this.salesChart = null;
     this.data = {
       users: [],
       admins: [],
@@ -45,6 +46,11 @@ class SuperAdminDashboard {
       // Store the superadmin ID for future use
       if (this.currentUser && this.currentUser.id) {
         localStorage.setItem('superadminId', this.currentUser.id);
+      }
+      
+      // Store user's country for currency formatting
+      if (this.currentUser && this.currentUser.country) {
+        localStorage.setItem('userCountry', this.currentUser.country);
       }
       
       // Ensure we stay on superadmin dashboard
@@ -206,6 +212,13 @@ class SuperAdminDashboard {
       this.updatePerformanceStats();
       this.updateDashboard();
       
+      // Render sales chart if on sales view
+      console.log('Current view:', this.currentView, 'Hash:', window.location.hash);
+      if (this.currentView === 'sales' || window.location.hash === '#sales') {
+        console.log('On sales view, rendering chart after data load');
+        setTimeout(() => this.renderSalesChart(), 300);
+      }
+      
       console.log('Dashboard data loaded successfully');
       
     } catch (error) {
@@ -277,18 +290,172 @@ class SuperAdminDashboard {
 
   updateSalesStats() {
     const totalSales = this.data.salesAnalytics?.total_sales || 0;
+    const companyRevenue = this.data.salesAnalytics?.company_revenue || 0;
+    const adminRevenue = this.data.salesAnalytics?.admin_revenue || 0;
     const totalTransactions = this.data.salesAnalytics?.total_transactions || 0;
-    console.log('Updating sales stats:', { totalSales, totalTransactions });
+    console.log('Updating sales stats:', { totalSales, companyRevenue, adminRevenue, totalTransactions });
     
     const totalSalesElement = document.getElementById('totalSales');
+    const companyRevenueElement = document.getElementById('companyRevenue');
+    const adminRevenueElement = document.getElementById('adminRevenue');
     const totalTransactionsElement = document.getElementById('totalTransactions');
     
     if (totalSalesElement) {
       totalSalesElement.textContent = utils.formatCurrency(totalSales);
     }
+    if (companyRevenueElement) {
+      companyRevenueElement.textContent = utils.formatCurrency(companyRevenue);
+    }
+    if (adminRevenueElement) {
+      adminRevenueElement.textContent = utils.formatCurrency(adminRevenue);
+    }
     if (totalTransactionsElement) {
       totalTransactionsElement.textContent = totalTransactions;
     }
+  }
+
+  renderSalesChart() {
+    const canvas = document.getElementById('salesChart');
+    if (!canvas) {
+      console.error('Sales chart canvas not found');
+      return;
+    }
+    
+    // Check if canvas is visible
+    const isVisible = canvas.offsetParent !== null;
+    console.log('Canvas found:', canvas, 'Visible:', isVisible);
+    console.log('Rendering sales chart with data:', this.data.sales);
+    
+    // Destroy existing chart
+    if (this.salesChart) {
+      this.salesChart.destroy();
+    }
+    
+    const sales = this.data.sales || [];
+    
+    // Group by date
+    const dailyData = {};
+    sales.forEach(sale => {
+      const date = new Date(sale.sale_date).toLocaleDateString();
+      if (!dailyData[date]) {
+        dailyData[date] = { total: 0, company: 0, admin: 0, count: 0 };
+      }
+      dailyData[date].total += sale.amount || 0;
+      dailyData[date].company += sale.company_share || 0;
+      dailyData[date].admin += sale.admin_share || 0;
+      dailyData[date].count += 1;
+    });
+    
+    const dates = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
+    const totals = dates.map(date => dailyData[date].total);
+    const companyShares = dates.map(date => dailyData[date].company);
+    const adminShares = dates.map(date => dailyData[date].admin);
+    
+    console.log('Chart data:', { dates, totals, companyShares, adminShares });
+    
+    // Empty state - use sample data if no sales
+    if (dates.length === 0) {
+      console.log('No sales data, using sample data');
+      dates.push('No Data');
+      totals.push(0);
+      companyShares.push(0);
+      adminShares.push(0);
+    }
+    
+    const ctx = canvas.getContext('2d');
+    this.salesChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Total Sales',
+            data: totals,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderColor: '#10B981',
+            borderWidth: 0,
+            borderRadius: 6
+          },
+          {
+            label: 'Company Revenue (30%)',
+            data: companyShares,
+            backgroundColor: 'rgba(255, 69, 0, 0.8)',
+            borderColor: '#FF4500',
+            borderWidth: 0,
+            borderRadius: 6
+          },
+          {
+            label: 'Admin Revenue (70%)',
+            data: adminShares,
+            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+            borderColor: '#F59E0B',
+            borderWidth: 0,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { 
+              color: '#fff', 
+              font: { size: 13, weight: 'bold' },
+              padding: 15,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + utils.formatCurrency(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#9CA3AF',
+              font: { size: 12 },
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            },
+            grid: { 
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: { 
+              color: '#9CA3AF',
+              font: { size: 11 }
+            },
+            grid: { 
+              display: false,
+              drawBorder: false
+            }
+          }
+        },
+        barPercentage: 0.7,
+        categoryPercentage: 0.8
+      }
+    });
+    
+    console.log('Sales chart rendered successfully');
   }
 
   updatePerformanceStats() {
@@ -859,8 +1026,57 @@ class SuperAdminDashboard {
   }
 
   async editUser(userId) {
-    // Implementation for editing user
-    utils.notify('Edit user functionality to be implemented', 'info');
+    try {
+      const user = this.data.users.find(u => u.id == userId);
+      if (!user) {
+        utils.notify('User not found', 'error');
+        return;
+      }
+      
+      const content = `
+        <form onsubmit="window.superAdminDashboard.updateUser(event, '${userId}')">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Name</label>
+              <input type="text" name="name" value="${user.name || ''}" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Email</label>
+              <input type="email" name="email" value="${user.email || ''}" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Role</label>
+              <select name="role" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+              </select>
+            </div>
+            <div class="flex space-x-3 pt-4">
+              <button type="submit" class="flex-1 bg-primary hover:bg-secondary py-2 rounded-lg">Update</button>
+              <button type="button" onclick="closeModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg">Cancel</button>
+            </div>
+          </div>
+        </form>
+      `;
+      showModal('Edit User', content);
+    } catch (error) {
+      utils.notify('Failed to load user', 'error');
+    }
+  }
+
+  async updateUser(event, userId) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const userData = Object.fromEntries(formData);
+    
+    try {
+      await api.superadmin.updateUser(userId, userData);
+      utils.notify('User updated successfully', 'success');
+      closeModal();
+      await this.loadDashboardData();
+    } catch (error) {
+      utils.notify('Failed to update user', 'error');
+    }
   }
 
   async deleteUser(userId) {
@@ -886,12 +1102,62 @@ class SuperAdminDashboard {
   }
 
   async editAdmin(adminId) {
-    utils.notify('Edit admin functionality to be implemented', 'info');
+    try {
+      const admin = this.data.admins.find(a => a.id == adminId);
+      if (!admin) {
+        utils.notify('Admin not found', 'error');
+        return;
+      }
+      
+      const content = `
+        <form onsubmit="window.superAdminDashboard.updateAdmin(event, '${adminId}')">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Name</label>
+              <input type="text" name="name" value="${admin.name || ''}" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Email</label>
+              <input type="email" name="email" value="${admin.email || ''}" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Status</label>
+              <select name="status" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                <option value="active" ${admin.status === 'active' ? 'selected' : ''}>Active</option>
+                <option value="inactive" ${admin.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+            <div class="flex space-x-3 pt-4">
+              <button type="submit" class="flex-1 bg-primary hover:bg-secondary py-2 rounded-lg">Update</button>
+              <button type="button" onclick="closeModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg">Cancel</button>
+            </div>
+          </div>
+        </form>
+      `;
+      showModal('Edit Admin', content);
+    } catch (error) {
+      utils.notify('Failed to load admin', 'error');
+    }
+  }
+
+  async updateAdmin(event, adminId) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const adminData = Object.fromEntries(formData);
+    
+    try {
+      await api.superadmin.updateAdmin(adminId, adminData);
+      utils.notify('Admin updated successfully', 'success');
+      closeModal();
+      await this.loadDashboardData();
+    } catch (error) {
+      utils.notify('Failed to update admin', 'error');
+    }
   }
 
   async toggleAdminStatus(adminId) {
     try {
-      await api.superadmin.toggleAdminStatus();
+      await api.superadmin.toggleAdminStatus(adminId);
       utils.notify('Admin status updated', 'success');
       await this.loadDashboardData();
     } catch (error) {
@@ -900,9 +1166,9 @@ class SuperAdminDashboard {
   }
 
   async deleteAdmin(adminId) {
-    if (confirm('Are you sure you want to delete this admin?')) {
+    if (confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
       try {
-        await api.superadmin.deleteAdmin();
+        await api.superadmin.deleteAdmin(adminId);
         utils.notify('Admin deleted successfully', 'success');
         await this.loadDashboardData();
       } catch (error) {

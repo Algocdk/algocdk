@@ -974,69 +974,86 @@ func GetAllTransactions(ctx *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/superadmin/sales [get]
 func GetAllSales(ctx *gin.Context) {
-	var sales []models.Sale
-	if err := database.DB.Order("sale_date DESC").Find(&sales).Error; err != nil {
+	var transactions []models.Transaction
+	if err := database.DB.Where("status = ?", "success").Order("created_at DESC").Find(&transactions).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sales"})
 		return
 	}
 
 	// Calculate analytics
 	totalSales := 0.0
-	totalTransactions := len(sales)
+	totalCompanyRevenue := 0.0
+	totalAdminRevenue := 0.0
+	totalTransactions := len(transactions)
 	salesByType := make(map[string]int)
 	salesByMonth := make(map[string]float64)
-	recentSales := []gin.H{}
+	allSales := []gin.H{}
 
-	for _, sale := range sales {
-		totalSales += sale.Amount
-		salesByType[sale.SaleType]++
+	for _, tx := range transactions {
+		totalSales += tx.Amount
+		totalCompanyRevenue += tx.CompanyShare
+		totalAdminRevenue += tx.AdminShare
+		salesByType[tx.PaymentType]++
 
 		// Group by month
-		monthKey := sale.SaleDate.Format("2006-01")
-		salesByMonth[monthKey] += sale.Amount
+		monthKey := tx.CreatedAt.Format("2006-01")
+		salesByMonth[monthKey] += tx.Amount
 
-		// Get recent sales (last 10)
-		if len(recentSales) < 10 {
-			var buyer, seller models.User
-			var bot models.Bot
+		// Get buyer, seller, and bot info
+		var buyer, seller models.User
+		var bot models.Bot
 
-			database.DB.Select("id, name, email").First(&buyer, sale.BuyerID)
-			database.DB.Select("id, name, email").First(&seller, sale.SellerID)
-			database.DB.Select("id, name").First(&bot, sale.BotID)
+		database.DB.Select("id, name, email").First(&buyer, tx.UserID)
 
-			recentSales = append(recentSales, gin.H{
-				"id":        sale.ID,
-				"amount":    sale.Amount,
-				"sale_type": sale.SaleType,
-				"sale_date": sale.SaleDate,
-				"buyer": gin.H{
-					"id":    buyer.ID,
-					"name":  buyer.Name,
-					"email": buyer.Email,
-				},
-				"seller": gin.H{
-					"id":    seller.ID,
-					"name":  seller.Name,
-					"email": seller.Email,
-				},
-				"bot": gin.H{
-					"id":   bot.ID,
-					"name": bot.Name,
-				},
-			})
+		// Get seller (bot owner)
+		if err := database.DB.Select("id, name, owner_id").First(&bot, tx.BotID).Error; err == nil {
+			database.DB.Select("id, name, email").First(&seller, bot.OwnerID)
 		}
+
+		allSales = append(allSales, gin.H{
+			"id":             tx.ID,
+			"transaction_id": tx.Reference,
+			"amount":         tx.Amount,
+			"company_share":  tx.CompanyShare,
+			"admin_share":    tx.AdminShare,
+			"sale_type":      tx.PaymentType,
+			"sale_date":      tx.CreatedAt,
+			"buyer": gin.H{
+				"id":    buyer.ID,
+				"name":  buyer.Name,
+				"email": buyer.Email,
+			},
+			"seller": gin.H{
+				"id":    seller.ID,
+				"name":  seller.Name,
+				"email": seller.Email,
+			},
+			"bot": gin.H{
+				"id":   bot.ID,
+				"name": bot.Name,
+			},
+		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"sales": sales,
+		"sales": allSales,
 		"analytics": gin.H{
 			"total_sales":        totalSales,
+			"company_revenue":    totalCompanyRevenue,
+			"admin_revenue":      totalAdminRevenue,
 			"total_transactions": totalTransactions,
 			"sales_by_type":      salesByType,
 			"sales_by_month":     salesByMonth,
-			"recent_sales":       recentSales,
+			"recent_sales":       allSales[:minInt(10, len(allSales))],
 		},
 	})
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // GetPlatformPerformance godoc
