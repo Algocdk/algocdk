@@ -850,21 +850,32 @@
                 ` : ''}
 
                 <!-- Header -->
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                            <i class="fas fa-robot text-white text-lg"></i>
+                <div class="mb-4">
+                    ${bot.image ? `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px;">
+                        <img src="${bot.image}" alt="${bot.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center" style="display:none;">
+                            <i class="fas fa-robot text-white text-5xl"></i>
                         </div>
+                    </div>
+                    ` : `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-5xl"></i>
+                        </div>
+                    </div>
+                    `}
+                    <div class="flex items-start justify-between">
                         <div>
                             <h3 class="font-bold text-lg" style="color: var(--text-primary);">${bot.name}</h3>
                             <p class="text-xs" style="color: var(--text-secondary);">by ${bot.creator?.name || 'Unknown'}</p>
                         </div>
+                        ${isFree ? `
+                        <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">
+                            FREE
+                        </div>
+                        ` : ''}
                     </div>
-                    ${isFree ? `
-                    <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">
-                        FREE
-                    </div>
-                    ` : ''}
                 </div>
 
                 <!-- Description -->

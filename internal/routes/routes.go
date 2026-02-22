@@ -212,6 +212,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/assets", frontendPath)
 	router.Static("/js", frontendPath)
 	router.Static("/images", frontendPath+"/images")
+	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
 	router.StaticFile("/dashboard.js", frontendPath+"/dashboard.js")

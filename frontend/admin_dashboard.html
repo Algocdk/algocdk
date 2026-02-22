@@ -443,6 +443,8 @@
                             <thead>
                                 <tr class="border-b border-gray-700">
                                     <th class="text-left py-3 px-4">Date</th>
+                                    <th class="text-left py-3 px-4">Buyer</th>
+                                    <th class="text-left py-3 px-4">Bot</th>
                                     <th class="text-left py-3 px-4">Amount</th>
                                     <th class="text-left py-3 px-4">Type</th>
                                     <th class="text-left py-3 px-4">Status</th>
@@ -756,6 +758,8 @@
                     tbody.innerHTML = response.transactions.map(tx => `
                         <tr>
                             <td class="py-3 px-4">${new Date(tx.created_at).toLocaleDateString()}</td>
+                            <td class="py-3 px-4">${tx.buyer_name || 'N/A'}</td>
+                            <td class="py-3 px-4">${tx.bot_name || 'N/A'}</td>
                             <td class="py-3 px-4">${utils.formatCurrency(tx.amount)}</td>
                             <td class="py-3 px-4"><span class="bg-primary px-2 py-1 rounded text-xs">${tx.payment_type}</span></td>
                             <td class="py-3 px-4"><span class="bg-success px-2 py-1 rounded text-xs">${tx.status}</span></td>
@@ -763,7 +767,7 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8">No transactions found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8">No transactions found</td></tr>';
                 }
             } catch (error) {
                 utils.notify('Failed to load transactions', 'error');

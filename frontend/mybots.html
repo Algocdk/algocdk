@@ -252,15 +252,6 @@
             </a>
         </div>
 
-        <!-- Search Bar -->
-        <div class="hidden md:flex flex-1 max-w-md mx-4">
-            <div class="relative w-full">
-                <input type="text" id="searchInput" placeholder="Search my bots..."
-                    class="w-full pl-10 pr-4 py-2 form-input rounded-lg">
-                <i class="fas fa-search absolute left-3 top-3" style="color: var(--text-secondary);"></i>
-            </div>
-        </div>
-
         <div class="flex items-center space-x-4">
             <!-- Mobile Search Button -->
             <button class="md:hidden transition-colors" style="color: var(--text-secondary);" id="mobileSearchBtn">
@@ -686,16 +677,27 @@
 
             card.innerHTML = `
                 <div class="p-4">
+                    <!-- Bot Image -->
+                    ${botImage ? `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 120px;">
+                        <img src="${botImage}" alt="${botName}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center" style="display:none;">
+                            <i class="fas fa-robot text-white text-4xl"></i>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 120px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-4xl"></i>
+                        </div>
+                    </div>
+                    `}
+                    
                     <!-- Header -->
                     <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                                <i class="fas fa-robot text-white"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold" style="color: var(--text-primary);">${botName}</h3>
-                                <p class="text-xs" style="color: var(--text-secondary);">by ${botCreatorName}</p>
-                            </div>
+                        <div class="flex-1">
+                            <h3 class="font-semibold mb-1" style="color: var(--text-primary);">${botName}</h3>
+                            <p class="text-xs" style="color: var(--text-secondary);">by ${botCreatorName}</p>
                         </div>
                         <div class="flex items-center gap-2">
                             ${isRunning ? `
@@ -712,14 +714,14 @@
                         </div>
                     </div>
 
-                    <!-- Performance -->
+                    <!-- Info -->
                     <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="text-center">
-                            <p class="text-xs" style="color: var(--text-secondary);">Type</p>
+                        <div class="text-center p-2 rounded-lg" style="background: var(--bg-tertiary);">
+                            <p class="text-xs mb-1" style="color: var(--text-secondary);">Type</p>
                             <p class="font-semibold text-xs" style="color: var(--text-primary);">${purchaseType === 'rental' ? 'Rental' : 'Owned'}</p>
                         </div>
-                        <div class="text-center">
-                            <p class="text-xs" style="color: var(--text-secondary);">Cost</p>
+                        <div class="text-center p-2 rounded-lg" style="background: var(--bg-tertiary);">
+                            <p class="text-xs mb-1" style="color: var(--text-secondary);">Cost</p>
                             <p class="font-semibold text-xs" style="color: var(--text-primary);">$${purchaseType === 'rental' ? rentPrice : price}</p>
                         </div>
                     </div>
@@ -945,8 +947,8 @@
                     const cards = document.querySelectorAll('[data-bot-id]');
 
                     cards.forEach(card => {
-                        const botName = card.querySelector('h3').textContent.toLowerCase();
-                        const creatorName = card.querySelector('.text-white\\/80').textContent.toLowerCase();
+                        const botName = card.querySelector('h3')?.textContent.toLowerCase() || '';
+                        const creatorName = card.querySelector('.text-xs')?.textContent.toLowerCase() || '';
 
                         if (botName.includes(searchTerm) || creatorName.includes(searchTerm)) {
                             card.style.display = 'block';

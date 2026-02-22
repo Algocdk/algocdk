@@ -322,8 +322,15 @@ func GetAdminTransactions(ctx *gin.Context) {
 		return
 	}
 
+	// Get admin record to find admin.ID
+	var admin models.Admin
+	if err := database.DB.Where("person_id = ?", userIDUint).First(&admin).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "admin not found"})
+		return
+	}
+
 	var transactions []models.Transaction
-	if err := database.DB.Where("admin_id = ?", userIDUint).Order("created_at DESC").Find(&transactions).Error; err != nil {
+	if err := database.DB.Where("admin_id = ?", admin.ID).Order("created_at DESC").Find(&transactions).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Error fetching transactions",
 			"details": err.Error(),
@@ -331,17 +338,49 @@ func GetAdminTransactions(ctx *gin.Context) {
 		return
 	}
 
+	// Build response with buyer info
+	var transactionList []gin.H
 	totalSales := 0.0
 	totalAdminShare := 0.0
 	for _, tx := range transactions {
-		if tx.PaymentType == "purchase" || tx.PaymentType == "rent" {
+		if tx.Status == "success" && (tx.PaymentType == "purchase" || tx.PaymentType == "rent") {
 			totalSales += tx.Amount
 			totalAdminShare += tx.AdminShare
 		}
+
+		// Get buyer info
+		var user models.User
+		var buyerName, buyerEmail string
+		if err := database.DB.First(&user, tx.UserID).Error; err == nil {
+			buyerName = user.Name
+			buyerEmail = user.Email
+		}
+
+		// Get bot info
+		var bot models.Bot
+		var botName string
+		if err := database.DB.First(&bot, tx.BotID).Error; err == nil {
+			botName = bot.Name
+		}
+
+		transactionList = append(transactionList, gin.H{
+			"id":            tx.ID,
+			"reference":     tx.Reference,
+			"amount":        tx.Amount,
+			"admin_share":   tx.AdminShare,
+			"company_share": tx.CompanyShare,
+			"status":        tx.Status,
+			"payment_type":  tx.PaymentType,
+			"description":   tx.Description,
+			"created_at":    tx.CreatedAt,
+			"buyer_name":    buyerName,
+			"buyer_email":   buyerEmail,
+			"bot_name":      botName,
+		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"transactions":       transactions,
+		"transactions":       transactionList,
 		"total_sales":        totalSales,
 		"total_admin_share":  totalAdminShare,
 		"total_transactions": len(transactions),
@@ -372,8 +411,8 @@ func ListAdminBotsHandler(c *gin.Context) {
 	for _, bot := range bots {
 		// Fetch users associated with this bot
 		var users []models.User
-		database.DB.Joins("JOIN bot_users ON bot_users.user_id = people.id").
-			Where("bot_users.bot_id = ?", bot.ID).
+		database.DB.Joins("JOIN user_bots ON user_bots.user_id = users.id").
+			Where("user_bots.bot_id = ?", bot.ID).
 			Find(&users)
 
 		userList := []gin.H{}
@@ -620,8 +659,8 @@ func BotUsersHandler(c *gin.Context) {
 
 	// Get users from bot_users table (assuming many-to-many relationship)
 	var users []models.User
-	database.DB.Joins("JOIN bot_users ON bot_users.user_id = people.id").
-		Where("bot_users.bot_id = ?", bot.ID).
+	database.DB.Joins("JOIN user_bots ON user_bots.user_id = users.id").
+		Where("user_bots.bot_id = ?", bot.ID).
 		Find(&users)
 
 	userList := []gin.H{}
