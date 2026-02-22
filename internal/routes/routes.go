@@ -128,6 +128,11 @@ func SetUpRouter(router *gin.Engine) {
 			admin.DELETE("/bots/:bot_id/users/:user_id", handlers.RemoveUserFromBotHandler)
 			admin.POST("/reset_password/:id", handlers.ResetPasswordHandler)
 
+			// Chart Indicators Management
+			admin.POST("/indicators", handlers.CreateChartIndicator)
+			admin.PUT("/indicators/:id", handlers.UpdateChartIndicator)
+			admin.DELETE("/indicators/:id", handlers.DeleteChartIndicator)
+
 			// Sites Management
 			admin.POST("/create-site", handlers.CreateSiteHandler)
 			admin.GET("/sites", handlers.GetAdminSitesHandler)
@@ -141,6 +146,17 @@ func SetUpRouter(router *gin.Engine) {
 			admin.POST("/screenshare/start", handlers.StartScreenShareSession)
 			admin.POST("/screenshare/stop/:id", handlers.StopScreenShareSession)
 			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
+		}
+
+		// Chart Indicators (Public & User)
+		indicators := api.Group("/indicators")
+		{
+			indicators.GET("", handlers.GetChartIndicators) // Public marketplace
+			indicators.Use(middleware.AuthMiddleware())
+			{
+				indicators.GET("/my", handlers.GetUserIndicators)
+				indicators.POST("/:id/add", handlers.AddIndicatorToUser)
+			}
 		}
 
 		paystackGroup := api.Group("/payment")

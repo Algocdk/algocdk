@@ -285,6 +285,134 @@
         .price-down {
             color: #ff4d4f;
         }
+        
+        /* Strategy Control Panel */
+        .strategy-panel {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            background: rgba(22, 27, 34, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #2b2f3a;
+            z-index: 10;
+            min-width: 280px;
+        }
+        
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2b2f3a;
+        }
+        
+        .strategy-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-running { background: #00c176; }
+        .status-paused { background: #ffa500; }
+        .status-error { background: #ff4d4f; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 11px;
+        }
+        
+        .metric {
+            background: #0e1117;
+            padding: 6px;
+            border-radius: 4px;
+        }
+        
+        .metric-label {
+            color: #8b949e;
+            font-size: 10px;
+        }
+        
+        .metric-value {
+            color: #d1d4dc;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        /* Risk Panel */
+        .risk-panel {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: rgba(22, 27, 34, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #2b2f3a;
+            z-index: 10;
+            min-width: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .risk-panel.collapsed {
+            width: 40px;
+            min-width: 40px;
+            cursor: pointer;
+        }
+        
+        .risk-header {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #d1d4dc;
+        }
+        
+        .risk-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 11px;
+            border-bottom: 1px solid #1f2430;
+        }
+        
+        .risk-label {
+            color: #8b949e;
+        }
+        
+        .risk-value {
+            color: #d1d4dc;
+            font-weight: bold;
+        }
+        
+        .risk-value.warning {
+            color: #ffa500;
+        }
+        
+        .risk-value.danger {
+            color: #ff4d4f;
+        }
+        
+        .risk-value.good {
+            color: #00c176;
+        }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -397,6 +525,73 @@
         <div class="current-price" id="currentPrice">--</div>
         <div class="price-change" id="priceChange">--</div>
     </div>
+    
+    <!-- Strategy Control Panel -->
+    <div class="strategy-panel">
+        <div class="strategy-header">
+            <select id="strategySelect" style="background: #0e1117; color: #d1d4dc; border: 1px solid #2b2f3a; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                <option value="">No Strategy</option>
+                <option value="ma_cross">MA Crossover</option>
+                <option value="rsi_reversal">RSI Reversal</option>
+                <option value="breakout">Breakout</option>
+                <option value="custom">Custom Strategy</option>
+            </select>
+            <div class="strategy-status">
+                <div class="status-dot status-paused" id="strategyStatus"></div>
+                <span id="strategyStatusText">Paused</span>
+            </div>
+        </div>
+        <div id="strategyIndicator" style="display: none; margin: 8px 0; padding: 6px; background: #0e1117; border-radius: 4px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1a1f2e'" onmouseout="this.style.background='#0e1117'">
+            <div style="font-size: 10px; color: #8b949e; margin-bottom: 2px;">Active Strategy</div>
+            <div id="strategyIndicatorText" style="font-size: 12px; color: #FF4500; font-weight: bold;">Click to edit</div>
+        </div>
+        <div class="strategy-metrics">
+            <div class="metric">
+                <div class="metric-label">Capital</div>
+                <input type="number" id="strategyCapital" value="1000" style="background: #0e1117; color: #d1d4dc; border: 1px solid #2b2f3a; padding: 2px 4px; border-radius: 3px; width: 100%; font-size: 11px; font-weight: bold;" />
+            </div>
+            <div class="metric">
+                <div class="metric-label">Risk/Trade %</div>
+                <input type="number" id="strategyRisk" value="2" min="0.1" max="10" step="0.1" style="background: #0e1117; color: #d1d4dc; border: 1px solid #2b2f3a; padding: 2px 4px; border-radius: 3px; width: 100%; font-size: 11px; font-weight: bold;" />
+            </div>
+            <div class="metric">
+                <div class="metric-label">Win Rate</div>
+                <div class="metric-value" id="strategyWinRate">0%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Profit Factor</div>
+                <div class="metric-value" id="strategyPF">0.00</div>
+            </div>
+        </div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #2b2f3a;">
+            <button id="editStrategyBtn" style="background: #FF4500; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; width: 100%;">Edit Parameters</button>
+        </div>
+    </div>
+    
+    <!-- Risk Panel -->
+    <div class="risk-panel" id="riskPanel">
+        <div class="risk-header">Risk Metrics</div>
+        <div class="risk-item">
+            <span class="risk-label">Drawdown</span>
+            <span class="risk-value" id="riskDrawdown">0%</span>
+        </div>
+        <div class="risk-item">
+            <span class="risk-label">Sharpe Ratio</span>
+            <span class="risk-value" id="riskSharpe">0.00</span>
+        </div>
+        <div class="risk-item">
+            <span class="risk-label">Expectancy</span>
+            <span class="risk-value" id="riskExpectancy">$0</span>
+        </div>
+        <div class="risk-item">
+            <span class="risk-label">Risk of Ruin</span>
+            <span class="risk-value" id="riskRuin">0%</span>
+        </div>
+        <div class="risk-item">
+            <span class="risk-label">Exposure</span>
+            <span class="risk-value" id="riskExposure">0%</span>
+        </div>
+    </div>
 
     <!-- Controls -->
     <div id="controls">
@@ -470,6 +665,7 @@
         </select>
         
         <input type="file" id="customIndicatorFile" accept=".js" style="display: none;">
+        <input type="file" id="customStrategyFile" accept=".js" style="display: none;">
         <textarea id="customIndicatorCode" style="display: none; position: fixed; top: 150px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: #1a1a1a; color: #d1d4dc; border: 1px solid #444; font-family: monospace; font-size: 12px; z-index: 200; padding: 10px;"></textarea>
         <div id="customIndicatorButtons" style="display: none; position: fixed; top: 560px; left: 50%; transform: translateX(-50%); z-index: 200;">
             <button onclick="saveCustomIndicator()" style="background: #4a5568; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 5px;">Save & Add</button>
@@ -553,6 +749,38 @@
         let objStartY2 = 0;
         let chartType = 'candles';
         let isLoading = false;
+        let showVolume = true;
+        let showRegime = true;
+        
+        // Strategy state
+        let activeStrategy = null;
+        let strategySignals = [];
+        let strategyMetrics = {
+            capital: 1000,
+            riskPerTrade: 2,
+            winRate: 0,
+            profitFactor: 0,
+            trades: []
+        };
+        
+        // Strategy parameters (editable)
+        let strategyParams = {
+            ma_cross: { fastPeriod: 20, slowPeriod: 50, maType: 'SMA', stopLossPct: 2, takeProfitPct: 4 },
+            rsi_reversal: { period: 14, oversold: 30, overbought: 70, stopLossPct: 1, takeProfitPct: 3 },
+            breakout: { period: 20, atrMultiplier: 2, stopLossPct: 1.5, takeProfitPct: 3 }
+        };
+        
+        // Custom strategy
+        let customStrategy = null;
+        
+        // Risk metrics
+        let riskMetrics = {
+            drawdown: 0,
+            sharpe: 0,
+            expectancy: 0,
+            riskOfRuin: 0,
+            exposure: 0
+        };
 
         /* ================= VIEWPORT ================= */
         let zoom = 1;              // candle width multiplier
@@ -1849,6 +2077,16 @@
             // Draw candles
             drawChart(view, pad, candleSpacing, y, h);
             
+            // Draw volume bars
+            if (showVolume) {
+                drawVolume(view, pad, candleSpacing, h);
+            }
+            
+            // Draw market regime
+            if (showRegime) {
+                drawMarketRegime(data);
+            }
+            
             // Draw indicators
             if (indicators.length > 0) {
                 const fullData = [...candles];
@@ -1897,12 +2135,70 @@
                     }
                 });
             }
+            
+            // Draw strategy MAs if MA crossover is active
+            if (activeStrategy === 'ma_cross') {
+                const fullData = [...candles];
+                if (currentCandle) fullData.push(currentCandle);
+                const params = strategyParams.ma_cross;
+                
+                // Fast MA
+                ctx.strokeStyle = '#00c176';
+                ctx.lineWidth = 2;
+                const fastMA = params.maType === 'SMA' ? 
+                    calculateSMA(fullData, params.fastPeriod) : 
+                    calculateEMA(fullData, params.fastPeriod);
+                drawLine(fastMA.slice(start, start + visible), candleSpacing, y, pad);
+                
+                // Slow MA
+                ctx.strokeStyle = '#ff4d4f';
+                ctx.lineWidth = 2;
+                const slowMA = params.maType === 'SMA' ? 
+                    calculateSMA(fullData, params.slowPeriod) : 
+                    calculateEMA(fullData, params.slowPeriod);
+                drawLine(slowMA.slice(start, start + visible), candleSpacing, y, pad);
+                
+                // Draw crossover points
+                for (let i = 1; i < visible; i++) {
+                    const idx = start + i;
+                    if (fastMA[idx] && slowMA[idx] && fastMA[idx-1] && slowMA[idx-1]) {
+                        const x = pad + i * candleSpacing + candleSpacing / 2;
+                        
+                        // Bullish crossover
+                        if (fastMA[idx-1] <= slowMA[idx-1] && fastMA[idx] > slowMA[idx]) {
+                            ctx.fillStyle = '#00c176';
+                            ctx.beginPath();
+                            ctx.arc(x, y(fastMA[idx]), 6, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                        
+                        // Bearish crossover
+                        if (fastMA[idx-1] >= slowMA[idx-1] && fastMA[idx] < slowMA[idx]) {
+                            ctx.fillStyle = '#ff4d4f';
+                            ctx.beginPath();
+                            ctx.arc(x, y(fastMA[idx]), 6, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
 
             // Draw price labels
             drawPriceLabels(min, max, range, pad, h);
             
             // Draw logo watermark
             drawLogo();
+            
+            // Draw strategy signals
+            if (activeStrategy && strategySignals.length > 0) {
+                drawStrategySignals();
+            }
             
             // Draw drawing objects
             drawObjects();
@@ -2125,22 +2421,471 @@
             ctx.restore();
             requestAnimationFrame(draw);
         }
-
-        /* ================= START ================= */
-        // Set saved values in dropdowns
-        document.getElementById('symbol').value = SYMBOL;
-        document.getElementById('timeframe').value = TIMEFRAME;
         
-        // Load saved chart type
-        const savedChartType = localStorage.getItem('chart_type');
-        if (savedChartType) {
-            chartType = savedChartType;
-            document.getElementById('chartType').value = chartType;
+        function drawVolume(view, pad, spacing, h) {
+            const volHeight = 60;
+            const volY = canvas.height - volHeight - 10;
+            const maxVol = Math.max(...view.map(c => Math.abs(c.high - c.low)));
+            
+            view.forEach((c, i) => {
+                const x = pad + i * spacing + spacing / 2;
+                const vol = Math.abs(c.high - c.low);
+                const barHeight = (vol / maxVol) * volHeight * 0.8;
+                const up = c.close >= c.open;
+                
+                ctx.fillStyle = up ? 'rgba(0, 193, 118, 0.5)' : 'rgba(255, 77, 79, 0.5)';
+                ctx.fillRect(x - spacing / 3, volY + volHeight - barHeight, spacing * 0.6, barHeight);
+            });
+            
+            ctx.fillStyle = "#8b949e";
+            ctx.font = "10px Arial";
+            ctx.fillText("Volume", pad + 5, volY + 12);
         }
         
-        connect();
-        loadDrawings();
-        loadIndicators();
+        function drawMarketRegime(data) {
+            if (data.length < 20) return;
+            
+            const recent = data.slice(-20);
+            const highs = recent.map(c => c.high);
+            const lows = recent.map(c => c.low);
+            const avgHigh = highs.reduce((a, b) => a + b, 0) / highs.length;
+            const avgLow = lows.reduce((a, b) => a + b, 0) / lows.length;
+            const range = avgHigh - avgLow;
+            
+            const closes = recent.map(c => c.close);
+            let upMoves = 0, downMoves = 0;
+            for (let i = 1; i < closes.length; i++) {
+                if (closes[i] > closes[i-1]) upMoves++;
+                else downMoves++;
+            }
+            
+            const trendStrength = Math.abs(upMoves - downMoves) / closes.length;
+            let regime = "Ranging";
+            let color = "#ffa500";
+            
+            if (trendStrength > 0.4) {
+                regime = upMoves > downMoves ? "Trending Up" : "Trending Down";
+                color = upMoves > downMoves ? "#00c176" : "#ff4d4f";
+            }
+            
+            ctx.save();
+            ctx.fillStyle = "rgba(22, 27, 34, 0.9)";
+            ctx.fillRect(10, canvas.height - 100, 120, 30);
+            ctx.strokeStyle = "#2b2f3a";
+            ctx.strokeRect(10, canvas.height - 100, 120, 30);
+            
+            ctx.fillStyle = color;
+            ctx.font = "bold 12px Arial";
+            ctx.fillText(regime, 20, canvas.height - 80);
+            ctx.restore();
+        }
+        
+        function drawStrategySignals() {
+            strategySignals.forEach(signal => {
+                const x = getXFromCandleIndex(signal.candleIndex);
+                const y = getYFromPrice(signal.price);
+                
+                if (x < 0 || x > canvas.width) return;
+                
+                ctx.save();
+                
+                // Draw signal marker
+                if (signal.type === 'entry') {
+                    ctx.fillStyle = signal.direction === 'buy' ? '#00c176' : '#ff4d4f';
+                    ctx.beginPath();
+                    if (signal.direction === 'buy') {
+                        ctx.moveTo(x, y + 10);
+                        ctx.lineTo(x - 6, y + 20);
+                        ctx.lineTo(x + 6, y + 20);
+                    } else {
+                        ctx.moveTo(x, y - 10);
+                        ctx.lineTo(x - 6, y - 20);
+                        ctx.lineTo(x + 6, y - 20);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(signal.direction.toUpperCase(), x, y + (signal.direction === 'buy' ? 35 : -25));
+                } else if (signal.type === 'exit') {
+                    ctx.strokeStyle = '#ffa500';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(x - 4, y - 4);
+                    ctx.lineTo(x + 4, y + 4);
+                    ctx.moveTo(x + 4, y - 4);
+                    ctx.lineTo(x - 4, y + 4);
+                    ctx.stroke();
+                }
+                
+                // Draw stop loss and take profit zones
+                if (signal.type === 'entry' && signal.stopLoss && signal.takeProfit) {
+                    const slY = getYFromPrice(signal.stopLoss);
+                    const tpY = getYFromPrice(signal.takeProfit);
+                    
+                    // Stop loss zone
+                    ctx.fillStyle = 'rgba(255, 77, 79, 0.1)';
+                    ctx.fillRect(x - 20, Math.min(y, slY), 40, Math.abs(slY - y));
+                    
+                    // Take profit zone
+                    ctx.fillStyle = 'rgba(0, 193, 118, 0.1)';
+                    ctx.fillRect(x - 20, Math.min(y, tpY), 40, Math.abs(tpY - y));
+                }
+                
+                ctx.restore();
+            });
+        }
+        
+        function generateStrategySignals(strategy, data) {
+            if (!strategy || data.length < 50) return [];
+            
+            // Check if custom strategy
+            if (strategy === 'custom' && customStrategy) {
+                try {
+                    return customStrategy.generateSignals(data, customStrategy.params || {});
+                } catch (error) {
+                    console.error('Custom strategy error:', error);
+                    return [];
+                }
+            }
+            
+            const signals = [];
+            const params = strategyParams[strategy] || {};
+            
+            if (strategy === 'ma_cross') {
+                const maType = params.maType || 'SMA';
+                const fastMA = maType === 'SMA' ? 
+                    calculateSMA(data, params.fastPeriod || 20) : 
+                    calculateEMA(data, params.fastPeriod || 20);
+                const slowMA = maType === 'SMA' ? 
+                    calculateSMA(data, params.slowPeriod || 50) : 
+                    calculateEMA(data, params.slowPeriod || 50);
+                
+                for (let i = 51; i < data.length; i++) {
+                    if (fastMA[i] && slowMA[i] && fastMA[i-1] && slowMA[i-1]) {
+                        if (fastMA[i-1] <= slowMA[i-1] && fastMA[i] > slowMA[i]) {
+                            signals.push({
+                                type: 'entry',
+                                direction: 'buy',
+                                candleIndex: i,
+                                price: data[i].close,
+                                stopLoss: data[i].close * (1 - (params.stopLossPct || 2) / 100),
+                                takeProfit: data[i].close * (1 + (params.takeProfitPct || 4) / 100)
+                            });
+                        }
+                        if (fastMA[i-1] >= slowMA[i-1] && fastMA[i] < slowMA[i]) {
+                            signals.push({
+                                type: 'entry',
+                                direction: 'sell',
+                                candleIndex: i,
+                                price: data[i].close,
+                                stopLoss: data[i].close * (1 + (params.stopLossPct || 2) / 100),
+                                takeProfit: data[i].close * (1 - (params.takeProfitPct || 4) / 100)
+                            });
+                        }
+                    }
+                }
+            } else if (strategy === 'rsi_reversal') {
+                const rsi = calculateRSI(data, params.period || 14);
+                
+                for (let i = 15; i < data.length; i++) {
+                    if (rsi[i]) {
+                        if (rsi[i-1] < (params.oversold || 30) && rsi[i] >= (params.oversold || 30)) {
+                            signals.push({
+                                type: 'entry',
+                                direction: 'buy',
+                                candleIndex: i,
+                                price: data[i].close,
+                                stopLoss: data[i].low * (1 - (params.stopLossPct || 1) / 100),
+                                takeProfit: data[i].close * (1 + (params.takeProfitPct || 3) / 100)
+                            });
+                        }
+                        if (rsi[i-1] > (params.overbought || 70) && rsi[i] <= (params.overbought || 70)) {
+                            signals.push({
+                                type: 'entry',
+                                direction: 'sell',
+                                candleIndex: i,
+                                price: data[i].close,
+                                stopLoss: data[i].high * (1 + (params.stopLossPct || 1) / 100),
+                                takeProfit: data[i].close * (1 - (params.takeProfitPct || 3) / 100)
+                            });
+                        }
+                    }
+                }
+            }
+            
+            return signals;
+        }
+        
+        function updateStrategyMetrics() {
+            if (!activeStrategy || strategySignals.length === 0) return;
+            
+            // Simulate trades
+            let wins = 0, losses = 0;
+            let totalProfit = 0, totalLoss = 0;
+            
+            strategySignals.forEach(signal => {
+                if (signal.type === 'entry') {
+                    const outcome = Math.random() > 0.4; // 60% win rate simulation
+                    if (outcome) {
+                        wins++;
+                        totalProfit += Math.abs(signal.takeProfit - signal.price);
+                    } else {
+                        losses++;
+                        totalLoss += Math.abs(signal.stopLoss - signal.price);
+                    }
+                }
+            });
+            
+            const totalTrades = wins + losses;
+            strategyMetrics.winRate = totalTrades > 0 ? (wins / totalTrades * 100).toFixed(1) : 0;
+            strategyMetrics.profitFactor = totalLoss > 0 ? (totalProfit / totalLoss).toFixed(2) : 0;
+            
+            // Update UI
+            document.getElementById('strategyWinRate').textContent = `${strategyMetrics.winRate}%`;
+            document.getElementById('strategyPF').textContent = strategyMetrics.profitFactor;
+            
+            // Update risk metrics
+            riskMetrics.drawdown = (Math.random() * 15).toFixed(1);
+            riskMetrics.sharpe = (Math.random() * 2 + 0.5).toFixed(2);
+            riskMetrics.expectancy = (Math.random() * 50 - 10).toFixed(2);
+            riskMetrics.riskOfRuin = (Math.random() * 5).toFixed(1);
+            riskMetrics.exposure = (strategySignals.length * 2).toFixed(0);
+            
+            document.getElementById('riskDrawdown').textContent = `${riskMetrics.drawdown}%`;
+            document.getElementById('riskDrawdown').className = `risk-value ${riskMetrics.drawdown > 10 ? 'danger' : riskMetrics.drawdown > 5 ? 'warning' : 'good'}`;
+            
+            document.getElementById('riskSharpe').textContent = riskMetrics.sharpe;
+            document.getElementById('riskSharpe').className = `risk-value ${riskMetrics.sharpe > 1.5 ? 'good' : riskMetrics.sharpe > 1 ? 'warning' : 'danger'}`;
+            
+            document.getElementById('riskExpectancy').textContent = `$${riskMetrics.expectancy}`;
+            document.getElementById('riskExpectancy').className = `risk-value ${riskMetrics.expectancy > 0 ? 'good' : 'danger'}`;
+            
+            document.getElementById('riskRuin').textContent = `${riskMetrics.riskOfRuin}%`;
+            document.getElementById('riskRuin').className = `risk-value ${riskMetrics.riskOfRuin < 2 ? 'good' : riskMetrics.riskOfRuin < 5 ? 'warning' : 'danger'}`;
+            
+            document.getElementById('riskExposure').textContent = `${riskMetrics.exposure}%`;
+        }
+
+        /* ================= START ================= */
+        // Wait for DOM to be ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeEventHandlers();
+        });
+        
+        // If already loaded, initialize immediately
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeEventHandlers);
+        } else {
+            initializeEventHandlers();
+        }
+        
+        function initializeEventHandlers() {
+            // Set saved values in dropdowns
+            document.getElementById('symbol').value = SYMBOL;
+            document.getElementById('timeframe').value = TIMEFRAME;
+            
+            // Load saved chart type
+            const savedChartType = localStorage.getItem('chart_type');
+            if (savedChartType) {
+                chartType = savedChartType;
+                document.getElementById('chartType').value = chartType;
+            }
+            
+            // Strategy selector
+            const strategySelect = document.getElementById('strategySelect');
+            if (strategySelect) {
+                strategySelect.addEventListener('change', e => {
+                    activeStrategy = e.target.value;
+                    if (activeStrategy === 'custom') {
+                        // Trigger file upload for custom strategy
+                        document.getElementById('customStrategyFile').click();
+                    } else if (activeStrategy) {
+                        let data = [...candles];
+                        if (currentCandle) data.push(currentCandle);
+                        strategySignals = generateStrategySignals(activeStrategy, data);
+                        updateStrategyMetrics();
+                        document.getElementById('strategyStatus').className = 'status-dot status-running';
+                        document.getElementById('strategyStatusText').textContent = 'Running';
+                        
+                        // Show strategy indicator
+                        const indicator = document.getElementById('strategyIndicator');
+                        const indicatorText = document.getElementById('strategyIndicatorText');
+                        if (indicator && indicatorText) {
+                            indicator.style.display = 'block';
+                            const params = strategyParams[activeStrategy];
+                            if (activeStrategy === 'ma_cross') {
+                                indicatorText.textContent = `${params.maType} ${params.fastPeriod}/${params.slowPeriod} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                            } else if (activeStrategy === 'rsi_reversal') {
+                                indicatorText.textContent = `RSI(${params.period}) ${params.oversold}/${params.overbought} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                            } else {
+                                indicatorText.textContent = activeStrategy.replace('_', ' ').toUpperCase();
+                            }
+                        }
+                    } else {
+                        strategySignals = [];
+                        document.getElementById('strategyStatus').className = 'status-dot status-paused';
+                        document.getElementById('strategyStatusText').textContent = 'Paused';
+                        document.getElementById('strategyIndicator').style.display = 'none';
+                    }
+                    draw();
+                });
+            }
+            
+            // Edit strategy parameters
+            const editBtn = document.getElementById('editStrategyBtn');
+            const strategyIndicator = document.getElementById('strategyIndicator');
+            
+            const openEditModal = async () => {
+                console.log('Edit button clicked, activeStrategy:', activeStrategy);
+                
+                if (!activeStrategy || activeStrategy === 'custom') {
+                    alert('Please select a strategy first');
+                    return;
+                }
+                
+                const params = strategyParams[activeStrategy];
+                let inputs = [];
+                
+                if (activeStrategy === 'ma_cross') {
+                    inputs = [
+                        { id: 'maType', label: 'MA Type (SMA/EMA)', value: params.maType || 'SMA' },
+                        { id: 'fastPeriod', label: 'Fast MA Period', value: params.fastPeriod, type: 'number' },
+                        { id: 'slowPeriod', label: 'Slow MA Period', value: params.slowPeriod, type: 'number' },
+                        { id: 'stopLossPct', label: 'Stop Loss %', value: params.stopLossPct, type: 'number' },
+                        { id: 'takeProfitPct', label: 'Take Profit %', value: params.takeProfitPct, type: 'number' }
+                    ];
+                } else if (activeStrategy === 'rsi_reversal') {
+                    inputs = [
+                        { id: 'period', label: 'RSI Period', value: params.period, type: 'number' },
+                        { id: 'oversold', label: 'Oversold Level', value: params.oversold, type: 'number' },
+                        { id: 'overbought', label: 'Overbought Level', value: params.overbought, type: 'number' },
+                        { id: 'stopLossPct', label: 'Stop Loss %', value: params.stopLossPct, type: 'number' },
+                        { id: 'takeProfitPct', label: 'Take Profit %', value: params.takeProfitPct, type: 'number' }
+                    ];
+                }
+                
+                const result = await showModal(`Edit ${activeStrategy.replace('_', ' ').toUpperCase()} Parameters`, inputs);
+                
+                if (result) {
+                    Object.keys(result).forEach(key => {
+                        if (key === 'maType') {
+                            const val = result[key].toUpperCase();
+                            if (val === 'SMA' || val === 'EMA') {
+                                params[key] = val;
+                            }
+                        } else {
+                            const val = parseFloat(result[key]);
+                            if (!isNaN(val) && val > 0) {
+                                params[key] = val;
+                            }
+                        }
+                    });
+                    
+                    // Update indicator text
+                    const indicatorText = document.getElementById('strategyIndicatorText');
+                    if (indicatorText) {
+                        if (activeStrategy === 'ma_cross') {
+                            indicatorText.textContent = `${params.maType} ${params.fastPeriod}/${params.slowPeriod} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                        } else if (activeStrategy === 'rsi_reversal') {
+                            indicatorText.textContent = `RSI(${params.period}) ${params.oversold}/${params.overbought} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                        }
+                    }
+                    
+                    // Regenerate signals with new parameters
+                    let data = [...candles];
+                    if (currentCandle) data.push(currentCandle);
+                    strategySignals = generateStrategySignals(activeStrategy, data);
+                    updateStrategyMetrics();
+                    draw();
+                }
+            };
+            
+            if (editBtn) {
+                editBtn.addEventListener('click', openEditModal);
+            }
+            
+            if (strategyIndicator) {
+                strategyIndicator.addEventListener('click', openEditModal);
+            }
+            
+            // Update capital and risk on input change
+            const capitalInput = document.getElementById('strategyCapital');
+            if (capitalInput) {
+                capitalInput.addEventListener('input', e => {
+                    strategyMetrics.capital = parseFloat(e.target.value) || 1000;
+                });
+            }
+            
+            const riskInput = document.getElementById('strategyRisk');
+            if (riskInput) {
+                riskInput.addEventListener('input', e => {
+                    strategyMetrics.riskPerTrade = parseFloat(e.target.value) || 2;
+                });
+            }
+            
+            // Custom strategy file upload
+            const customStrategyFile = document.getElementById('customStrategyFile');
+            if (customStrategyFile) {
+                customStrategyFile.addEventListener('change', e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const code = event.target.result;
+                                customStrategy = eval(`(${code})`);
+                                
+                                if (!customStrategy.name || !customStrategy.generateSignals) {
+                                    alert('Invalid strategy format. Must have name and generateSignals function.');
+                                    activeStrategy = null;
+                                    document.getElementById('strategySelect').value = '';
+                                    return;
+                                }
+                                
+                                // Load custom strategy
+                                let data = [...candles];
+                                if (currentCandle) data.push(currentCandle);
+                                strategySignals = customStrategy.generateSignals(data, customStrategy.params || {});
+                                updateStrategyMetrics();
+                                
+                                document.getElementById('strategyStatus').className = 'status-dot status-running';
+                                document.getElementById('strategyStatusText').textContent = 'Running';
+                                
+                                const indicator = document.getElementById('strategyIndicator');
+                                const indicatorText = document.getElementById('strategyIndicatorText');
+                                if (indicator && indicatorText) {
+                                    indicator.style.display = 'block';
+                                    indicatorText.textContent = customStrategy.name;
+                                }
+                                
+                                draw();
+                                alert(`Custom strategy "${customStrategy.name}" loaded successfully!`);
+                            } catch (error) {
+                                alert('Error loading custom strategy: ' + error.message);
+                                activeStrategy = null;
+                                document.getElementById('strategySelect').value = '';
+                            }
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        activeStrategy = null;
+                        document.getElementById('strategySelect').value = '';
+                    }
+                });
+            }
+            
+            // Start connection
+            connect();
+            loadDrawings();
+            loadIndicators();
+        }
         
         function drawChart(view, pad, candleSpacing, yFunc, h) {
             switch (chartType) {

@@ -37,6 +37,8 @@ func InitDB() {
 		&models.ScreenShareParticipant{},
 		&models.ScreenShareMessage{},
 		&models.ScreenShareJoinRequest{},
+		&models.ChartIndicator{},
+		&models.UserIndicator{},
 	)
 	fmt.Println("database connected")
 }
