@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algocdk Trading Platform</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -764,6 +767,14 @@
                     <div class="font-mono font-bold" id="topAccountBalance">$10,000.00</div>
                 </div>
                 
+                <!-- Notifications -->
+                <div class="relative">
+                    <a href="/notifications" class="relative bg-accent hover:bg-gray-600 p-2 rounded transition-colors block">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationBadge" class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </a>
+                </div>
+                
                 <!-- Navigation Menu -->
                 <div class="relative">
                     <button id="navMenuBtn" class="flex items-center space-x-2 bg-accent hover:bg-gray-600 px-3 py-2 rounded transition-colors">
@@ -799,11 +810,11 @@
                             <i class="fas fa-video"></i>
                             <span>Live Sessions</span>
                         </a>
-                        <a id="adminDashboardLink" href="/admin_dashboard.html" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
+                        <a id="adminDashboardLink" href="/admin" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
                             <i class="fas fa-user-shield"></i>
                             <span>Admin Dashboard</span>
                         </a>
-                        <a id="superadminDashboardLink" href="/superadmin_dashboard.html" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
+                        <a id="superadminDashboardLink" href="/superadmin" class="flex items-center space-x-2 px-4 py-3 hover:bg-accent transition-colors" style="display:none">
                             <i class="fas fa-crown"></i>
                             <span>SuperAdmin Dashboard</span>
                         </a>
@@ -956,7 +967,13 @@
                     <option value="10">10s</option>
                     <option value="30">30s</option>
                     <option value="60" selected>1m</option>
+                    <option value="180">3m</option>
                     <option value="300">5m</option>
+                    <option value="900">15m</option>
+                    <option value="1800">30m</option>
+                    <option value="3600">1h</option>
+                    <option value="14400">4h</option>
+                    <option value="86400">1D</option>
                 </select>
                 <select id="indicators">
                     <option value="">Add Indicator</option>
@@ -995,7 +1012,10 @@
             <canvas id="chart"></canvas>
             
             <!-- Professional Chart Info Panel -->
-            <div class="chart-info" id="chartInfo">
+            <div class="chart-info" id="chartInfo" style="cursor: move;">
+                <div class="chart-info-header" style="padding: 4px 8px; background: rgba(0,0,0,0.3); cursor: move; user-select: none;">
+                    <i class="fas fa-grip-vertical" style="opacity: 0.5;"></i>
+                </div>
                 <div class="chart-info-row">
                     <span class="chart-info-label">Open:</span>
                     <span class="chart-info-value" id="infoOpen">-</span>
@@ -1267,8 +1287,14 @@
         let priceAlerts = [];
         let showAlerts = false;
         let selectedDrawing = null;
-        let textInput = null;
-        let isEditingText = false;
+        let isDraggingDrawing = false;
+        let dragPoint = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let objStartIndex1 = 0;
+        let objStartPrice1 = 0;
+        let objStartIndex2 = 0;
+        let objStartPrice2 = 0;
 
         /* ================= VIEWPORT ================= */
         let zoom = 1;
@@ -1526,7 +1552,10 @@
             currentCandle = null;
             zoom = 1;
             offset = 0;
+            drawings = [];
+            selectedDrawing = null;
             connect();
+            loadDrawingsFromStorage();
         }
 
         /* ================= CANDLE ENGINE ================= */
@@ -1559,9 +1588,45 @@
             
             if (drawingTool === 'delete') {
                 deleteDrawingAt(x, y);
-            } else if (drawingTool) {
+                return;
+            }
+            
+            if (drawingTool) {
+                const clickedDrawing = findDrawingAt(x, y);
+                
+                if (clickedDrawing) {
+                    selectedDrawing = clickedDrawing;
+                    isDraggingDrawing = true;
+                    dragStartX = x;
+                    dragStartY = y;
+                    objStartIndex1 = clickedDrawing.startIndex;
+                    objStartPrice1 = clickedDrawing.startPrice;
+                    objStartIndex2 = clickedDrawing.endIndex;
+                    objStartPrice2 = clickedDrawing.endPrice;
+                    
+                    const startScreenX = getXFromCandleIndex(clickedDrawing.startIndex);
+                    const endScreenX = getXFromCandleIndex(clickedDrawing.endIndex);
+                    const startScreenY = getYFromPrice(clickedDrawing.startPrice);
+                    const endScreenY = getYFromPrice(clickedDrawing.endPrice);
+                    
+                    const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                    const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                    
+                    dragPoint = distToStart < 15 ? 'start' : (distToEnd < 15 ? 'end' : 'move');
+                    canvas.style.cursor = 'move';
+                    draw();
+                    return;
+                }
                 startDrawing(x, y);
+                return;
+            }
+            
+            const clickedDrawing = findDrawingAt(x, y);
+            if (clickedDrawing) {
+                selectedDrawing = clickedDrawing;
+                draw();
             } else {
+                selectedDrawing = null;
                 isDragging = true;
                 lastX = e.clientX;
             }
@@ -1571,19 +1636,48 @@
             if (isDrawing) {
                 finishDrawing();
             }
+            if (isDraggingDrawing) {
+                isDraggingDrawing = false;
+                dragPoint = null;
+                canvas.style.cursor = drawingTool ? 'crosshair' : 'grab';
+                saveDrawingsToStorage();
+            }
             isDragging = false;
         });
         
         window.addEventListener("mousemove", e => {
-            if (isDrawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (isDraggingDrawing && selectedDrawing) {
+                const newIndex = getCandleIndexFromX(x);
+                const newPrice = getPriceFromY(y);
+                
+                if (dragPoint === 'start') {
+                    selectedDrawing.startIndex = newIndex;
+                    selectedDrawing.startPrice = newPrice;
+                } else if (dragPoint === 'end') {
+                    selectedDrawing.endIndex = newIndex;
+                    selectedDrawing.endPrice = newPrice;
+                } else if (dragPoint === 'move') {
+                    const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+                    const deltaPrice = newPrice - getPriceFromY(dragStartY);
+                    selectedDrawing.startIndex = objStartIndex1 + deltaIndex;
+                    selectedDrawing.startPrice = objStartPrice1 + deltaPrice;
+                    selectedDrawing.endIndex = objStartIndex2 + deltaIndex;
+                    selectedDrawing.endPrice = objStartPrice2 + deltaPrice;
+                }
+                draw();
+            } else if (isDrawing) {
                 updateDrawing(x, y);
             } else if (isDragging && !drawingTool) {
                 offset += (e.clientX - lastX) / 10;
                 lastX = e.clientX;
                 draw();
+            } else if (!isDragging && !isDrawing) {
+                const obj = findDrawingAt(x, y);
+                canvas.style.cursor = obj ? 'pointer' : (drawingTool ? 'crosshair' : 'grab');
             }
         });
 
@@ -2348,6 +2442,59 @@
             updateChartInfo();
             setInterval(updateNavPriceTicker, 2000);
             setInterval(updateChartInfo, 1000);
+            makeDraggable('chartInfo');
+        }
+        
+        function makeDraggable(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.style.position = 'absolute';
+            
+            element.onmousedown = dragMouseDown;
+            element.ontouchstart = dragTouchStart;
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function dragTouchStart(e) {
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+            
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + 'px';
+                element.style.left = (element.offsetLeft - pos1) + 'px';
+            }
+            
+            function elementTouchDrag(e) {
+                pos1 = pos3 - e.touches[0].clientX;
+                pos2 = pos4 - e.touches[0].clientY;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                element.style.top = (element.offsetTop - pos2) + 'px';
+                element.style.left = (element.offsetLeft - pos1) + 'px';
+            }
+            
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
         }
         
         function updateNavPriceTicker() {
@@ -2639,22 +2786,11 @@
                 tradeMarket.value = SYMBOL;
             }
             
-            // Show cached balance immediately for better UX
-            const cachedBalance = localStorage.getItem(`${preferredType}Balance`);
-            if (cachedBalance) {
-                if (preferredType === 'demo') {
-                    demoBalance = parseFloat(cachedBalance);
-                } else {
-                    realBalance = parseFloat(cachedBalance);
-                }
-                isRealAccount = preferredType === 'real';
-                updateAccountDisplay();
-            }
-            
             if (!token) {
-                console.log('No auth token found, using local demo mode');
+                console.log('No auth token found');
                 isRealAccount = false;
-                updateAccountDisplay();
+                document.getElementById('accountBalance').textContent = 'Not Available';
+                document.getElementById('topAccountBalance').textContent = 'Not Available';
                 return;
             }
             
@@ -2673,16 +2809,20 @@
                         isRealAccount = preferredType === 'real';
                     } else {
                         isRealAccount = false;
+                        document.getElementById('accountBalance').textContent = 'Not Available';
+                        document.getElementById('topAccountBalance').textContent = 'Not Available';
                     }
                 } else {
                     isRealAccount = false;
+                    document.getElementById('accountBalance').textContent = 'Not Available';
+                    document.getElementById('topAccountBalance').textContent = 'Not Available';
                 }
             } catch (error) {
                 isRealAccount = false;
-                console.log('Failed to initialize account, using local demo:', error);
+                document.getElementById('accountBalance').textContent = 'Not Available';
+                document.getElementById('topAccountBalance').textContent = 'Not Available';
+                console.log('Failed to initialize account:', error);
             }
-            
-            updateAccountDisplay();
         }
         
         function connectDeriv(token, isDemo = true) {
@@ -2769,8 +2909,9 @@
             const durationUnit = document.getElementById('durationUnit').value;
             
             if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
-                // Simulate trade for demo purposes when not connected to Deriv
-                simulateTrade(tradeType, market, stake, duration, durationUnit);
+                if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
+                    window.location.href = '/settings';
+                }
                 return;
             }
             
@@ -2836,96 +2977,6 @@
             }
             
             return params;
-        }
-        
-        function simulateTrade(tradeType, market, stake, duration, durationUnit) {
-            // Show professional notification
-            showNotification(`Trade placed: ${tradeType} on ${market} for $${stake}`, 'success');
-            
-            // Simulate trade execution for demo purposes
-            const tradeTypeNames = {
-                'CALL': 'Rise',
-                'PUT': 'Fall',
-                'DIGITEVEN': 'Even',
-                'DIGITODD': 'Odd',
-                'DIGITMATCH': 'Matches',
-                'DIGITDIFF': 'Differs',
-                'DIGITOVER': 'Over',
-                'DIGITUNDER': 'Under',
-                'ONETOUCH': 'Touch',
-                'NOTOUCH': 'No Touch',
-                'RANGE': 'Stays Between',
-                'UPORDOWN': 'Goes Outside'
-            };
-            
-            const tradeName = tradeTypeNames[tradeType] || tradeType;
-            const contractId = 'DEMO_' + Date.now();
-            
-            // Update balance
-            if (isRealAccount) {
-                realBalance -= stake;
-            } else {
-                demoBalance -= stake;
-            }
-            updateAccountDisplay();
-            
-            // Add to recent trades
-            const trade = {
-                id: contractId,
-                symbol: market,
-                type: tradeName,
-                stake: stake,
-                time: new Date().toLocaleTimeString()
-            };
-            addLiveTrade(trade);
-            
-            // Simulate trade outcome after duration (for demo)
-            setTimeout(() => {
-                simulateTradeOutcome(trade);
-            }, Math.min(duration * 1000, 10000)); // Max 10 seconds for demo
-        }
-        
-        function simulateTradeOutcome(trade) {
-            // Random outcome for demo
-            const isWin = Math.random() > 0.4; // 60% win rate for demo
-            const multiplier = isWin ? 1.85 : 0; // Simplified payout
-            const payout = trade.stake * multiplier;
-            const profit = payout - trade.stake;
-            
-            if (isWin && payout > 0) {
-                if (isRealAccount) {
-                    realBalance += payout;
-                } else {
-                    demoBalance += payout;
-                }
-                updateAccountDisplay();
-                
-                // Update recent trades with outcome
-                updateTradeOutcome(trade.id, profit, true);
-                
-                // Professional notification
-                showNotification(`Trade Won! Profit: $${profit.toFixed(2)}`, 'success');
-            } else {
-                updateTradeOutcome(trade.id, -trade.stake, false);
-                showNotification(`Trade Lost: -$${trade.stake.toFixed(2)}`, 'error');
-            }
-        }
-        
-        function updateTradeOutcome(tradeId, profit, isWin) {
-            // Find and update the trade in recent trades display
-            const recentTrades = document.getElementById('recentTradesList');
-            const tradeElements = recentTrades.querySelectorAll('.bg-accent');
-            
-            tradeElements.forEach(element => {
-                const profitElement = element.querySelector('.text-warning, .text-danger, .text-success');
-                if (profitElement && profitElement.textContent.includes('Stake')) {
-                    const parentDiv = profitElement.parentElement;
-                    parentDiv.innerHTML = `
-                        <div class="${profit >= 0 ? 'text-success' : 'text-danger'} font-mono">${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}</div>
-                        <div class="text-gray-400 text-xs">${profit >= 0 ? 'Profit' : 'Loss'}</div>
-                    `;
-                }
-            });
         }
         
         function placeCustomTrade() {
@@ -3064,6 +3115,16 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     navMenu.classList.add('hidden');
+                    selectedDrawing = null;
+                    draw();
+                } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDrawing) {
+                    const index = drawings.indexOf(selectedDrawing);
+                    if (index > -1) {
+                        drawings.splice(index, 1);
+                        selectedDrawing = null;
+                        saveDrawingsToStorage();
+                        draw();
+                    }
                 }
             });
         });
@@ -3319,7 +3380,7 @@
         }
         
         function startDrawing(x, y) {
-            if (!drawingTool || drawingTool === 'delete') return;
+            if (!drawingTool || drawingTool === 'delete' || isDraggingDrawing) return;
             
             if (drawingTool === 'text') {
                 addTextLabel(x, y);
@@ -3327,6 +3388,7 @@
             }
             
             isDrawing = true;
+            selectedDrawing = null;
             const candleIndex = getCandleIndexFromX(x);
             const price = getPriceFromY(y);
             const color = document.getElementById('drawingColor').value;
@@ -3367,6 +3429,7 @@
                 currentDrawing = null;
                 isDrawing = false;
                 saveDrawingsToStorage();
+                // Tool stays active for continuous drawing
             }
         }
         
@@ -3391,6 +3454,109 @@
             drawings.push(textDrawing);
             saveDrawingsToStorage();
             draw();
+        }
+        
+        function findDrawingEndpointAt(x, y) {
+            const endpointTolerance = 20;
+            
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const drawing = drawings[i];
+                
+                const startScreenX = getXFromCandleIndex(drawing.startIndex);
+                const endScreenX = getXFromCandleIndex(drawing.endIndex);
+                const startScreenY = getYFromPrice(drawing.startPrice);
+                const endScreenY = getYFromPrice(drawing.endPrice);
+                
+                const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                
+                if (distToStart < endpointTolerance) {
+                    return { drawing, point: 'start' };
+                }
+                if (distToEnd < endpointTolerance) {
+                    return { drawing, point: 'end' };
+                }
+            }
+            return null;
+        }
+        
+        function findDrawingAt(x, y) {
+            const clickTolerance = window.innerWidth < 768 ? 25 : 15;
+            
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const drawing = drawings[i];
+                
+                const startScreenX = getXFromCandleIndex(drawing.startIndex);
+                const endScreenX = getXFromCandleIndex(drawing.endIndex);
+                const startScreenY = getYFromPrice(drawing.startPrice);
+                const endScreenY = getYFromPrice(drawing.endPrice);
+                
+                let isNear = false;
+                
+                switch (drawing.type) {
+                    case 'line':
+                    case 'ray':
+                    case 'arrow':
+                        isNear = distanceToLine(x, y, startScreenX, startScreenY, endScreenX, endScreenY) < clickTolerance;
+                        break;
+                    case 'horizontal':
+                        isNear = Math.abs(y - startScreenY) < clickTolerance;
+                        break;
+                    case 'vertical':
+                        isNear = Math.abs(x - startScreenX) < clickTolerance;
+                        break;
+                    case 'rectangle':
+                        const minX = Math.min(startScreenX, endScreenX);
+                        const maxX = Math.max(startScreenX, endScreenX);
+                        const minY = Math.min(startScreenY, endScreenY);
+                        const maxY = Math.max(startScreenY, endScreenY);
+                        const onBorder = (
+                            (Math.abs(x - minX) < clickTolerance && y >= minY - clickTolerance && y <= maxY + clickTolerance) ||
+                            (Math.abs(x - maxX) < clickTolerance && y >= minY - clickTolerance && y <= maxY + clickTolerance) ||
+                            (Math.abs(y - minY) < clickTolerance && x >= minX - clickTolerance && x <= maxX + clickTolerance) ||
+                            (Math.abs(y - maxY) < clickTolerance && x >= minX - clickTolerance && x <= maxX + clickTolerance)
+                        );
+                        const inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
+                        isNear = onBorder || inside;
+                        break;
+                    case 'triangle':
+                        const midX = (startScreenX + endScreenX) / 2;
+                        isNear = distanceToLine(x, y, midX, startScreenY, startScreenX, endScreenY) < clickTolerance ||
+                                distanceToLine(x, y, startScreenX, endScreenY, endScreenX, endScreenY) < clickTolerance ||
+                                distanceToLine(x, y, endScreenX, endScreenY, midX, startScreenY) < clickTolerance;
+                        break;
+                    case 'circle':
+                        const radius = Math.abs(endScreenX - startScreenX) / 2;
+                        const centerX = (startScreenX + endScreenX) / 2;
+                        const centerY = (startScreenY + endScreenY) / 2;
+                        const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                        isNear = Math.abs(dist - radius) < clickTolerance;
+                        break;
+                    case 'text':
+                        ctx.font = `${drawing.fontSize || 14}px Arial`;
+                        const metrics = ctx.measureText(drawing.text || 'Text');
+                        isNear = x >= startScreenX - 5 && x <= startScreenX + metrics.width + 5 && 
+                               y >= startScreenY - 20 && y <= startScreenY + 5;
+                        break;
+                    case 'fibonacci':
+                    case 'fibext':
+                    case 'channel':
+                    case 'pitchfork':
+                    case 'gann':
+                        const boxMinX = Math.min(startScreenX, endScreenX);
+                        const boxMaxX = Math.max(startScreenX, endScreenX);
+                        const boxMinY = Math.min(startScreenY, endScreenY);
+                        const boxMaxY = Math.max(startScreenY, endScreenY);
+                        isNear = x >= boxMinX - clickTolerance && x <= boxMaxX + clickTolerance && 
+                                y >= boxMinY - clickTolerance && y <= boxMaxY + clickTolerance;
+                        break;
+                }
+                
+                if (isNear) {
+                    return drawing;
+                }
+            }
+            return null;
         }
         
         function deleteDrawingAt(x, y) {
@@ -3573,17 +3739,17 @@
         function drawDrawings() {
             // Draw saved drawings
             drawings.forEach(drawing => {
-                drawSingleDrawing(drawing);
+                const isSelected = drawing === selectedDrawing;
+                drawSingleDrawing(drawing, isSelected);
             });
             
             // Draw current drawing being created
             if (currentDrawing) {
-                drawSingleDrawing(currentDrawing);
+                drawSingleDrawing(currentDrawing, false);
             }
         }
         
-        function drawSingleDrawing(drawing) {
-            // Convert stored candle indices and prices to current screen coordinates
+        function drawSingleDrawing(drawing, isSelected = false) {
             let data = [...candles];
             if (currentCandle) data.push(currentCandle);
             if (!data.length) return;
@@ -3593,19 +3759,22 @@
             const visible = Math.floor((canvas.width - pad * 2) / candleSpacing);
             const start = Math.max(0, data.length - visible - Math.floor(offset));
             
-            // Calculate current screen positions from stored data positions
             const startScreenX = pad + (drawing.startIndex - start) * candleSpacing + candleSpacing / 2;
             const endScreenX = pad + (drawing.endIndex - start) * candleSpacing + candleSpacing / 2;
             const startScreenY = getYFromPrice(drawing.startPrice);
             const endScreenY = getYFromPrice(drawing.endPrice);
             
-            // Skip drawing if it's outside visible area
             if (startScreenX < 0 && endScreenX < 0) return;
             if (startScreenX > canvas.width && endScreenX > canvas.width) return;
             
             ctx.strokeStyle = drawing.color;
             ctx.fillStyle = drawing.color;
             ctx.lineWidth = drawing.lineWidth || 2;
+            
+            if (isSelected) {
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = (drawing.lineWidth || 2) + 1;
+            }
             
             // Set line style
             switch (drawing.lineStyle) {
@@ -3796,16 +3965,60 @@
                     ctx.stroke();
                     break;
             }
+            
+            if (isSelected) {
+                ctx.fillStyle = '#00FF00';
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.arc(startScreenX, startScreenY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                if (drawing.type !== 'horizontal' && drawing.type !== 'vertical') {
+                    ctx.beginPath();
+                    ctx.arc(endScreenX, endScreenY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                
+                if (drawing.type === 'rectangle' || drawing.type === 'text') {
+                    ctx.strokeStyle = '#00FF00';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    if (drawing.type === 'rectangle') {
+                        ctx.strokeRect(startScreenX, startScreenY, endScreenX - startScreenX, endScreenY - startScreenY);
+                    } else {
+                        ctx.font = `${drawing.fontSize || 14}px Arial`;
+                        const metrics = ctx.measureText(drawing.text);
+                        ctx.strokeRect(startScreenX - 5, startScreenY - 20, metrics.width + 10, 25);
+                    }
+                    ctx.setLineDash([]);
+                }
+            }
         }
         
         function saveDrawingsToStorage() {
-            localStorage.setItem('chartDrawings', JSON.stringify(drawings));
+            const key = `app_drawings_${SYMBOL}_${TIMEFRAME}`;
+            try {
+                localStorage.setItem(key, JSON.stringify(drawings));
+            } catch (e) {
+                console.error('Failed to save drawings:', e);
+            }
         }
         
         function loadDrawingsFromStorage() {
-            const saved = localStorage.getItem('chartDrawings');
-            if (saved) {
-                drawings = JSON.parse(saved);
+            const key = `app_drawings_${SYMBOL}_${TIMEFRAME}`;
+            try {
+                const saved = localStorage.getItem(key);
+                if (saved) {
+                    drawings = JSON.parse(saved);
+                    draw();
+                }
+            } catch (e) {
+                console.error('Failed to load drawings:', e);
+                drawings = [];
             }
         }
         
@@ -3818,9 +4031,43 @@
             
             if (drawingTool === 'delete') {
                 deleteDrawingAt(x, y);
-            } else if (drawingTool) {
+                return;
+            }
+            
+            if (drawingTool) {
+                const clickedDrawing = findDrawingAt(x, y);
+                if (clickedDrawing) {
+                    selectedDrawing = clickedDrawing;
+                    isDraggingDrawing = true;
+                    dragStartX = x;
+                    dragStartY = y;
+                    objStartIndex1 = clickedDrawing.startIndex;
+                    objStartPrice1 = clickedDrawing.startPrice;
+                    objStartIndex2 = clickedDrawing.endIndex;
+                    objStartPrice2 = clickedDrawing.endPrice;
+                    
+                    const startScreenX = getXFromCandleIndex(clickedDrawing.startIndex);
+                    const endScreenX = getXFromCandleIndex(clickedDrawing.endIndex);
+                    const startScreenY = getYFromPrice(clickedDrawing.startPrice);
+                    const endScreenY = getYFromPrice(clickedDrawing.endPrice);
+                    
+                    const distToStart = Math.sqrt(Math.pow(x - startScreenX, 2) + Math.pow(y - startScreenY, 2));
+                    const distToEnd = Math.sqrt(Math.pow(x - endScreenX, 2) + Math.pow(y - endScreenY, 2));
+                    
+                    dragPoint = distToStart < 20 ? 'start' : (distToEnd < 20 ? 'end' : 'move');
+                    draw();
+                    return;
+                }
                 startDrawing(x, y);
+                return;
+            }
+            
+            const clickedDrawing = findDrawingAt(x, y);
+            if (clickedDrawing) {
+                selectedDrawing = clickedDrawing;
+                draw();
             } else {
+                selectedDrawing = null;
                 isDragging = true;
                 lastX = touch.clientX;
             }
@@ -3829,12 +4076,32 @@
         canvas.addEventListener('touchmove', e => {
             e.preventDefault();
             const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
             
-            if (isDrawing) {
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
+            if (isDraggingDrawing && selectedDrawing) {
+                const newIndex = getCandleIndexFromX(x);
+                const newPrice = getPriceFromY(y);
+                
+                if (dragPoint === 'start') {
+                    selectedDrawing.startIndex = newIndex;
+                    selectedDrawing.startPrice = newPrice;
+                } else if (dragPoint === 'end') {
+                    selectedDrawing.endIndex = newIndex;
+                    selectedDrawing.endPrice = newPrice;
+                } else if (dragPoint === 'move') {
+                    const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+                    const deltaPrice = newPrice - getPriceFromY(dragStartY);
+                    selectedDrawing.startIndex = objStartIndex1 + deltaIndex;
+                    selectedDrawing.startPrice = objStartPrice1 + deltaPrice;
+                    selectedDrawing.endIndex = objStartIndex2 + deltaIndex;
+                    selectedDrawing.endPrice = objStartPrice2 + deltaPrice;
+                }
+                draw();
+            } else if (isDrawing) {
                 updateDrawing(x, y);
+                draw();
             } else if (isDragging && !drawingTool) {
                 offset += (touch.clientX - lastX) / 10;
                 lastX = touch.clientX;
@@ -3846,6 +4113,11 @@
             e.preventDefault();
             if (isDrawing) {
                 finishDrawing();
+            }
+            if (isDraggingDrawing) {
+                isDraggingDrawing = false;
+                dragPoint = null;
+                saveDrawingsToStorage();
             }
             isDragging = false;
         });
@@ -3938,8 +4210,9 @@
             connect();
             updateBotDisplay();
             startBackgroundUpdates();
-            await initializeAccountDisplay(); // Initialize account display with proper token handling
-            initProfessionalFeatures(); // Initialize professional features
+            await initializeAccountDisplay();
+            initProfessionalFeatures();
+            loadNotifications();
             
             // Notification permission should be requested from a user gesture.
             // Call `requestNotificationPermission()` from a click handler when appropriate.
@@ -3952,6 +4225,30 @@
                     Notification.requestPermission().catch(()=>{});
                 }
             }catch(e){}
+        }
+        
+        // Notification functions
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/user/notifications', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await response.json();
+                const notifications = data.notifications || [];
+                
+                const unreadCount = notifications.filter(n => !n.read).length;
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+            }
         }
 
         initializeApp();

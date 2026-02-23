@@ -108,13 +108,13 @@ class AdminDashboard {
   updateDashboardStats() {
     const data = this.data.dashboard;
     
-    // Update revenue
+    // Update revenue - show admin share as total revenue
     const totalRevenueEl = document.getElementById('totalRevenue');
     if (totalRevenueEl) {
       totalRevenueEl.textContent = utils.formatCurrency(data.adminShare || 0);
     }
 
-    // Update active bots
+    // Update active bots - only bots with status='active' owned by admin
     const activeBotsEl = document.getElementById('activeBots');
     if (activeBotsEl) {
       activeBotsEl.textContent = data.activeBots || 0;
@@ -126,10 +126,16 @@ class AdminDashboard {
       totalUsersEl.textContent = data.totalUsers || 0;
     }
 
-    // Update transactions
+    // Update transactions - only successful ones
     const totalTransactionsEl = document.getElementById('totalTransactions');
     if (totalTransactionsEl) {
       totalTransactionsEl.textContent = data.totalTransactions || 0;
+    }
+
+    // Update badges
+    const botsBadge = document.getElementById('botsBadge');
+    if (botsBadge) {
+      botsBadge.textContent = data.totalBots || 0;
     }
 
     // Update growth indicators
@@ -204,40 +210,36 @@ class AdminDashboard {
   }
 
   updateActivity() {
-    const activityList = document.getElementById('activityList');
-    if (!activityList) return;
+    const container = document.getElementById('recentActivity');
+    if (!container) return;
 
     if (this.data.transactions.length === 0) {
-      activityList.innerHTML = `
-        <li class="activity-item">
-          <div class="activity-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-            </svg>
-          </div>
-          <div class="activity-content">
-            <div class="activity-title">No recent activity</div>
-            <div class="activity-time">Your transactions will appear here</div>
-          </div>
-        </li>
+      container.innerHTML = `
+        <div class="text-center py-8 text-gray-400">
+          <i class="fas fa-inbox text-4xl mb-3"></i>
+          <p>No recent transactions</p>
+          <p class="text-sm">Your sales will appear here</p>
+        </div>
       `;
       return;
     }
 
-    activityList.innerHTML = this.data.transactions.slice(0, 5).map(transaction => `
-      <li class="activity-item">
-        <div class="activity-icon">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-          </svg>
-        </div>
-        <div class="activity-content">
-          <div class="activity-title">
-            ${transaction.description || `Payment of ${utils.formatCurrency(transaction.amount || 0)}`}
+    container.innerHTML = this.data.transactions.slice(0, 5).map(tx => `
+      <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
+        <div class="flex items-center">
+          <div class="bg-success bg-opacity-20 p-3 rounded-lg mr-4">
+            <i class="fas fa-dollar-sign text-success"></i>
           </div>
-          <div class="activity-time">${this.formatTime(transaction.created_at)}</div>
+          <div>
+            <p class="font-medium">${tx.buyer_name || 'Customer'} - ${tx.bot_name || 'Bot'}</p>
+            <p class="text-sm text-gray-400">${tx.payment_type || 'purchase'} • ${this.formatTime(tx.created_at)}</p>
+          </div>
         </div>
-      </li>
+        <div class="text-right">
+          <p class="font-bold text-success">${utils.formatCurrency(tx.admin_share || 0)}</p>
+          <p class="text-xs text-gray-400">Your share</p>
+        </div>
+      </div>
     `).join('');
   }
 

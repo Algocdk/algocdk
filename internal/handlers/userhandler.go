@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -163,7 +164,7 @@ func LoginHandler(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
 		return
 	}
-	token, _ := utils.GenerateToken(user.ID, user.Email)
+	token, _ := utils.GenerateToken(user.ID, user.Email, user.Role)
 	payload.RefreshToken, _ = utils.RefreshToken(user.Email)
 	ctx.JSON(http.StatusOK, gin.H{
 		"message":       "login succesful",
@@ -697,9 +698,12 @@ func GetUserBotsHandler(ctx *gin.Context) {
 
 	var userBots []models.UserBot
 	if err := database.DB.Preload("Bot").Where("user_id = ?", userID).Find(&userBots).Error; err != nil {
+		log.Printf("Error fetching user bots: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user bots"})
 		return
 	}
+
+	log.Printf("Found %d user bots for user %d", len(userBots), userID)
 
 	// Get real profit from trades
 	var totalProfit float64
@@ -708,6 +712,17 @@ func GetUserBotsHandler(ctx *gin.Context) {
 	var bots []gin.H
 	for _, userBot := range userBots {
 		bot := userBot.Bot
+		log.Printf("Processing bot: ID=%d, Name=%s", bot.ID, bot.Name)
+
+		// Get bot owner/creator information
+		var owner models.User
+		var creatorName string
+		if err := database.DB.First(&owner, bot.OwnerID).Error; err == nil {
+			creatorName = owner.Name
+		} else {
+			creatorName = "Unknown"
+		}
+
 		status := "inactive"
 		if userBot.IsActive {
 			status = "active"
@@ -723,12 +738,25 @@ func GetUserBotsHandler(ctx *gin.Context) {
 			"status":        status,
 			"profit":        botProfit,
 			"price":         bot.Price,
+			"rent_price":    bot.RentPrice,
+			"strategy":      bot.Strategy,
+			"description":   bot.Description,
+			"image":         bot.Image,
+			"performance":   "+0%",
 			"access_type":   userBot.AccessType,
+			"purchase_type": userBot.AccessType,
 			"purchase_date": userBot.PurchaseDate,
 			"expiry_date":   userBot.ExpiryDate,
+			"is_owned":      true,
+			"is_running":    false,
+			"is_active":     userBot.IsActive,
+			"monthly_cost":  bot.RentPrice,
+			"total_cost":    bot.Price,
+			"creator":       gin.H{"name": creatorName, "id": bot.OwnerID},
 		})
 	}
 
+	log.Printf("Returning %d bots to user %d", len(bots), userID)
 	ctx.JSON(http.StatusOK, gin.H{
 		"message":      "User bots retrieved successfully",
 		"bots":         bots,
@@ -810,4 +838,43 @@ func GetUserTradesHandler(ctx *gin.Context) {
 		"trades":       trades,
 		"total_profit": totalProfit,
 	})
+}
+
+// GetNotifications returns user notifications
+func GetNotifications(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID := fmt.Sprintf("%v", userIDInterface)
+
+	var notifications []models.Notification
+	database.DB.Where("user_id = ?", userID).Order("created_at DESC").Limit(50).Find(&notifications)
+
+	c.JSON(http.StatusOK, gin.H{"notifications": notifications})
+}
+
+// MarkNotificationRead marks a notification as read
+func MarkNotificationRead(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID := fmt.Sprintf("%v", userIDInterface)
+	notificationID := c.Param("id")
+
+	result := database.DB.Model(&models.Notification{}).
+		Where("id = ? AND user_id = ?", notificationID, userID).
+		Update("read", true)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update notification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Notification marked as read"})
 }

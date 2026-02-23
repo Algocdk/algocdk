@@ -1,268 +1,255 @@
-# Algocdk - Advanced Trading Platform
+# Algocdk - Trading Platform
 
-![Algocdk Logo](https://img.shields.io/badge/Algocdk-Trading%20Platform-FF4500?style=for-the-badge)
+A comprehensive trading platform with bot management, real-time market data, and Deriv API integration.
 
-A comprehensive trading platform built with Go (Gin), featuring bot management, real-time market data, admin site creation, and Deriv API integration.
+## Features
 
-## 🚀 Features
+### User Management
+- User registration with email verification
+- JWT authentication with refresh tokens
+- Password reset and recovery
+- Profile management and account deletion
+- Role-based access control (User, Admin, SuperAdmin)
+- Admin upgrade request system
+- Country detection and user analytics
 
-### Core Platform
-- **User Management**: Registration, authentication, profile management
-- **Trading Bots**: Create, manage, and deploy automated trading bots
-- **Real-time Market Data**: Live market feeds with WebSocket support
-- **Trading Interface**: Multiple contract types (Digits, Up/Down, Touch, Barriers, etc.)
-- **Payment Integration**: Paystack payment gateway integration
+### Trading
+- Deriv API integration (demo and real accounts)
+- Multiple contract types: Digits, Up/Down, Touch, Barriers, Multipliers, Accumulators, Options
+- Real-time market data via WebSocket
+- Trade history and profit tracking
+- Automated trading bot execution
+- Custom bot loader with draggable overlay
+- Market charts with candlestick data
+- Economic calendar and market news
+
+### Bot Management
+- Bot marketplace with purchase and rental options
+- Bot creation with HTML/CSS/JS upload
+- Bot versioning and categorization
+- User-bot assignment and access control
+- Bot performance tracking
+- Favorite bots system
+- Bot status management (active/inactive)
+
+### Payment System
+- Paystack integration for payments
+- Bot purchase and rental transactions
+- Revenue sharing between platform and admins
+- Transaction history and reporting
+- Admin bank details management
+- Webhook handling for payment verification
 
 ### Admin Features
-- **Bot Management**: Create and manage trading bots for users
-- **Site Builder**: Create custom websites with HTML/CSS/JS editor
-- **Member Management**: Add/remove members from created sites
-- **Transaction Tracking**: Monitor all platform transactions
-- **Analytics Dashboard**: Platform performance metrics
+- Admin dashboard with analytics
+- Bot creation and management
+- User management for bot access
+- Transaction tracking and revenue reports
+- Site builder for custom landing pages
+- Site member management
+- Screen sharing sessions with viewers
 
 ### SuperAdmin Features
-- **User Administration**: Manage all platform users and admins
-- **Admin Request System**: Review and approve admin status requests
-- **Platform Analytics**: Comprehensive platform statistics
-- **System Management**: Full platform oversight and control
+- Platform-wide user management
+- Admin creation and approval system
+- Bot scanning and monitoring
+- Sales and performance analytics
+- Transaction oversight
+- Admin request review system
+- Platform statistics dashboard
 
-### Deriv Integration
-- **API Authentication**: Secure Deriv API token management
-- **Account Management**: Multiple account support and switching
-- **Real-time Trading**: Live trade execution through Deriv API
-- **Balance Tracking**: Real-time account balance updates
+### Site Builder
+- Create custom sites with HTML/CSS/JS
+- Public and private site visibility
+- Site member management
+- View count tracking
+- Slug-based site routing
 
-## 🛠️ Technology Stack
+### Screen Sharing
+- Real-time screen sharing for admins
+- Viewer join requests with approval
+- Two-way audio communication
+- Chat messaging during sessions
+- Session participant tracking
+- WebSocket-based streaming
 
-- **Backend**: Go 1.21+ with Gin framework
-- **Database**: SQLite with GORM ORM
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3
-- **Real-time**: WebSocket connections
-- **Documentation**: Swagger/OpenAPI
-- **Payments**: Paystack API
-- **Trading**: Deriv API integration
+## Tech Stack
 
-## 📋 Prerequisites
+- Backend: Go 1.21+ with Gin
+- Database: SQLite with GORM
+- Frontend: JavaScript, HTML5, CSS3
+- Real-time: WebSocket
+- API: Deriv integration
 
-- Go 1.21 or higher
-- SQLite3
-- Git
+## Installation
 
-## 🔧 Installation
+```bash
+git clone https://github.com/keyadaniel56/algocdk.git
+cd algocdk
+go mod download
+cp .env.example .env
+go build -o algocdk main.go
+./algocdk
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/keyadaniel56/algocdk.git
-   cd algocdk
-   ```
+Server starts at `http://localhost:3000`
 
-2. **Install dependencies**
-   ```bash
-   go mod download
-   ```
+## API Documentation
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+Swagger docs: `http://localhost:3000/swagger/index.html`
 
-4. **Build the application**
-   ```bash
-   go build -o algocdk main.go
-   ```
+## Key Endpoints
 
-5. **Run the application**
-   ```bash
-   ./algocdk
-   ```
-
-The server will start on `http://localhost:3000`
-
-## 🌐 API Documentation
-
-Access the Swagger documentation at: `http://localhost:3000/swagger/index.html`
-
-### Key Endpoints
-
-#### Authentication
+### Authentication
 - `POST /api/auth/signup` - User registration
 - `POST /api/auth/login` - User login
 - `POST /api/auth/forgot_password` - Password reset
+- `GET /api/auth/verify-email` - Email verification
+- `POST /api/auth/resend-verification` - Resend verification email
 
-#### User Management
+### User
 - `GET /api/user/profile` - Get user profile
-- `PUT /api/user/profile` - Update user profile
+- `PUT /api/user/profile` - Update profile
+- `DELETE /api/user/account` - Delete account
+- `POST /api/user/reset-password` - Reset password
+- `GET /api/user/bots` - Get user's bots
+- `POST /api/user/trades` - Record trade
+- `GET /api/user/trades` - Get trade history
+- `POST /api/user/favorite/:bot_id` - Toggle favorite bot
+- `GET /api/user/favorite` - Get favorite bots
 - `POST /api/user/request-admin` - Request admin status
+- `GET /api/user/admin-request-status` - Check admin request status
 
-#### Trading
+### Market Data
 - `GET /api/market/data` - Get market data
 - `GET /api/market/deriv` - Get Deriv market data
-- `POST /api/user/trades` - Record trade
-- `GET /api/user/trades` - Get user trades
+- `GET /api/market/chart/:symbol` - Get chart data
+- `GET /api/market/calendar` - Economic calendar
+- `GET /api/market/news` - Market news
+- `GET /ws/market` - WebSocket market stream
 
-#### Admin Features
-- `POST /api/admin/create-bot` - Create trading bot
-- `POST /api/admin/create-site` - Create website
-- `GET /api/admin/sites` - Get admin sites
-- `PUT /api/admin/update-site/{id}` - Update site
+### Deriv Integration
+- `POST /api/deriv/auth` - Authenticate with Deriv
+- `POST /api/deriv/token/save` - Save API tokens
+- `GET /api/deriv/token` - Get saved token
+- `DELETE /api/deriv/token` - Delete token
+- `GET /api/deriv/me/info` - Get user info
+- `GET /api/deriv/me/balance` - Get balance
+- `GET /api/deriv/me/accounts` - Get account list
+- `POST /api/deriv/me/switch` - Switch account
+- `POST /api/deriv/trade` - Place trade
 
-#### SuperAdmin Features
-- `GET /api/superadmin/admin-requests` - Get pending admin requests
-- `POST /api/superadmin/admin-requests/{id}/review` - Review admin request
+### Admin
+- `GET /api/admin/dashboard` - Admin dashboard
+- `GET /api/admin/profile` - Admin profile
+- `POST /api/admin/create-bot` - Create bot
+- `PUT /api/admin/update-bot/:id` - Update bot
+- `DELETE /api/admin/delete-bot/:id` - Delete bot
+- `GET /api/admin/bots` - List admin bots
+- `GET /api/admin/bots/:id/users` - Get bot users
+- `DELETE /api/admin/bots/:bot_id/users/:user_id` - Remove user from bot
+- `GET /api/admin/transactions` - Get transactions
+- `POST /api/admin/transactions` - Record transaction
+- `PUT /api/admin/bank-details` - Update bank details
+- `POST /api/admin/create-site` - Create site
+- `GET /api/admin/sites` - List sites
+- `PUT /api/admin/update-site/:id` - Update site
+- `DELETE /api/admin/delete-site/:id` - Delete site
+- `GET /api/admin/sites/:id/members` - Get site members
+- `POST /api/admin/sites/:id/members` - Add site member
+- `DELETE /api/admin/sites/:site_id/members/:user_id` - Remove site member
+- `POST /api/admin/screenshare/start` - Start screen share
+- `POST /api/admin/screenshare/stop/:id` - Stop screen share
+- `GET /api/admin/screenshare/participants/:id` - Get participants
+
+### SuperAdmin
+- `POST /api/superadmin/auth/signup` - SuperAdmin registration
+- `POST /api/superadmin/auth/login` - SuperAdmin login
+- `GET /api/superadmin/profile/:id` - Get profile
+- `GET /api/superadmin/superadmindashboard/:id` - Dashboard
+- `POST /api/superadmin/create_user` - Create user
+- `POST /api/superadmin/update_user/:id` - Update user
+- `DELETE /api/superadmin/delete_user/:id` - Delete user
 - `GET /api/superadmin/users` - Get all users
+- `GET /api/superadmin/user/:id` - Get user by ID
+- `POST /api/superadmin/create_admin` - Create admin
+- `GET /api/superadmin/get_all_admins` - Get all admins
+- `GET /api/superadmin/toggle_admin_status` - Toggle admin status
+- `POST /api/superadmin/update_admin/:id` - Update admin
+- `DELETE /api/superadmin/delete_admin` - Delete admin
+- `POST /api/superadmin/update_admin_password` - Update admin password
+- `GET /api/superadmin/bots` - Get all bots
+- `GET /api/superadmin/scan_bots` - Scan all bots
+- `GET /api/superadmin/sales` - Get all sales
+- `GET /api/superadmin/performance` - Platform performance
+- `GET /api/superadmin/transactions` - All transactions
+- `GET /api/superadmin/admin-requests` - Pending admin requests
+- `GET /api/superadmin/admin-requests/all` - All admin requests
+- `POST /api/superadmin/admin-requests/:id/review` - Review admin request
 
-## 🏗️ Project Structure
+### Screen Sharing
+- `GET /api/screenshare/sessions` - Get active sessions
+- `GET /api/screenshare/messages/:id` - Get session messages
+- `POST /api/screenshare/join/:id` - Request to join session
+- `GET /api/screenshare/requests/:id` - Get join requests
+- `POST /api/screenshare/requests/:request_id/review` - Review join request
+- `GET /ws/screenshare` - WebSocket screen share stream
 
-```
-algocdk/
-├── cmd/api/                 # API entry points
-├── docs/                    # Swagger documentation
-├── frontend/                # Frontend HTML/CSS/JS files
-├── internal/
-│   ├── config/             # Configuration management
-│   ├── database/           # Database connection and setup
-│   ├── handlers/           # HTTP request handlers
-│   ├── middleware/         # HTTP middleware
-│   ├── models/             # Database models
-│   ├── paystack/           # Payment integration
-│   ├── routes/             # Route definitions
-│   └── utils/              # Utility functions
-├── sites/                  # User-created websites storage
-├── main.go                 # Application entry point
-├── go.mod                  # Go module definition
-└── README.md              # This file
-```
+### Payment
+- `POST /api/payment/initialize` - Initialize payment
+- `GET /api/payment/verify` - Verify payment
+- `POST /api/payment/callback` - Frontend callback
+- `POST /api/payment/webhook` - Paystack webhook
 
-## 🔐 Security Features
+### Public
+- `GET /api/marketplace` - Bot marketplace
+- `GET /bots/:id` - Serve bot HTML
+- `GET /site/:slug` - View public site
 
-- JWT-based authentication
-- Role-based access control (User, Admin, SuperAdmin)
-- Secure file storage for user-generated content
-- Input validation and sanitization
-- CORS protection
-- SQL injection prevention with GORM
-
-## 🌟 Site Builder Feature
-
-Admins can create custom websites with:
-- **HTML Editor**: Rich HTML content creation
-- **CSS Styling**: Custom styling with live preview
-- **JavaScript**: Interactive functionality
-- **Member Management**: Add/remove site members
-- **Public/Private Sites**: Control site visibility
-- **File-based Storage**: Secure content storage
-
-### Site URL Structure
-- Admin sites: `http://localhost:3000/site/{slug}`
-- Static assets: `http://localhost:3000/sites/user_{id}/{slug}/`
-
-## 📊 Admin Request System
-
-Users can request admin privileges through a structured workflow:
-1. User submits admin request with reason
-2. Request stored with "pending" status
-3. SuperAdmin reviews and approves/rejects
-4. Automatic role promotion upon approval
-5. Persistent request tracking until reviewed
-
-## 🔄 Real-time Features
-
-- **Market Data**: Live price feeds via WebSocket
-- **Trading Updates**: Real-time trade execution status
-- **Balance Updates**: Live account balance changes
-- **Notifications**: Real-time system notifications
-
-## 🧪 Testing
-
-Run tests for all modules:
-```bash
-go test ./...
-```
-
-Build verification:
-```bash
-go build -o algocdk main.go
-```
-
-## 📝 Environment Variables
+## Environment Variables
 
 ```env
-# Database
-DB_PATH=app.db
-
-# Server
 PORT=3000
-JWT_SECRET=your-jwt-secret
-
-# Paystack
-PAYSTACK_SECRET_KEY=your-paystack-secret
-PAYSTACK_PUBLIC_KEY=your-paystack-public
-
-# Email (for notifications)
+JWT_SECRET=your-secret
+DB_PATH=app.db
+SUPER_ADMIN_SECRET=your-superadmin-secret
+PAYSTACK_SECRET_KEY=your-key
+PAYSTACK_PUBLIC_KEY=your-public-key
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+FROM_EMAIL=noreply@algocdk.com
+FROM_NAME=Algocdk
+EMAIL_MODE=console
+BASE_URL=http://localhost:3000
+GIN_MODE=release
 ```
 
-## 🚀 Deployment
+## Docker Deployment
 
-### Production Build
+```bash
+# Build image
+docker build -t algocdk .
+
+# Run container
+docker run -p 3000:3000 -e JWT_SECRET=your-secret algocdk
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+## Production Build
+
 ```bash
 go build -ldflags="-s -w" -o algocdk main.go
 ```
 
-### Docker Deployment
-```dockerfile
-FROM golang:1.21-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go build -o algocdk main.go
+## License
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/algocdk .
-COPY --from=builder /app/frontend ./frontend
-CMD ["./algocdk"]
-```
+MIT License
 
-## 🤝 Contributing
+## Support
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Contact: support@algocdk.com
-- Documentation: [API Docs](http://localhost:3000/swagger/index.html)
-
-## 🎯 Roadmap
-
-- [ ] Mobile app development
-- [ ] Advanced charting tools
-- [ ] Multi-broker integration
-- [ ] Social trading features
-- [ ] Advanced analytics dashboard
-- [ ] API rate limiting
-- [ ] Redis caching
-- [ ] Microservices architecture
-
----
-
-**Built with ❤️ by the Algocdk Team**
-
-![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white)
-![Gin](https://img.shields.io/badge/Gin-00ADD8?style=flat&logo=go&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
+- GitHub Issues
+- Email: support@algocdk.com

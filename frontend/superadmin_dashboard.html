@@ -6,6 +6,7 @@
     <title>SuperAdmin Dashboard - AlgoCDK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/theme-enhanced.css">
     <script>
         tailwind.config = {
@@ -198,6 +199,10 @@
                     <i class="fas fa-chart-bar mr-3"></i>
                     Analytics
                 </a>
+                <a href="#messages" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-envelope mr-3"></i>
+                    Send Messages
+                </a>
                 <a href="#security" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
                     <i class="fas fa-shield-alt mr-3"></i>
                     Security
@@ -377,9 +382,12 @@
                 <div class="bg-gray-800 rounded-xl p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-xl font-semibold">Users Management</h3>
-                        <button onclick="showCreateUserModal()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
-                            <i class="fas fa-plus mr-2"></i>Create User
-                        </button>
+                        <div class="flex items-center space-x-3">
+                            <input type="text" id="userSearchInput" placeholder="Search users..." class="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" onkeyup="filterUsers()">
+                            <button onclick="showCreateUserModal()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
+                                <i class="fas fa-plus mr-2"></i>Create User
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
@@ -410,9 +418,12 @@
                 <div class="bg-gray-800 rounded-xl p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-xl font-semibold">Admins Management</h3>
-                        <button onclick="showCreateAdminModal()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
-                            <i class="fas fa-plus mr-2"></i>Create Admin
-                        </button>
+                        <div class="flex items-center space-x-3">
+                            <input type="text" id="adminSearchInput" placeholder="Search admins..." class="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" onkeyup="filterAdmins()">
+                            <button onclick="showCreateAdminModal()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
+                                <i class="fas fa-plus mr-2"></i>Create Admin
+                            </button>
+                        </div>
                     </div>
                     <div id="adminsContainer">
                         <div class="flex items-center justify-center py-8">
@@ -442,22 +453,40 @@
             <!-- Sales View -->
             <div id="salesView" class="view-content hidden">
                 <div class="bg-gray-800 rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold">Sales Performance</h3>
+                        <div class="flex items-center space-x-2 text-sm text-gray-400">
+                            <i class="fas fa-globe"></i>
+                            <span>Currency: KSh (Kenyan Shilling)</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg p-4" style="height: 350px;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 mb-6">
                     <h3 class="text-xl font-semibold mb-6">Sales Overview</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                         <div class="bg-gray-700 p-4 rounded-lg">
                             <h4 class="font-medium mb-2">Total Sales</h4>
                             <p class="text-2xl font-bold text-success" id="totalSales">$0</p>
                             <p class="text-sm text-gray-400">All time</p>
                         </div>
                         <div class="bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium mb-2">Company Revenue</h4>
+                            <p class="text-2xl font-bold text-primary" id="companyRevenue">$0</p>
+                            <p class="text-sm text-gray-400">30% share</p>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium mb-2">Admin Revenue</h4>
+                            <p class="text-2xl font-bold text-warning" id="adminRevenue">$0</p>
+                            <p class="text-sm text-gray-400">70% share</p>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-lg">
                             <h4 class="font-medium mb-2">Total Transactions</h4>
                             <p class="text-2xl font-bold text-primary" id="totalTransactions">0</p>
                             <p class="text-sm text-gray-400">Completed</p>
-                        </div>
-                        <div class="bg-gray-700 p-4 rounded-lg">
-                            <h4 class="font-medium mb-2">Company Revenue</h4>
-                            <p class="text-2xl font-bold text-warning" id="companyRevenue">$0</p>
-                            <p class="text-sm text-gray-400">Our share</p>
                         </div>
                     </div>
                 </div>
@@ -533,6 +562,69 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Messages View -->
+            <div id="messagesView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6">
+                    <h3 class="text-xl font-semibold mb-6">Send Message to Users/Admins</h3>
+                    
+                    <form id="messageForm" onsubmit="sendMessage(event)" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Recipient Type</label>
+                            <select id="recipientType" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" onchange="loadRecipients()">
+                                <option value="">Select recipient type...</option>
+                                <option value="user">Users</option>
+                                <option value="admin">Admins</option>
+                                <option value="all">All Users & Admins</option>
+                            </select>
+                        </div>
+                        
+                        <div id="recipientSelectionDiv" style="display: none;">
+                            <label class="block text-sm font-medium mb-2">Select Recipients</label>
+                            <div class="mb-2">
+                                <button type="button" onclick="selectAllRecipients()" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm mr-2">
+                                    <i class="fas fa-check-square mr-1"></i>Select All
+                                </button>
+                                <button type="button" onclick="deselectAllRecipients()" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">
+                                    <i class="fas fa-square mr-1"></i>Deselect All
+                                </button>
+                            </div>
+                            <div class="bg-gray-700 border border-gray-600 rounded-lg p-4 max-h-64 overflow-y-auto">
+                                <div id="recipientsList" class="space-y-2"></div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Selected: <span id="selectedCount">0</span></p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Subject</label>
+                            <input type="text" id="messageSubject" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="Enter message subject">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Message</label>
+                            <textarea id="messageContent" required rows="6" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="Enter your message..."></textarea>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="sendEmail" checked class="mr-2">
+                                <span class="text-sm">Send as Email</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="sendNotification" checked class="mr-2">
+                                <span class="text-sm">Send as In-App Notification</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button type="submit" class="flex-1 bg-primary hover:bg-secondary px-6 py-3 rounded-lg font-semibold">
+                                <i class="fas fa-paper-plane mr-2"></i>Send Message
+                            </button>
+                            <button type="button" onclick="resetMessageForm()" class="bg-gray-600 hover:bg-gray-500 px-6 py-3 rounded-lg">Reset</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -627,7 +719,7 @@
     </div>
 
     <!-- Include JavaScript modules -->
-    <script src="api.js"></script>
+    <script src="api.js?v=3"></script>
     <script src="notifications.js"></script>
     <script src="superadmin-dashboard.js"></script>
     <script src="/theme-toggle.js"></script>
@@ -658,6 +750,7 @@
                 bots: 'Bots Management',
                 sales: 'Sales Overview',
                 analytics: 'Platform Analytics',
+                messages: 'Send Messages',
                 settings: 'Settings'
             };
             const title = titles[view] || 'Dashboard';
@@ -670,6 +763,12 @@
             });
             document.getElementById(`${view}View`).classList.remove('hidden');
             document.getElementById(`${view}View`).classList.add('fade-in');
+            
+            // Load data for specific views
+            if (view === 'sales') {
+                console.log('Switching to sales view, rendering chart...');
+                setTimeout(() => renderSalesChartStandalone(), 300);
+            }
             
             // Close mobile sidebar after navigation
             closeMobileSidebar();
@@ -939,10 +1038,242 @@
                 window.superAdminDashboard = new SuperAdminDashboard();
             }
         }
+        
+        // Standalone chart rendering function
+        async function renderSalesChartStandalone() {
+            const canvas = document.getElementById('salesChart');
+            if (!canvas) {
+                console.error('Canvas not found');
+                return;
+            }
+            
+            console.log('Rendering chart standalone...');
+            
+            try {
+                // Fetch sales data
+                const response = await fetch('/api/superadmin/sales', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const sales = data.sales || [];
+                
+                console.log('Sales data:', sales);
+                
+                // Group by date
+                const dailyData = {};
+                sales.forEach(sale => {
+                    const date = new Date(sale.sale_date).toLocaleDateString();
+                    if (!dailyData[date]) {
+                        dailyData[date] = { total: 0, company: 0, admin: 0 };
+                    }
+                    dailyData[date].total += sale.amount || 0;
+                    dailyData[date].company += sale.company_share || 0;
+                    dailyData[date].admin += sale.admin_share || 0;
+                });
+                
+                const dates = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
+                const totals = dates.map(date => dailyData[date].total);
+                const companyShares = dates.map(date => dailyData[date].company);
+                const adminShares = dates.map(date => dailyData[date].admin);
+                
+                // Use sample data if empty
+                if (dates.length === 0) {
+                    dates.push('No Data');
+                    totals.push(0);
+                    companyShares.push(0);
+                    adminShares.push(0);
+                }
+                
+                // Destroy existing chart
+                if (window.salesChartInstance) {
+                    window.salesChartInstance.destroy();
+                }
+                
+                // Create chart
+                const ctx = canvas.getContext('2d');
+                window.salesChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dates,
+                        datasets: [
+                            {
+                                label: 'Total Sales',
+                                data: totals,
+                                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Company Revenue (30%)',
+                                data: companyShares,
+                                backgroundColor: 'rgba(255, 69, 0, 0.8)',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Admin Revenue (70%)',
+                                data: adminShares,
+                                backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { color: '#fff', font: { size: 13, weight: 'bold' } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { 
+                                    color: '#9CA3AF', 
+                                    callback: (value) => 'KSh ' + value.toLocaleString()
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            },
+                            x: {
+                                ticks: { color: '#9CA3AF' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('Chart rendered successfully');
+            } catch (error) {
+                console.error('Error rendering chart:', error);
+            }
+        }
 
         function logout() {
             TokenManager.remove();
             window.location.href = '/auth';
+        }
+        
+        // Search/Filter functions
+        function loadRecipients() {
+            const type = document.getElementById('recipientType').value;
+            const div = document.getElementById('recipientSelectionDiv');
+            const list = document.getElementById('recipientsList');
+            
+            if (!type) {
+                div.style.display = 'none';
+                return;
+            }
+            
+            div.style.display = 'block';
+            list.innerHTML = '';
+            
+            let recipients = [];
+            if (type === 'user' || type === 'all') {
+                recipients = recipients.concat(window.superAdminDashboard.data.users.map(u => ({...u, type: 'user'})));
+            }
+            if (type === 'admin' || type === 'all') {
+                recipients = recipients.concat(window.superAdminDashboard.data.admins.map(a => ({...a, type: 'admin'})));
+            }
+            
+            recipients.forEach(r => {
+                list.innerHTML += `
+                    <label class="flex items-center p-2 hover:bg-gray-600 rounded cursor-pointer">
+                        <input type="checkbox" class="recipient-checkbox mr-3" value="${r.id}" data-type="${r.type}" data-email="${r.email}" onchange="updateSelectedCount()">
+                        <div class="flex-1">
+                            <p class="font-medium">${r.name}</p>
+                            <p class="text-xs text-gray-400">${r.email} - ${r.type}</p>
+                        </div>
+                    </label>
+                `;
+            });
+        }
+        
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.recipient-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+        
+        function selectAllRecipients() {
+            document.querySelectorAll('.recipient-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+        
+        function deselectAllRecipients() {
+            document.querySelectorAll('.recipient-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+        
+        async function sendMessage(event) {
+            event.preventDefault();
+            
+            const recipients = Array.from(document.querySelectorAll('.recipient-checkbox:checked')).map(cb => ({
+                id: cb.value,
+                type: cb.dataset.type,
+                email: cb.dataset.email
+            }));
+            
+            if (recipients.length === 0) {
+                utils.notify('Please select at least one recipient', 'error');
+                return;
+            }
+            
+            const data = {
+                recipients: recipients,
+                subject: document.getElementById('messageSubject').value,
+                message: document.getElementById('messageContent').value,
+                send_email: document.getElementById('sendEmail').checked,
+                send_notification: document.getElementById('sendNotification').checked
+            };
+            
+            try {
+                const response = await fetch('/api/superadmin/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    utils.notify('Message sent successfully', 'success');
+                    resetMessageForm();
+                } else {
+                    throw new Error('Failed to send message');
+                }
+            } catch (error) {
+                utils.notify('Failed to send message', 'error');
+            }
+        }
+        
+        function resetMessageForm() {
+            document.getElementById('messageForm').reset();
+            document.getElementById('recipientSelectionDiv').style.display = 'none';
+            document.getElementById('selectedCount').textContent = '0';
+        }
+        
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+        
+        function filterAdmins() {
+            const searchTerm = document.getElementById('adminSearchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('#adminsContainer > div > div');
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         }
 
         // Show Back-to-App side link only for admin or superadmin
@@ -975,9 +1306,15 @@
                 return;
             }
             
+            // Set default country to Kenya if not set
+            if (!localStorage.getItem('userCountry')) {
+                localStorage.setItem('userCountry', 'Kenya');
+            }
+            
             // Add debug info
             console.log('SuperAdmin dashboard loaded');
             console.log('Token valid:', TokenManager.isValid());
+            console.log('User country:', localStorage.getItem('userCountry'));
             
             // Load initial admin requests count
             loadAllRequests();

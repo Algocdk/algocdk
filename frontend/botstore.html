@@ -462,20 +462,23 @@
 
                 <!-- Filters -->
                 <div class="filter-buttons flex flex-wrap gap-2 w-full lg:w-auto justify-center lg:justify-start">
-                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-lg text-sm font-medium" data-filter="all">
+                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-lg text-sm font-medium" data-filter="all" data-type="bots">
                         All Bots
                     </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="featured">
+                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="featured" data-type="bots">
                         <i class="fas fa-star mr-1"></i> <span class="hidden sm:inline">Featured</span>
                     </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="trending">
+                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="trending" data-type="bots">
                         <i class="fas fa-fire mr-1"></i> <span class="hidden sm:inline">Trending</span>
                     </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="new">
+                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="new" data-type="bots">
                         <i class="fas fa-plus mr-1"></i> <span class="hidden sm:inline">New</span>
                     </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="free">
+                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="free" data-type="bots">
                         <i class="fas fa-gift mr-1"></i> <span class="hidden sm:inline">Free</span>
+                    </button>
+                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="all" data-type="indicators">
+                        <i class="fas fa-chart-line mr-1"></i> <span class="hidden sm:inline">Indicators</span>
                     </button>
                 </div>
 
@@ -581,7 +584,9 @@
 
         // Global variables
         let allBots = [];
+        let allIndicators = [];
         let currentFilter = 'all';
+        let currentType = 'bots';
         let currentSort = 'popular';
 
         // Utility function for authenticated fetch requests
@@ -681,6 +686,9 @@
                     allBots = generateSampleBots();
                 }
 
+                // Load indicators
+                await loadIndicators();
+
                 displayBots(allBots);
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 document.getElementById('botsGrid').classList.remove('hidden');
@@ -696,6 +704,16 @@
                         </button>
                     </div>
                 `;
+            }
+        }
+
+        // Load indicators
+        async function loadIndicators() {
+            try {
+                const response = await authFetch('/api/indicators');
+                allIndicators = response.indicators || [];
+            } catch (error) {
+                console.error('Failed to load indicators:', error);
             }
         }
 
@@ -850,21 +868,32 @@
                 ` : ''}
 
                 <!-- Header -->
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                            <i class="fas fa-robot text-white text-lg"></i>
+                <div class="mb-4">
+                    ${bot.image ? `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px;">
+                        <img src="${bot.image}" alt="${bot.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center" style="display:none;">
+                            <i class="fas fa-robot text-white text-5xl"></i>
                         </div>
+                    </div>
+                    ` : `
+                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-5xl"></i>
+                        </div>
+                    </div>
+                    `}
+                    <div class="flex items-start justify-between">
                         <div>
                             <h3 class="font-bold text-lg" style="color: var(--text-primary);">${bot.name}</h3>
                             <p class="text-xs" style="color: var(--text-secondary);">by ${bot.creator?.name || 'Unknown'}</p>
                         </div>
+                        ${isFree ? `
+                        <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">
+                            FREE
+                        </div>
+                        ` : ''}
                     </div>
-                    ${isFree ? `
-                    <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">
-                        FREE
-                    </div>
-                    ` : ''}
                 </div>
 
                 <!-- Description -->
@@ -895,8 +924,8 @@
                         <p class="text-2xl font-bold" style="color: var(--success);">FREE</p>
                         <p class="text-xs" style="color: var(--text-secondary);">No cost</p>
                         ` : `
-                        <p class="text-2xl font-bold" style="color: var(--text-primary);">$${bot.price}</p>
-                        <p class="text-xs" style="color: var(--text-secondary);">or $${bot.rent_price}/month</p>
+                        <p class="text-2xl font-bold" style="color: var(--text-primary);">KSh ${bot.price}</p>
+                        <p class="text-xs" style="color: var(--text-secondary);">or KSh ${bot.rent_price}/month</p>
                         `}
                     </div>
                     <div class="flex gap-2">
@@ -979,7 +1008,7 @@
                                 <div class="p-4 rounded-lg" style="background: var(--bg-tertiary); border: 1px solid var(--border-color);">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="font-bold text-lg" style="color: var(--text-primary);">$${bot.price}</p>
+                                            <p class="font-bold text-lg" style="color: var(--text-primary);">KSh ${bot.price}</p>
                                             <p class="text-sm" style="color: var(--text-secondary);">One-time purchase</p>
                                         </div>
                                         <i class="fas fa-crown text-2xl" style="color: var(--accent-primary);"></i>
@@ -1101,13 +1130,16 @@
                 const response = await authFetch('/api/payment/initialize', {
                     method: 'POST',
                     body: JSON.stringify({
-                        amount: bot.price * 100, // Convert to cents
+                        amount: bot.price,
                         bot_id: bot.id,
-                        type: 'purchase'
+                        payment_type: 'purchase',
+                        description: `Purchase of ${bot.name}`
                     })
                 });
 
-                if (response.authorization_url) {
+                if (response.data && response.data.authorization_url) {
+                    window.location.href = response.data.authorization_url;
+                } else if (response.authorization_url) {
                     window.location.href = response.authorization_url;
                 } else {
                     showNotification('Payment initialization failed', 'error');
@@ -1145,6 +1177,7 @@
                     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
                     currentFilter = this.getAttribute('data-filter');
+                    currentType = this.getAttribute('data-type') || 'bots';
                     filterAndDisplayBots();
                 });
             });
@@ -1163,6 +1196,11 @@
 
         // Filter and display bots
         function filterAndDisplayBots() {
+            if (currentType === 'indicators') {
+                filterAndDisplayIndicators();
+                return;
+            }
+
             let filteredBots = [...allBots];
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
@@ -1199,6 +1237,82 @@
             });
 
             displayBots(filteredBots);
+        }
+
+        // Filter and display indicators
+        function filterAndDisplayIndicators() {
+            let filtered = [...allIndicators];
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            if (searchTerm) {
+                filtered = filtered.filter(ind =>
+                    ind.name.toLowerCase().includes(searchTerm) ||
+                    (ind.description || '').toLowerCase().includes(searchTerm) ||
+                    (ind.category || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            const botsGrid = document.getElementById('botsGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (!filtered || filtered.length === 0) {
+                botsGrid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            botsGrid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            botsGrid.innerHTML = '';
+
+            filtered.forEach(indicator => {
+                const card = document.createElement('div');
+                card.className = 'bot-card rounded-xl p-6 cursor-pointer';
+                card.innerHTML = `
+                    <div class="mb-4">
+                        <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px; background: linear-gradient(135deg, #8B5CF6, #3B82F6);">
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="fas fa-chart-line text-white text-5xl"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-bold text-lg" style="color: var(--text-primary);">${indicator.name}</h3>
+                                <p class="text-xs" style="color: var(--text-secondary);">${indicator.category || 'Indicator'}</p>
+                            </div>
+                            ${indicator.is_free ? `
+                            <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">FREE</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <p class="text-sm mb-4 line-clamp-2" style="color: var(--text-secondary);">
+                        ${indicator.description || 'Custom chart indicator'}
+                    </p>
+                    <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--border-color);">
+                        <div>
+                            ${indicator.is_free ? `
+                            <p class="text-2xl font-bold" style="color: var(--success);">FREE</p>
+                            ` : `
+                            <p class="text-2xl font-bold" style="color: var(--text-primary);">$${indicator.price}</p>
+                            `}
+                        </div>
+                        <button class="btn-primary px-4 py-2 rounded-lg text-sm text-white" onclick="addIndicator(${indicator.id})">
+                            <i class="fas fa-plus mr-1"></i> Add
+                        </button>
+                    </div>
+                `;
+                botsGrid.appendChild(card);
+            });
+        }
+
+        // Add indicator to user
+        async function addIndicator(indicatorId) {
+            try {
+                await authFetch(`/api/indicators/${indicatorId}/add`, { method: 'POST' });
+                showNotification('Indicator added successfully!', 'success');
+            } catch (error) {
+                showNotification(error.message || 'Failed to add indicator', 'error');
+            }
         }
 
         // Show notification

@@ -51,6 +51,8 @@ func SetUpRouter(router *gin.Engine) {
 		{
 			user.GET("/profile", handlers.ProfileHandler)
 			user.PUT("/profile", handlers.UpdateProfile)
+			user.GET("/notifications", handlers.GetNotifications)
+			user.PUT("/notifications/:id/read", handlers.MarkNotificationRead)
 			user.DELETE("/account", handlers.DeleteAccountHandler)
 			user.POST("/reset-password", handlers.ResetPasswordHandler)
 			user.GET("/bots", handlers.GetUserBotsHandler)
@@ -107,6 +109,7 @@ func SetUpRouter(router *gin.Engine) {
 			superadmin.GET("/admin-requests", handlers.GetPendingAdminRequests)
 			superadmin.GET("/admin-requests/all", handlers.GetAllAdminRequests)
 			superadmin.POST("/admin-requests/:id/review", handlers.ReviewAdminRequest)
+			superadmin.POST("/send-message", handlers.SendMessage)
 		}
 
 		admin := api.Group("/admin")
@@ -125,6 +128,12 @@ func SetUpRouter(router *gin.Engine) {
 			admin.DELETE("/bots/:bot_id/users/:user_id", handlers.RemoveUserFromBotHandler)
 			admin.POST("/reset_password/:id", handlers.ResetPasswordHandler)
 
+			// Chart Indicators Management
+			admin.GET("/indicators", handlers.GetChartIndicators)
+			admin.POST("/indicators", handlers.CreateChartIndicator)
+			admin.PUT("/indicators/:id", handlers.UpdateChartIndicator)
+			admin.DELETE("/indicators/:id", handlers.DeleteChartIndicator)
+
 			// Sites Management
 			admin.POST("/create-site", handlers.CreateSiteHandler)
 			admin.GET("/sites", handlers.GetAdminSitesHandler)
@@ -138,6 +147,17 @@ func SetUpRouter(router *gin.Engine) {
 			admin.POST("/screenshare/start", handlers.StartScreenShareSession)
 			admin.POST("/screenshare/stop/:id", handlers.StopScreenShareSession)
 			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
+		}
+
+		// Chart Indicators (Public & User)
+		indicators := api.Group("/indicators")
+		{
+			indicators.GET("", handlers.GetChartIndicators) // Public marketplace
+			indicators.Use(middleware.AuthMiddleware())
+			{
+				indicators.GET("/my", handlers.GetUserIndicators)
+				indicators.POST("/:id/add", handlers.AddIndicatorToUser)
+			}
 		}
 
 		paystackGroup := api.Group("/payment")
@@ -212,6 +232,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/assets", frontendPath)
 	router.Static("/js", frontendPath)
 	router.Static("/images", frontendPath+"/images")
+	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
 	router.StaticFile("/dashboard.js", frontendPath+"/dashboard.js")
@@ -243,6 +264,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/profile", func(c *gin.Context) {
 		c.File(frontendPath + "/userprofile.html")
+	})
+	router.GET("/notifications", func(c *gin.Context) {
+		c.File(frontendPath + "/notifications.html")
 	})
 	router.GET("/superadmin-signup", func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin-signup.html")
@@ -301,6 +325,9 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/global.html", func(c *gin.Context) {
 		c.File(frontendPath + "/global.html")
 	})
+	router.GET("/indicator-template", func(c *gin.Context) {
+		c.File(frontendPath + "/indicator-template.html")
+	})
 	router.GET("/screenshare-admin", func(c *gin.Context) {
 		c.File(frontendPath + "/screenshare-admin.html")
 	})
@@ -309,6 +336,10 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
+	router.StaticFile("/admin-indicators.html", frontendPath+"/admin-indicators.html")
+	router.StaticFile("/custom_strategy_template.js", frontendPath+"/custom_strategy_template.js")
+	router.StaticFile("/indicator-loader.js", frontendPath+"/indicator-loader.js")
+	router.StaticFile("/indicator-renderer.js", frontendPath+"/indicator-renderer.js")
 
 	// Site viewer route
 	router.GET("/site/:slug", handlers.ViewSiteHandler)

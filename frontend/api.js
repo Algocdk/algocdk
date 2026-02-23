@@ -109,9 +109,9 @@ const api = {
     getUserById: (id) => apiRequest(`/superadmin/user/${id}`, 'GET', null, {}, true),
     createAdmin: (data) => apiRequest('/superadmin/create_admin', 'POST', data, {}, true),
     getAllAdmins: () => apiRequest('/superadmin/get_all_admins', 'GET', null, {}, true),
-    toggleAdminStatus: () => apiRequest('/superadmin/toggle_admin_status', 'GET', null, {}, true),
+    toggleAdminStatus: (id) => apiRequest(`/superadmin/toggle_admin_status?id=${id}`, 'GET', null, {}, true),
     updateAdmin: (id, data) => apiRequest(`/superadmin/update_admin/${id}`, 'POST', data, {}, true),
-    deleteAdmin: () => apiRequest('/superadmin/delete_admin', 'DELETE', null, {}, true),
+    deleteAdmin: (id) => apiRequest(`/superadmin/delete_admin?id=${id}`, 'DELETE', null, {}, true),
     updateAdminPassword: (data) => apiRequest('/superadmin/update_admin_password', 'POST', data, {}, true),
     getBots: () => apiRequest('/superadmin/bots', 'GET', null, {}, true),
     scanBots: () => apiRequest('/superadmin/scan_bots', 'GET', null, {}, true),
@@ -187,11 +187,8 @@ const utils = {
   },
 
   // Format currency
-  formatCurrency: (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+  formatCurrency: (amount) => {
+    return 'KSh ' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
 
   // Format percentage

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -667,8 +666,10 @@ func PlaceDerivTrade(c *gin.Context) {
 	var credentials models.DerivCredentials
 	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
 		First(&credentials).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "No Deriv token found",
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":          "No Deriv API token found",
+			"message":        "Please connect your Deriv account to place trades",
+			"requires_token": true,
 		})
 		return
 	}
@@ -676,33 +677,9 @@ func PlaceDerivTrade(c *gin.Context) {
 	// Place trade using Deriv service
 	tradeResult, err := derivService.PlaceTrade(credentials.APIToken, req.Symbol, req.TradeType, req.Stake, req.Duration)
 	if err != nil {
-		// If real trade fails, create simulated trade for demo purposes
-		contractID := fmt.Sprintf("SIM_%d_%d", userID, time.Now().Unix())
-		payout := req.Stake * 1.85 // 85% payout simulation
-
-		// Record simulated trade in database
-		trade := models.Trade{
-			UserID:       userID.(uint),
-			BotID:        req.BotID,
-			DerivTradeID: contractID,
-			Symbol:       req.Symbol,
-			TradeType:    req.TradeType,
-			Stake:        req.Stake,
-			Payout:       payout,
-			Status:       "open",
-			OpenTime:     time.Now(),
-			CreatedAt:    time.Now(),
-		}
-
-		database.DB.Create(&trade)
-
-		c.JSON(http.StatusOK, gin.H{
-			"success":     true,
-			"message":     "Trade placed (simulated - API error: " + err.Error() + ")",
-			"contract_id": contractID,
-			"payout":      payout,
-			"trade_id":    trade.ID,
-			"simulated":   true,
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Failed to place trade",
+			"details": err.Error(),
 		})
 		return
 	}
@@ -729,6 +706,5 @@ func PlaceDerivTrade(c *gin.Context) {
 		"contract_id": tradeResult.ContractID,
 		"payout":      tradeResult.Payout,
 		"trade_id":    trade.ID,
-		"simulated":   false,
 	})
 }

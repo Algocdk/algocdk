@@ -26,7 +26,7 @@ func main() {
 
 	log.Printf("Server running at http://localhost:%s", cfg.Port)
 	log.Printf("For HTTPS access from other devices, use: https://YOUR_IP:%s", cfg.Port)
-	
+
 	// Try HTTPS first, fallback to HTTP if cert files don't exist
 	if err := r.RunTLS(":"+cfg.Port, "cert.pem", "key.pem"); err != nil {
 		log.Println("HTTPS failed, falling back to HTTP:", err)
