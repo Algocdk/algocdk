@@ -14,6 +14,7 @@ import (
 
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.DBMiddleware()) // Add DB to context
 	router.Static("/sites", "./sites")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
@@ -60,6 +61,7 @@ func SetUpRouter(router *gin.Engine) {
 			user.GET("/trades", handlers.GetUserTradesHandler)
 
 			user.POST("/favorite/:bot_id", handlers.ToggleFavorite)
+			user.POST("/favorite/indicator/:indicator_id", handlers.ToggleFavoriteIndicator)
 			user.GET("/favorite", handlers.GetUserFavorites)
 
 			// Chart Indicators

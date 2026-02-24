@@ -481,31 +481,30 @@ func GetUserFavorites(c *gin.Context) {
 
 	var favorites []models.Favorite
 
-	// Load all favorites with their bots
-	if err := database.DB.Preload("Bot").Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
+	// Load all favorites (bots and indicators)
+	if err := database.DB.Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch favorites"})
 		return
 	}
 
-	// Prepare bot list for response
-	var bots []gin.H
+	// Return raw favorites with both bot_id and indicator_id
+	var items []gin.H
 	for _, fav := range favorites {
-		b := fav.Bot
-		bots = append(bots, gin.H{
-			"id":          b.ID,
-			"name":        b.Name,
-			"image":       b.Image,
-			"price":       b.Price,
-			"strategy":    b.Strategy,
-			"status":      b.Status,
-			"bot_link":    b.HTMLFile,
-			"is_favorite": true,
-		})
+		item := gin.H{
+			"id": fav.ID,
+		}
+		if fav.BotID > 0 {
+			item["bot_id"] = fav.BotID
+		}
+		if fav.IndicatorID > 0 {
+			item["indicator_id"] = fav.IndicatorID
+		}
+		items = append(items, item)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Favorite bots retrieved successfully",
-		"data":    bots,
+		"message":   "Favorites retrieved successfully",
+		"favorites": items,
 	})
 }
 
@@ -877,4 +876,52 @@ func MarkNotificationRead(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Notification marked as read"})
+}
+
+// ToggleFavoriteIndicator toggles an indicator as favorite for the user
+func ToggleFavoriteIndicator(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	userID := c.GetUint("user_id")
+
+	indicatorID, err := strconv.Atoi(c.Param("indicator_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid indicator ID"})
+		return
+	}
+
+	var favorite models.Favorite
+
+	// Check if this favorite already exists
+	err = db.Where("user_id = ? AND indicator_id = ?", userID, indicatorID).First(&favorite).Error
+
+	if err == nil {
+		// Exists → unfavorite (delete)
+		db.Delete(&favorite)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Indicator removed from favorites",
+			"status":  "unfavorited",
+		})
+		return
+	}
+
+	if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// Not found → favorite it
+	newFavorite := models.Favorite{
+		UserID:      userID,
+		IndicatorID: uint(indicatorID),
+	}
+
+	if err := db.Create(&newFavorite).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add favorite"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Indicator added to favorites",
+		"status":  "favorited",
+	})
 }
