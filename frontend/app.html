@@ -972,10 +972,10 @@
                     <option value="R_50">Volatility 50</option>
                     <option value="R_75">Volatility 75</option>
                     <option value="R_100" selected>Volatility 100</option>
-                    <option value="BOOM300">Boom 300</option>
+                    <option value="BOOM300N">Boom 300</option>
                     <option value="BOOM500">Boom 500</option>
                     <option value="BOOM1000">Boom 1000</option>
-                    <option value="CRASH300">Crash 300</option>
+                    <option value="CRASH300N">Crash 300</option>
                     <option value="CRASH500">Crash 500</option>
                     <option value="CRASH1000">Crash 1000</option>
                     <option value="stpRNG">Step Index</option>
@@ -1037,9 +1037,11 @@
             </div>
             
             <div id="loadingOverlay">
-                <div style="text-align: center; color: #d1d4dc;">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; font-weight: bold; margin-bottom: 20px;">
+                        <span style="color: #FF4500;">Algo</span><span style="color: white;">cdk</span>
+                    </div>
                     <div class="loading-spinner"></div>
-                    <div style="margin-top: 10px; font-size: 14px;">Loading chart data...</div>
                 </div>
             </div>
             
@@ -1131,10 +1133,10 @@
                                 <option value="R_100" selected>Volatility 100 Index</option>
                             </optgroup>
                             <optgroup label="Crash/Boom Indices">
-                                <option value="BOOM300">Boom 300 Index</option>
+                                <option value="BOOM300N">Boom 300 Index</option>
                                 <option value="BOOM500">Boom 500 Index</option>
                                 <option value="BOOM1000">Boom 1000 Index</option>
-                                <option value="CRASH300">Crash 300 Index</option>
+                                <option value="CRASH300N">Crash 300 Index</option>
                                 <option value="CRASH500">Crash 500 Index</option>
                                 <option value="CRASH1000">Crash 1000 Index</option>
                             </optgroup>
@@ -1308,7 +1310,7 @@
         /* ================= CONFIG ================= */
         let SYMBOL = localStorage.getItem('currentSymbol') || "R_100";
         let TIMEFRAME = parseInt(localStorage.getItem('currentTimeframe')) || 60;
-        const MAX_CANDLES = 500;
+        const MAX_CANDLES = 5000;
 
         /* ================= STATE ================= */
         let candles = [];
@@ -1361,10 +1363,10 @@
                 { symbol: 'R_50', price: 3456.78, change: 34.56, changePercent: 1.01, type: 'Volatility' },
                 { symbol: 'R_75', price: 4567.89, change: -45.67, changePercent: -0.99, type: 'Volatility' },
                 { symbol: 'R_100', price: 5678.90, change: 56.78, changePercent: 1.01, type: 'Volatility' },
-                { symbol: 'BOOM300', price: 12345.67, change: 123.45, changePercent: 1.01, type: 'Crash/Boom' },
+                { symbol: 'BOOM300N', price: 12345.67, change: 123.45, changePercent: 1.01, type: 'Crash/Boom' },
                 { symbol: 'BOOM500', price: 23456.78, change: -234.56, changePercent: -0.99, type: 'Crash/Boom' },
                 { symbol: 'BOOM1000', price: 34567.89, change: 345.67, changePercent: 1.01, type: 'Crash/Boom' },
-                { symbol: 'CRASH300', price: 45678.90, change: -456.78, changePercent: -0.99, type: 'Crash/Boom' },
+                { symbol: 'CRASH300N', price: 45678.90, change: -456.78, changePercent: -0.99, type: 'Crash/Boom' },
                 { symbol: 'CRASH500', price: 56789.01, change: 567.89, changePercent: 1.01, type: 'Crash/Boom' },
                 { symbol: 'CRASH1000', price: 67890.12, change: -678.90, changePercent: -0.99, type: 'Crash/Boom' },
                 { symbol: 'stpRNG', price: 1234.56, change: 12.34, changePercent: 1.01, type: 'Step Index' },
@@ -1427,25 +1429,44 @@
             
             populateMarketList();
             
+            // Clear canvas and show loading immediately
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             showLoading();
-            
-            // Use cached data if available for instant loading
-            if (symbolCache.has(symbol)) {
-                candles = [...symbolCache.get(symbol)];
-                draw();
-                hideLoading();
-            }
             
             restart();
         }
 
         /* ================= LOADING ================= */
         function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                // Animate the spinner
+                const spinner = overlay.querySelector('.loading-spinner');
+                if (spinner && !spinner.dataset.animating) {
+                    spinner.dataset.animating = 'true';
+                    requestAnimationFrame(animateLoadingSpinner);
+                }
+            }
         }
         
         function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                const spinner = overlay.querySelector('.loading-spinner');
+                if (spinner) {
+                    spinner.dataset.animating = 'false';
+                }
+            }
+        }
+        
+        function animateLoadingSpinner() {
+            const overlay = document.getElementById('loadingOverlay');
+            const spinner = overlay?.querySelector('.loading-spinner');
+            if (spinner && spinner.dataset.animating === 'true') {
+                requestAnimationFrame(animateLoadingSpinner);
+            }
         }
 
         /* ================= BACKGROUND PRICE UPDATES ================= */
@@ -1551,7 +1572,12 @@
 
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
-                if (d.error) return;
+                if (d.error) {
+                    console.error('Deriv API Error:', d.error);
+                    hideLoading();
+                    showNotification(`Error loading ${SYMBOL}: ${d.error.message}`, 'error');
+                    return;
+                }
 
                 if (d.candles) {
                     candles = d.candles.map(c => ({
@@ -1563,8 +1589,12 @@
                     }));
                     currentCandle = null;
                     offset = 0;
-                    draw();
-                    hideLoading();
+                    
+                    // Small delay to ensure candles are processed before hiding loader
+                    setTimeout(() => {
+                        draw();
+                        hideLoading();
+                    }, 100);
                 }
 
                 if (d.tick) {
@@ -2283,30 +2313,80 @@
             const range1 = max1 - min1 || 1;
             const y1 = p => pad + window1H - ((p - min1) / range1) * window1H;
 
-            // Grid for window 1
+            // Grid for window 1 with price labels
             ctx.strokeStyle = "#1f2430";
+            ctx.fillStyle = "#9CA3AF";
+            ctx.font = "10px Arial";
             for (let i = 0; i <= 5; i++) {
                 const gy = pad + (window1H / 5) * i;
+                const price = max1 - (i / 5) * range1;
                 ctx.beginPath();
                 ctx.moveTo(pad, gy);
                 ctx.lineTo(canvas.width - pad, gy);
                 ctx.stroke();
+                ctx.fillText(price.toFixed(2), canvas.width - pad + 5, gy + 3);
             }
 
             // Draw candles
             drawChart(view, pad, candleSpacing, y1, window1H);
             
+            // Draw current price line
+            if ((currentCandle && currentCandle.close != null) || (candles.length > 0 && candles[candles.length - 1].close != null)) {
+                const latestPrice = currentCandle ? currentCandle.close : candles[candles.length - 1].close;
+                if (latestPrice != null) {
+                    const priceY = y1(latestPrice);
+                    ctx.strokeStyle = '#FF4500';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(pad, priceY);
+                    ctx.lineTo(canvas.width - pad, priceY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Current price label
+                    ctx.fillStyle = '#FF4500';
+                    ctx.fillRect(canvas.width - pad + 2, priceY - 10, 60, 20);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.fillText(latestPrice.toFixed(2), canvas.width - pad + 5, priceY + 3);
+                }
+            }
+            
+            // Draw time labels on X-axis
+            ctx.fillStyle = "#9CA3AF";
+            ctx.font = "10px Arial";
+            const labelInterval = Math.max(1, Math.floor(view.length / 6));
+            view.forEach((c, i) => {
+                if (i % labelInterval === 0) {
+                    const x = pad + i * candleSpacing + candleSpacing / 2;
+                    const date = new Date(c.time * 1000);
+                    const timeStr = TIMEFRAME >= 86400 ? 
+                        `${date.getMonth()+1}/${date.getDate()}` : 
+                        `${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+                    ctx.save();
+                    ctx.translate(x, canvas.height - pad + 15);
+                    ctx.rotate(-Math.PI / 4);
+                    ctx.fillText(timeStr, 0, 0);
+                    ctx.restore();
+                }
+            });
+            
             // Window 2 setup
             let y2 = null;
             if (hasWindow2) {
-                // Grid for window 2
+                // Grid for window 2 with labels
                 ctx.strokeStyle = "#1f2430";
+                ctx.fillStyle = "#9CA3AF";
+                ctx.font = "10px Arial";
                 for (let i = 0; i <= 3; i++) {
                     const gy = window2Y + (window2H / 3) * i;
+                    const val = 100 - (i / 3) * 100;
                     ctx.beginPath();
                     ctx.moveTo(pad, gy);
                     ctx.lineTo(canvas.width - pad, gy);
                     ctx.stroke();
+                    ctx.fillText(val.toFixed(0), canvas.width - pad + 5, gy + 3);
                 }
                 
                 // Separator line
@@ -2568,7 +2648,7 @@
         
         function updateChartInfo() {
             const latest = currentCandle || (candles.length > 0 ? candles[candles.length - 1] : null);
-            if (!latest) return;
+            if (!latest || latest.open == null || latest.high == null || latest.low == null || latest.close == null) return;
             
             const infoOpen = document.getElementById('infoOpen');
             const infoHigh = document.getElementById('infoHigh');
