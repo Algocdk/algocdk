@@ -173,7 +173,7 @@
                 color: #E2E8F0 !important;
             }
             
-            /* Hide complex controls on mobile */
+            /* Hide complex controls on mobile by default */
             #drawingTool, #drawingColor, #lineStyle, #lineWidth, 
             #clearDrawings, #chartType, #alertBtn, #screenshotBtn,
             #indicators, #customIndicatorFile, #customIndicatorCode,
@@ -181,12 +181,39 @@
                 display: none !important;
             }
             
-            /* Chart info panel mobile */
-            .chart-info {
-                top: 100px !important;
+            /* Mobile tools button */
+            #mobileToolsBtn {
+                display: block !important;
+                position: fixed !important;
+                bottom: 50vh !important;
                 right: 8px !important;
-                font-size: 10px !important;
-                padding: 6px !important;
+                z-index: 150 !important;
+                background: #FF4500 !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 50% !important;
+                width: 48px !important;
+                height: 48px !important;
+                font-size: 20px !important;
+                box-shadow: 0 4px 12px rgba(255,69,0,0.4) !important;
+            }
+            
+            /* Show controls when mobile panel is active */
+            body.mobile-tools-active #drawingTool,
+            body.mobile-tools-active #drawingColor,
+            body.mobile-tools-active #lineStyle,
+            body.mobile-tools-active #lineWidth,
+            body.mobile-tools-active #clearDrawings,
+            body.mobile-tools-active #chartType,
+            body.mobile-tools-active #alertBtn,
+            body.mobile-tools-active #screenshotBtn,
+            body.mobile-tools-active #indicators {
+                display: inline-block !important;
+            }
+            
+            /* Hide chart info panel on mobile */
+            .chart-info {
+                display: none !important;
             }
             
             /* Mobile Trading Panel */
@@ -309,6 +336,13 @@
         }
         
         /* Tablet adjustments */
+        /* Hide mobile tools button on desktop */
+        @media (min-width: 769px) {
+            #mobileToolsBtn {
+                display: none !important;
+            }
+        }
+        
         @media (min-width: 769px) and (max-width: 1024px) {
             .w-80:first-child {
                 width: 250px !important;
@@ -1010,6 +1044,11 @@
             </div>
             
             <canvas id="chart"></canvas>
+            
+            <!-- Mobile Tools Button -->
+            <button id="mobileToolsBtn" onclick="toggleMobileTools()" title="Toggle Tools" style="display: none;">
+                <i class="fas fa-tools"></i>
+            </button>
             
             <!-- Professional Chart Info Panel -->
             <div class="chart-info" id="chartInfo" style="cursor: move;">
@@ -4159,6 +4198,15 @@
                 setTimeout(() => resize(), 100);
             }
         });
+        
+        /* ================= MOBILE TOOLS ================= */
+        function toggleMobileTools() {
+            document.body.classList.toggle('mobile-tools-active');
+            const btn = document.getElementById('mobileToolsBtn');
+            const isActive = document.body.classList.contains('mobile-tools-active');
+            btn.innerHTML = isActive ? '<i class="fas fa-times"></i>' : '<i class="fas fa-tools"></i>';
+            btn.style.background = isActive ? '#FF4444' : '#FF4500';
+        }
         
         /* ================= EXIT APP ================= */
         function exitApp() {
