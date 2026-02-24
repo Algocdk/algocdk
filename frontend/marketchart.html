@@ -416,34 +416,24 @@
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            #controls {
-                flex-wrap: wrap;
-                max-width: calc(100vw - 20px);
-                font-size: 14px;
-                padding: 12px;
-                gap: 12px;
+            body {
+                touch-action: pan-y pinch-zoom;
             }
             
-            select {
-                padding: 8px 12px;
-                font-size: 14px;
-                min-height: 44px;
-                min-width: 80px;
+            #controls {
+                display: none;
             }
             
             .brand-header {
-                top: 5px;
-                right: 5px;
-                padding: 6px 10px;
-            }
-            
-            .brand-text {
-                font-size: 14px;
+                display: none;
             }
             
             .price-display {
                 top: 5px;
-                padding: 6px 12px;
+                left: 5px;
+                right: 60px;
+                transform: none;
+                padding: 4px 8px;
             }
             
             .current-price {
@@ -457,16 +447,21 @@
             .nav-links {
                 bottom: 5px;
                 left: 5px;
-                padding: 6px;
-                gap: 6px;
+                right: 5px;
+                padding: 4px;
+                gap: 2px;
+                justify-content: space-between;
             }
             
             .nav-link {
-                padding: 8px 10px;
-                font-size: 11px;
-                min-height: 32px;
+                padding: 8px 4px;
+                font-size: 10px;
+                min-height: 36px;
                 display: flex;
                 align-items: center;
+                justify-content: center;
+                flex: 1;
+                text-align: center;
             }
             
             .indicator-tag {
@@ -477,36 +472,100 @@
                 display: inline-flex;
                 align-items: center;
             }
+            
+            .strategy-panel {
+                display: none;
+            }
+            
+            .risk-panel {
+                display: none;
+            }
+            
+            #activeIndicators {
+                display: none;
+            }
+        }
+        
+        /* Mobile Tools Button - Only on Mobile */
+        .mobile-tools-btn {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-tools-btn {
+                display: block;
+                position: fixed;
+                top: 5px;
+                right: 5px;
+                z-index: 100;
+                background: #FF4500;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+                box-shadow: 0 4px 12px rgba(255,69,0,0.4);
+                cursor: pointer;
+            }
+            
+            /* Mobile Tools Panel */
+            .mobile-tools-panel {
+                display: none;
+                position: fixed;
+                top: 60px;
+                left: 5px;
+                right: 5px;
+                background: rgba(22, 27, 34, 0.98);
+                backdrop-filter: blur(10px);
+                border: 1px solid #2b2f3a;
+                border-radius: 8px;
+                padding: 10px;
+                z-index: 99;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+            
+            .mobile-tools-panel.show {
+                display: block;
+            }
+            
+            .mobile-tools-panel select {
+                width: 100%;
+                padding: 10px;
+                font-size: 14px;
+                min-height: 44px;
+                margin-bottom: 8px;
+                background: #0e1117;
+                color: #d1d4dc;
+                border: 1px solid #2b2f3a;
+                border-radius: 6px;
+            }
+            
+            .mobile-tools-section {
+                margin-bottom: 12px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #2b2f3a;
+            }
+            
+            .mobile-tools-section:last-child {
+                border-bottom: none;
+            }
+            
+            .mobile-tools-label {
+                font-size: 11px;
+                color: #8b949e;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                font-weight: bold;
+            }
         }
         
         @media (max-width: 480px) {
-            #controls {
-                top: 5px;
-                left: 5px;
-                right: 5px;
-                width: auto;
-                max-width: none;
-            }
-            
-            .price-display {
-                left: 5px;
-                right: 5px;
-                width: auto;
-                transform: none;
-            }
-            
-            .nav-links {
-                left: 5px;
-                right: 5px;
-                width: auto;
-                justify-content: space-around;
-            }
-            
-            .nav-link {
-                flex: 1;
-                text-align: center;
-                padding: 6px 4px;
-                font-size: 10px;
+            .mobile-tools-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
             }
         }
     </style>
@@ -518,6 +577,84 @@
         <div class="brand-text">
             <span class="brand-algo">Algo</span><span class="brand-cdk">cdk</span>
         </div>
+    </div>
+    
+    <!-- Mobile Tools Button -->
+    <button class="mobile-tools-btn" onclick="toggleMobileTools()">
+        <i class="fas fa-tools"></i>
+    </button>
+    
+    <!-- Mobile Tools Panel -->
+    <div class="mobile-tools-panel" id="mobileToolsPanel">
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">Market</div>
+            <select id="mobileSymbol" onchange="document.getElementById('symbol').value=this.value; document.getElementById('symbol').onchange({target:this})">
+                <option value="R_10">Volatility 10</option>
+                <option value="R_25">Volatility 25</option>
+                <option value="R_50">Volatility 50</option>
+                <option value="R_75">Volatility 75</option>
+                <option value="R_100" selected>Volatility 100</option>
+                <option value="BOOM300N">Boom 300</option>
+                <option value="BOOM500">Boom 500</option>
+                <option value="BOOM1000">Boom 1000</option>
+                <option value="CRASH300N">Crash 300</option>
+                <option value="CRASH500">Crash 500</option>
+                <option value="CRASH1000">Crash 1000</option>
+            </select>
+        </div>
+        
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">Timeframe</div>
+            <select id="mobileTimeframe" onchange="document.getElementById('timeframe').value=this.value; document.getElementById('timeframe').onchange({target:this})">
+                <option value="10">10s</option>
+                <option value="30">30s</option>
+                <option value="60" selected>1m</option>
+                <option value="180">3m</option>
+                <option value="300">5m</option>
+                <option value="900">15m</option>
+                <option value="1800">30m</option>
+                <option value="3600">1h</option>
+                <option value="14400">4h</option>
+                <option value="86400">1D</option>
+            </select>
+        </div>
+        
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">Chart Type</div>
+            <select id="mobileChartType" onchange="document.getElementById('chartType').value=this.value; document.getElementById('chartType').onchange({target:this})">
+                <option value="candles">Candles</option>
+                <option value="line">Line</option>
+                <option value="area">Area</option>
+                <option value="bars">Bars</option>
+            </select>
+        </div>
+        
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">Indicators</div>
+            <select id="mobileIndicators" onchange="document.getElementById('indicators').value=this.value; document.getElementById('indicators').onchange({target:this}); this.value=''">
+                <option value="">Add Indicator</option>
+                <option value="ma">Moving Average</option>
+                <option value="bb">Bollinger Bands</option>
+                <option value="rsi">RSI</option>
+                <option value="macd">MACD</option>
+                <option value="stoch">Stochastic</option>
+                <option value="atr">ATR</option>
+            </select>
+        </div>
+        
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">Drawing Tools</div>
+            <select id="mobileDrawingTools" onchange="document.getElementById('drawingTools').value=this.value; document.getElementById('drawingTools').onchange({target:this}); this.value=''">
+                <option value="">Select Tool</option>
+                <option value="trendline">Trendline</option>
+                <option value="horizontal">Horizontal Line</option>
+                <option value="vertical">Vertical Line</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="text">Text Label</option>
+            </select>
+        </div>
+        
+        <div id="mobileActiveIndicators" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;"></div>
     </div>
 
     <!-- Price Display -->
@@ -2691,6 +2828,21 @@
         } else {
             initializeEventHandlers();
         }
+        
+        /* ================= MOBILE TOOLS ================= */
+        function toggleMobileTools() {
+            const panel = document.getElementById('mobileToolsPanel');
+            panel.classList.toggle('show');
+        }
+        
+        // Close mobile tools when clicking outside
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('mobileToolsPanel');
+            const btn = document.querySelector('.mobile-tools-btn');
+            if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
         
         function initializeEventHandlers() {
             // Set saved values in dropdowns
