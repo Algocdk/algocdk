@@ -62,6 +62,10 @@ func SetUpRouter(router *gin.Engine) {
 			user.POST("/favorite/:bot_id", handlers.ToggleFavorite)
 			user.GET("/favorite", handlers.GetUserFavorites)
 
+			// Chart Indicators
+			user.GET("/indicators", handlers.GetUserIndicators)
+			user.POST("/indicators/:id/add", handlers.AddIndicatorToUser)
+
 			// Admin requests
 			user.POST("/request-admin", handlers.RequestAdminStatus)
 			user.GET("/admin-request-status", handlers.GetUserAdminRequestStatus)

@@ -2052,9 +2052,25 @@
                 const saved = localStorage.getItem(key);
                 if (saved) {
                     indicators = JSON.parse(saved);
+                    console.log('Loaded indicators from localStorage:', indicators.length);
+                    
                     if (indicators.length > 0) {
                         indicatorIdCounter = Math.max(...indicators.map(i => i.id)) + 1;
                     }
+                    
+                    // Reattach custom objects from customIndicators Map
+                    indicators.forEach(ind => {
+                        if (ind.type && ind.type.startsWith('user_')) {
+                            const customInd = customIndicators.get(ind.type);
+                            console.log('Reattaching', ind.type, 'found in Map:', !!customInd, 'has calculate:', customInd ? typeof customInd.calculate : 'N/A');
+                            if (customInd) {
+                                ind.custom = customInd;
+                            }
+                        }
+                    });
+                    
+                    updateIndicatorTags();
+                } else {
                     updateIndicatorTags();
                 }
             } catch (e) {
@@ -2069,11 +2085,71 @@
         
         /* ================= CUSTOM INDICATORS ================= */
         
+        // Load user's bots/indicators from botstore API
+        async function loadUserIndicators() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return [];
+                
+                const response = await fetch('/api/user/indicators', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) return [];
+                
+                const data = await response.json();
+                return data.indicators || [];
+            } catch (error) {
+                console.error('Failed to load user indicators:', error);
+                return [];
+            }
+        }
+        
+        // Apply indicator/bot to chart
+        async function applyIndicatorToChart(item) {
+            const indicator = item.Indicator || item.indicator || item;
+            if (!indicator || !indicator.code) return;
+            
+            try {
+                // Code is already in object format
+                const customInd = eval(`(${indicator.code})`);
+                const indicatorId = 'user_' + indicator.id;
+                customIndicators.set(indicatorId, customInd);
+                
+                if (customInd) {
+                    const params = { 
+                        window: customInd.window || 1,
+                        ...customInd.defaultParams
+                    };
+                    indicators.push({
+                        id: indicatorIdCounter++,
+                        type: indicatorId,
+                        color: customInd.color || '#ffffff',
+                        params,
+                        custom: customInd
+                    });
+                    saveIndicators();
+                    updateIndicatorTags();
+                    draw();
+                    alert(`Indicator "${indicator.name}" loaded successfully!`);
+                }
+            } catch (error) {
+                console.error(`Failed to apply indicator ${indicator.name}:`, error);
+                alert(`Failed to load indicator: ${error.message}`);
+            }
+        }
+        
         // Load user's custom indicators from botstore
         async function loadUserCustomIndicators() {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) return;
+                if (!token) {
+                    console.log('No token, skipping custom indicators');
+                    return;
+                }
                 
                 const response = await fetch('/api/user/indicators', {
                     headers: {
@@ -2089,37 +2165,52 @@
                 
                 const data = await response.json();
                 const userIndicators = data.indicators || [];
+                console.log('Fetched user indicators:', userIndicators.length);
                 
                 // Add user's indicators to the dropdown
                 const indicatorSelect = document.getElementById('indicators');
                 const mobileIndicatorSelect = document.getElementById('mobileIndicators');
                 
-                userIndicators.forEach(indicator => {
-                    // Load the indicator code
-                    if (indicator.code) {
-                        try {
-                            const customInd = eval(`(${indicator.code})`);
-                            const id = 'user_' + indicator.id;
-                            customIndicators.set(id, customInd);
-                            
-                            // Add to desktop dropdown
-                            const option = document.createElement('option');
-                            option.value = id;
-                            option.textContent = indicator.name + ' (My Indicator)';
-                            indicatorSelect.appendChild(option);
-                            
-                            // Add to mobile dropdown
-                            if (mobileIndicatorSelect) {
-                                const mobileOption = document.createElement('option');
-                                mobileOption.value = id;
-                                mobileOption.textContent = indicator.name;
-                                mobileIndicatorSelect.appendChild(mobileOption);
-                            }
-                        } catch (error) {
-                            console.error(`Failed to load indicator ${indicator.name}:`, error);
+                // Track added indicators to prevent duplicates
+                const addedIndicators = new Set();
+                
+                userIndicators.forEach(item => {
+                    // Handle nested structure
+                    const indicator = item.Indicator || item.indicator || item;
+                    if (!indicator || !indicator.code) return;
+                    
+                    const indicatorId = 'user_' + indicator.id;
+                    
+                    // Skip if already added
+                    if (addedIndicators.has(indicatorId)) return;
+                    addedIndicators.add(indicatorId);
+                    
+                    try {
+                        // Parse the indicator code - it's already in object format
+                        const customInd = eval(`(${indicator.code})`);
+                        customIndicators.set(indicatorId, customInd);
+                        
+                        console.log('Loaded indicator:', indicator.name, 'ID:', indicatorId, 'has calculate:', typeof customInd.calculate);
+                        
+                        // Add to desktop dropdown
+                        const option = document.createElement('option');
+                        option.value = indicatorId;
+                        option.textContent = indicator.name + ' (My Indicator)';
+                        indicatorSelect.appendChild(option);
+                        
+                        // Add to mobile dropdown
+                        if (mobileIndicatorSelect) {
+                            const mobileOption = document.createElement('option');
+                            mobileOption.value = indicatorId;
+                            mobileOption.textContent = indicator.name;
+                            mobileIndicatorSelect.appendChild(mobileOption);
                         }
+                    } catch (error) {
+                        console.error(`Failed to load indicator ${indicator.name}:`, error);
                     }
                 });
+                
+                console.log('customIndicators Map size:', customIndicators.size);
             } catch (error) {
                 console.log('Custom indicators not available:', error.message);
             }
@@ -2459,6 +2550,21 @@
                             updateIndicatorTags();
                         }
                     }
+                    else if (ind.type.startsWith('user_')) {
+                        // Indicator loaded from localStorage but custom object not available yet
+                        // Try to get it from customIndicators Map
+                        const customInd = customIndicators.get(ind.type);
+                        if (customInd) {
+                            ind.custom = customInd;
+                            try {
+                                const result = customInd.calculate(fullData, ind.params);
+                                const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
+                                customInd.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
+                            } catch (error) {
+                                console.error('User indicator error:', error);
+                            }
+                        }
+                    }
                 });
             }
             
@@ -2528,11 +2634,6 @@
             
             // Draw drawing objects
             drawObjects();
-            
-            // Sync data with indicator renderer
-            if (window.indicatorRenderer && data.length > 0) {
-                window.indicatorRenderer.setChartData(data);
-            }
         }
         
         function drawLine(values, spacing, yFunc, pad) {
@@ -3072,7 +3173,7 @@
             }
         });
         
-        function initializeEventHandlers() {
+        async function initializeEventHandlers() {
             // Set saved values in dropdowns
             document.getElementById('symbol').value = SYMBOL;
             document.getElementById('timeframe').value = TIMEFRAME;
@@ -3084,8 +3185,11 @@
                 document.getElementById('chartType').value = chartType;
             }
             
-            // Load user's custom indicators from botstore
-            loadUserCustomIndicators();
+            // Load user's custom indicators from botstore FIRST
+            await loadUserCustomIndicators();
+            
+            // Then load saved indicators (which may reference the custom indicators)
+            loadIndicators();
             
             // Mobile bot loader button
             const mobileLoadBotBtn = document.getElementById('mobileLoadBotBtn');
@@ -3303,7 +3407,6 @@
             // Start connection
             connect();
             loadDrawings();
-            loadIndicators();
         }
         
         function drawChart(view, pad, candleSpacing, yFunc, h) {
@@ -3406,9 +3509,6 @@
             }
         }
     </script>
-    
-    <!-- User Indicators Renderer (Full Visualization) -->
-    <script src="/indicator-renderer.js"></script>
 
 </body>
 

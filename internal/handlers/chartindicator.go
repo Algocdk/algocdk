@@ -70,7 +70,7 @@ func GetChartIndicators(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"indicators": indicators})
 }
 
-// Get user's purchased indicators
+// Get user's purchased indicators + free indicators
 func GetUserIndicators(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -78,14 +78,40 @@ func GetUserIndicators(c *gin.Context) {
 		return
 	}
 
+	// Get purchased indicators
 	var userIndicators []models.UserIndicator
-
 	if err := database.DB.Where("user_id = ?", userID).Preload("Indicator").Find(&userIndicators).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch indicators"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"indicators": userIndicators})
+	// Get free indicators
+	var freeIndicators []models.ChartIndicator
+	if err := database.DB.Where("is_free = ?", true).Find(&freeIndicators).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch free indicators"})
+		return
+	}
+
+	// Combine results - convert to UserIndicator format for consistency
+	allIndicators := userIndicators
+	for _, freeInd := range freeIndicators {
+		// Check if not already in purchased list
+		alreadyHas := false
+		for _, ui := range userIndicators {
+			if ui.IndicatorID == freeInd.ID {
+				alreadyHas = true
+				break
+			}
+		}
+		if !alreadyHas {
+			allIndicators = append(allIndicators, models.UserIndicator{
+				IndicatorID: freeInd.ID,
+				Indicator:   freeInd,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"indicators": allIndicators})
 }
 
 // Purchase or add free indicator
@@ -228,6 +254,13 @@ func DeleteChartIndicator(c *gin.Context) {
 		return
 	}
 
+	// Delete all user_indicators records first (cascade delete)
+	if err := database.DB.Where("indicator_id = ?", indicatorID).Delete(&models.UserIndicator{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user indicator records"})
+		return
+	}
+
+	// Delete the indicator
 	if err := database.DB.Delete(&indicator).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete indicator"})
 		return

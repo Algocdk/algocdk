@@ -39,6 +39,18 @@ class IndicatorRenderer {
         mainCanvas.parentElement.appendChild(this.indicatorCanvas);
         this.ctx = this.indicatorCanvas.getContext('2d', { willReadFrequently: true });
         
+        // Keep overlay synced with main canvas size
+        const resizeObserver = new ResizeObserver(() => {
+            if (this.indicatorCanvas && mainCanvas) {
+                this.indicatorCanvas.width = mainCanvas.width;
+                this.indicatorCanvas.height = mainCanvas.height;
+                this.indicatorCanvas.style.top = `${mainCanvas.offsetTop}px`;
+                this.indicatorCanvas.style.left = `${mainCanvas.offsetLeft}px`;
+                this.redrawAll();
+            }
+        });
+        resizeObserver.observe(mainCanvas);
+        
         console.log('✅ Indicator canvas initialized');
         return true;
     }
@@ -225,16 +237,33 @@ class IndicatorRenderer {
 
         this.ctx.save();
         const bounds = this.calculateBounds(data, data.map(d => d.close), windowType);
+        this.ctx.font = '14px Arial';
+        this.ctx.textAlign = 'center';
 
         for (let i = 0; i < signalData.length; i++) {
-            if (signalData[i] !== null) {
+            if (signalData[i] !== null && signalData[i] !== undefined) {
                 const x = this.indexToX(i, data.length, bounds);
-                const y = this.valueToY(data[i].close, bounds);
                 
-                this.ctx.fillStyle = signalData[i] > 50 ? '#10B981' : '#EF4444';
-                this.ctx.beginPath();
-                this.ctx.arc(x, y, size, 0, Math.PI * 2);
-                this.ctx.fill();
+                // Handle object signals (e.g., {type: 'BUY', price: 123})
+                if (typeof signalData[i] === 'object' && signalData[i].type) {
+                    const signal = signalData[i];
+                    const y = this.valueToY(signal.price, bounds);
+                    
+                    this.ctx.fillStyle = signal.type === 'BUY' ? '#00ff00' : '#ff0000';
+                    
+                    if (signal.type === 'BUY') {
+                        this.ctx.fillText('▲', x, y - 8);
+                    } else {
+                        this.ctx.fillText('▼', x, y + 12);
+                    }
+                } else {
+                    // Handle simple numeric signals
+                    const y = this.valueToY(data[i].close, bounds);
+                    this.ctx.fillStyle = signalData[i] > 50 ? '#10B981' : '#EF4444';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
             }
         }
         this.ctx.restore();
@@ -281,9 +310,16 @@ class IndicatorRenderer {
 
             const windowType = result.panel === 'separate' ? 'window2' : 'window1';
 
-            // Draw main indicator line
+            // Draw main indicator line or signals
             if (result.data && result.data.length > 0) {
-                this.drawLine(candles, result.data, result.color || '#FF4500', result.lineWidth || 2, windowType);
+                // Check if data contains signal objects
+                const hasSignals = result.data.some(d => d && typeof d === 'object' && d.type);
+                
+                if (hasSignals) {
+                    this.drawSignals(candles, result.data, result.color || '#00ff00', 6, windowType);
+                } else {
+                    this.drawLine(candles, result.data, result.color || '#FF4500', result.lineWidth || 2, windowType);
+                }
             }
 
             // Draw additional series
@@ -304,7 +340,8 @@ class IndicatorRenderer {
                 name: result.name,
                 indicator: indicator,
                 result: result,
-                window: windowType
+                window: windowType,
+                userIndicatorId: userIndicator.id || userIndicator.indicator_id
             });
 
             // Track by window
@@ -316,6 +353,9 @@ class IndicatorRenderer {
 
             // Show indicator label
             this.showIndicatorLabel(result.name, result.color, windowType);
+            
+            // Save to localStorage
+            this.saveActiveIndicators();
 
             return {
                 success: true,
@@ -373,6 +413,105 @@ class IndicatorRenderer {
         return container;
     }
 
+    // Redraw all active indicators (called when chart scrolls/updates)
+    redrawAll() {
+        if (!this.ctx || !this.activeIndicators.length) return;
+        
+        console.log('Redrawing', this.activeIndicators.length, 'indicators');
+        
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.indicatorCanvas.width, this.indicatorCanvas.height);
+        
+        // Redraw each active indicator
+        this.activeIndicators.forEach(active => {
+            const candles = this.getChartData();
+            if (!candles || candles.length === 0) return;
+            
+            try {
+                // Recalculate indicator
+                const indicatorFunc = new Function('candles', 'params', `
+                    ${active.indicator.code}
+                    return calculateIndicator(candles, params);
+                `);
+                
+                const result = indicatorFunc(candles, {});
+                const windowType = result.panel === 'separate' ? 'window2' : 'window1';
+                
+                console.log('Redrawing indicator:', result.name, 'window:', windowType);
+                
+                // Draw main indicator line or signals
+                if (result.data && result.data.length > 0) {
+                    // Check if data contains signal objects
+                    const hasSignals = result.data.some(d => d && typeof d === 'object' && d.type);
+                    
+                    if (hasSignals) {
+                        this.drawSignals(candles, result.data, result.color || '#00ff00', 6, windowType);
+                    } else {
+                        this.drawLine(candles, result.data, result.color || '#FF4500', result.lineWidth || 2, windowType);
+                    }
+                }
+                
+                // Draw additional series
+                if (result.series && Array.isArray(result.series)) {
+                    result.series.forEach(series => {
+                        if (series.type === 'bar' || series.type === 'histogram') {
+                            this.drawHistogram(candles, series.data, series.color, windowType);
+                        } else if (series.pointRadius > 0) {
+                            this.drawSignals(candles, series.data, series.color, series.pointRadius, windowType);
+                        } else {
+                            this.drawLine(candles, series.data, series.color, series.lineWidth || 1, windowType);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error redrawing indicator:', error);
+            }
+        });
+    }
+
+    // Save active indicators to localStorage
+    saveActiveIndicators() {
+        try {
+            const indicatorsToSave = this.activeIndicators.map(active => ({
+                userIndicatorId: active.userIndicatorId,
+                name: active.name
+            }));
+            localStorage.setItem('activeIndicators', JSON.stringify(indicatorsToSave));
+        } catch (error) {
+            console.error('Failed to save indicators:', error);
+        }
+    }
+    
+    // Load saved indicators on page load
+    async loadSavedIndicators() {
+        try {
+            const saved = localStorage.getItem('activeIndicators');
+            if (!saved) return;
+            
+            const indicatorsToLoad = JSON.parse(saved);
+            if (!indicatorsToLoad || indicatorsToLoad.length === 0) return;
+            
+            // Get user's indicators from API
+            const userIndicators = await loadUserIndicators();
+            if (!userIndicators || userIndicators.length === 0) return;
+            
+            // Load each saved indicator
+            for (const saved of indicatorsToLoad) {
+                const userIndicator = userIndicators.find(ui => 
+                    (ui.id === saved.userIndicatorId) || 
+                    (ui.indicator_id === saved.userIndicatorId) ||
+                    ((ui.Indicator || ui.indicator)?.name === saved.name)
+                );
+                
+                if (userIndicator) {
+                    await this.applyIndicator(userIndicator);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load saved indicators:', error);
+        }
+    }
+
     // Clear all indicators
     clearAll() {
         if (this.ctx) {
@@ -386,6 +525,9 @@ class IndicatorRenderer {
         if (labelContainer) {
             labelContainer.innerHTML = '';
         }
+        
+        // Clear from localStorage
+        localStorage.removeItem('activeIndicators');
         
         console.log('🗑️ All indicators cleared');
     }
@@ -494,7 +636,13 @@ function addIndicatorButton() {
 
 // Initialize
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addIndicatorButton);
+    document.addEventListener('DOMContentLoaded', () => {
+        addIndicatorButton();
+        // Load saved indicators after a delay to ensure chart is ready
+        setTimeout(() => window.indicatorRenderer.loadSavedIndicators(), 2000);
+    });
 } else {
     addIndicatorButton();
+    // Load saved indicators after a delay to ensure chart is ready
+    setTimeout(() => window.indicatorRenderer.loadSavedIndicators(), 2000);
 }

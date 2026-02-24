@@ -1266,7 +1266,10 @@
             emptyState.classList.add('hidden');
             botsGrid.innerHTML = '';
 
-            filtered.forEach(indicator => {
+            filtered.forEach(item => {
+                // Handle both UserIndicator (with nested Indicator) and direct ChartIndicator
+                const indicator = item.Indicator || item.indicator || item;
+                
                 const card = document.createElement('div');
                 card.className = 'bot-card rounded-xl p-6 cursor-pointer';
                 card.innerHTML = `
@@ -1278,7 +1281,7 @@
                         </div>
                         <div class="flex items-start justify-between">
                             <div>
-                                <h3 class="font-bold text-lg" style="color: var(--text-primary);">${indicator.name}</h3>
+                                <h3 class="font-bold text-lg" style="color: var(--text-primary);">${indicator.name || 'Unnamed Indicator'}</h3>
                                 <p class="text-xs" style="color: var(--text-secondary);">${indicator.category || 'Indicator'}</p>
                             </div>
                             ${indicator.is_free ? `
@@ -1297,7 +1300,7 @@
                             <p class="text-2xl font-bold" style="color: var(--text-primary);">$${indicator.price}</p>
                             `}
                         </div>
-                        <button class="btn-primary px-4 py-2 rounded-lg text-sm text-white" onclick="addIndicator(${indicator.id})">
+                        <button class="btn-primary px-4 py-2 rounded-lg text-sm text-white" onclick="addIndicator(${indicator.id || item.indicator_id})">
                             <i class="fas fa-plus mr-1"></i> Add
                         </button>
                     </div>
