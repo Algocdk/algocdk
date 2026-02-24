@@ -710,10 +710,11 @@
         // Load indicators
         async function loadIndicators() {
             try {
-                const response = await authFetch('/api/indicators');
+                const response = await authFetch('/api/user/indicators');
                 allIndicators = response.indicators || [];
             } catch (error) {
                 console.error('Failed to load indicators:', error);
+                allIndicators = [];
             }
         }
 

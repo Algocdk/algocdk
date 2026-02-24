@@ -864,7 +864,7 @@
         /* ================= CONFIG ================= */
         let SYMBOL = localStorage.getItem('chart_symbol') || "R_100";
         let TIMEFRAME = parseInt(localStorage.getItem('chart_timeframe')) || 60;
-        const MAX_CANDLES = 500;
+        const MAX_CANDLES = 5000;
 
         /* ================= STATE ================= */
         let candles = [];
@@ -888,6 +888,12 @@
         let isLoading = false;
         let showVolume = true;
         let showRegime = true;
+        
+        // Window 2 resize state
+        let window2Height = localStorage.getItem('window2Height') ? parseInt(localStorage.getItem('window2Height')) : null;
+        let isResizingWindow2 = false;
+        let resizeStartY = 0;
+        let resizeStartHeight = 0;
         
         // Strategy state
         let activeStrategy = null;
@@ -1019,6 +1025,25 @@
                     showCustomIndicatorCreator();
                 } else if (e.target.value === 'load') {
                     document.getElementById('customIndicatorFile').click();
+                } else if (e.target.value.startsWith('user_')) {
+                    const indicatorId = e.target.value;
+                    const customInd = customIndicators.get(indicatorId);
+                    if (customInd) {
+                        const params = { 
+                            window: customInd.window || 1,
+                            ...customInd.defaultParams
+                        };
+                        indicators.push({
+                            id: indicatorIdCounter++,
+                            type: indicatorId,
+                            color: customInd.color || '#ffffff',
+                            params,
+                            custom: customInd
+                        });
+                        saveIndicators();
+                        updateIndicatorTags();
+                        draw();
+                    }
                 } else {
                     addIndicator(e.target.value);
                 }
@@ -1058,21 +1083,33 @@
             ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
 
             ws.onopen = () => {
-                ws.send(JSON.stringify({
-                    ticks_history: SYMBOL,
-                    style: "candles",
-                    granularity: TIMEFRAME,
-                    count: MAX_CANDLES,
-                    end: "latest"
-                }));
-                ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
+                console.log('WebSocket connected');
+                // Wait to ensure connection is fully established
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            ticks_history: SYMBOL,
+                            style: "candles",
+                            granularity: TIMEFRAME,
+                            count: MAX_CANDLES,
+                            end: "latest"
+                        }));
+                        ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
+                    }
+                }, 200);
             };
 
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
-                if (d.error) return;
+                if (d.error) {
+                    console.error('WebSocket error:', d.error);
+                    isLoading = false;
+                    draw();
+                    return;
+                }
 
                 if (d.candles) {
+                    console.log('Received candles:', d.candles.length);
                     candles = d.candles.map(c => ({
                         time: Math.floor(c.epoch / TIMEFRAME) * TIMEFRAME,
                         open: +c.open,
@@ -1082,13 +1119,27 @@
                     }));
                     currentCandle = null;
                     offset = 0;
-                    isLoading = false;
-                    draw();
+                    // Add small delay to ensure candles are processed
+                    setTimeout(() => {
+                        isLoading = false;
+                        draw();
+                    }, 100);
                 }
 
                 if (d.tick) {
                     updateCandle(+d.tick.quote, d.tick.epoch);
                 }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                isLoading = false;
+                draw();
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+                isLoading = false;
             };
         }
 
@@ -1151,6 +1202,19 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            // Check if clicking on window2 resize handle
+            if (window.window2Bounds) {
+                const bounds = window.window2Bounds;
+                if (x >= bounds.x && x <= bounds.x + bounds.width && 
+                    y >= bounds.y - 5 && y <= bounds.y + 5) {
+                    isResizingWindow2 = true;
+                    resizeStartY = y;
+                    resizeStartHeight = window2Height || (window.innerWidth <= 768 ? 100 : 180);
+                    canvas.style.cursor = "ns-resize";
+                    return;
+                }
+            }
+            
             if (selectedTool) {
                 startDrawing(x, y);
             } else {
@@ -1178,6 +1242,10 @@
             if (drawingInProgress) {
                 finishDrawing();
             }
+            if (isResizingWindow2) {
+                isResizingWindow2 = false;
+                localStorage.setItem('window2Height', window2Height);
+            }
             isDragging = false;
             dragHandle = null;
             if (!selectedObject) {
@@ -1190,6 +1258,13 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            if (isResizingWindow2) {
+                const delta = resizeStartY - y;
+                window2Height = Math.max(80, Math.min(400, resizeStartHeight + delta));
+                draw();
+                return;
+            }
+            
             if (drawingInProgress) {
                 updateDrawing(x, y);
                 draw();
@@ -1201,6 +1276,16 @@
                 lastX = e.clientX;
                 draw();
             } else {
+                // Check if hovering over window2 resize handle
+                if (window.window2Bounds) {
+                    const bounds = window.window2Bounds;
+                    if (x >= bounds.x && x <= bounds.x + bounds.width && 
+                        y >= bounds.y - 5 && y <= bounds.y + 5) {
+                        canvas.style.cursor = "ns-resize";
+                        return;
+                    }
+                }
+                
                 const obj = findObjectAt(x, y);
                 if (obj) {
                     const handle = findHandle(obj, x, y);
@@ -1776,6 +1861,7 @@
                 color: getIndicatorColor(type),
                 params: defaultParams
             });
+            console.log('Indicator added:', type, 'Total indicators:', indicators.length);
             saveIndicators();
             updateIndicatorTags();
             draw();
@@ -1966,6 +2052,63 @@
         });
         
         /* ================= CUSTOM INDICATORS ================= */
+        
+        // Load user's custom indicators from botstore
+        async function loadUserCustomIndicators() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                
+                const response = await fetch('/api/user/indicators', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('No custom indicators endpoint available');
+                    return;
+                }
+                
+                const data = await response.json();
+                const userIndicators = data.indicators || [];
+                
+                // Add user's indicators to the dropdown
+                const indicatorSelect = document.getElementById('indicators');
+                const mobileIndicatorSelect = document.getElementById('mobileIndicators');
+                
+                userIndicators.forEach(indicator => {
+                    // Load the indicator code
+                    if (indicator.code) {
+                        try {
+                            const customInd = eval(`(${indicator.code})`);
+                            const id = 'user_' + indicator.id;
+                            customIndicators.set(id, customInd);
+                            
+                            // Add to desktop dropdown
+                            const option = document.createElement('option');
+                            option.value = id;
+                            option.textContent = indicator.name + ' (My Indicator)';
+                            indicatorSelect.appendChild(option);
+                            
+                            // Add to mobile dropdown
+                            if (mobileIndicatorSelect) {
+                                const mobileOption = document.createElement('option');
+                                mobileOption.value = id;
+                                mobileOption.textContent = indicator.name;
+                                mobileIndicatorSelect.appendChild(mobileOption);
+                            }
+                        } catch (error) {
+                            console.error(`Failed to load indicator ${indicator.name}:`, error);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.log('Custom indicators not available:', error.message);
+            }
+        }
+        
         function showCustomIndicatorCreator() {
             const template = `({
   name: "My Custom Indicator",
@@ -2186,8 +2329,23 @@
             const isMobile = window.innerWidth <= 768;
             const pad = isMobile ? 40 : 70;
             const w = canvas.width - pad * 2;
-            const indicatorPanelHeight = window.indicatorRenderer && window.indicatorRenderer.window2Indicators.length > 0 ? 180 : 0;
+            
+            // Check if we have window 2 indicators (RSI, MACD, Stoch, ATR)
+            const hasWindow2Indicators = indicators.some(ind => 
+                ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type)
+            );
+            
+            // Calculate indicator panel height dynamically
+            let indicatorPanelHeight = 0;
+            if (hasWindow2Indicators) {
+                const defaultHeight = isMobile ? 100 : 180;
+                const actualWindow2Height = window2Height || defaultHeight;
+                const bottomOffset = isMobile ? 80 : 250;
+                indicatorPanelHeight = actualWindow2Height + bottomOffset + 20; // +20 for spacing
+            }
+            
             const h = canvas.height - pad * 2 - indicatorPanelHeight;
+            console.log('Main chart height:', h, 'Indicator panel height:', indicatorPanelHeight, 'Total canvas:', canvas.height);
 
             // Responsive candle spacing
             const baseCandleSpacing = isMobile ? 4 : 6;
@@ -2227,10 +2385,12 @@
             
             // Draw indicators
             if (indicators.length > 0) {
+                console.log('Drawing indicators, count:', indicators.length);
                 const fullData = [...candles];
                 if (currentCandle) fullData.push(currentCandle);
                 
                 indicators.forEach(ind => {
+                    console.log('Processing indicator:', ind.type);
                     ctx.strokeStyle = ind.color;
                     ctx.lineWidth = 2;
                     
@@ -2246,19 +2406,20 @@
                     }
                     else if (ind.type === 'rsi') {
                         const rsi = calculateRSI(fullData, ind.params.period);
-                        drawRSI(rsi.slice(start, start + visible), candleSpacing, pad);
+                        console.log('Drawing RSI, values:', rsi.slice(start, start + visible).filter(v => v !== null).length);
+                        drawRSI(rsi.slice(start, start + visible), candleSpacing, pad, view.length);
                     }
                     else if (ind.type === 'macd') {
                         const macd = calculateMACD(fullData, ind.params.fast, ind.params.slow, ind.params.signal);
-                        drawMACD(macd, start, visible, candleSpacing, pad);
+                        drawMACD(macd, start, visible, candleSpacing, pad, view.length);
                     }
                     else if (ind.type === 'stoch') {
                         const stoch = calculateStochastic(fullData, ind.params.k, ind.params.d);
-                        drawStoch(stoch, start, visible, candleSpacing, pad);
+                        drawStoch(stoch, start, visible, candleSpacing, pad, view.length);
                     }
                     else if (ind.type === 'atr') {
                         const atr = calculateATR(fullData, ind.params.period);
-                        drawATR(atr.slice(start, start + visible), candleSpacing, pad);
+                        drawATR(atr.slice(start, start + visible), candleSpacing, pad, view.length);
                     }
                     else if (ind.type.startsWith('custom_') && ind.custom) {
                         try {
@@ -2267,6 +2428,17 @@
                             ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
                         } catch (error) {
                             console.error('Custom indicator error:', error);
+                            indicators = indicators.filter(i => i.id !== ind.id);
+                            updateIndicatorTags();
+                        }
+                    }
+                    else if (ind.type.startsWith('user_') && ind.custom) {
+                        try {
+                            const result = ind.custom.calculate(fullData, ind.params);
+                            const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
+                            ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
+                        } catch (error) {
+                            console.error('User indicator error:', error);
                             indicators = indicators.filter(i => i.id !== ind.id);
                             updateIndicatorTags();
                         }
@@ -2395,23 +2567,55 @@
             drawLine(bb.map(b => b?.middle), spacing, yFunc, pad);
         }
         
-        function drawRSI(rsi, spacing, pad) {
-            const rsiH = 60;
-            const rsiY = canvas.height - rsiH - 10;
+        function drawRSI(rsi, spacing, pad, dataLength) {
+            const isMobile = window.innerWidth <= 768;
+            const defaultHeight = isMobile ? 100 : 180;
+            const rsiH = window2Height || defaultHeight;
+            const bottomOffset = isMobile ? 80 : 250;
+            const rsiY = canvas.height - rsiH - bottomOffset;
             
             ctx.fillStyle = "#161b22";
             ctx.fillRect(pad, rsiY, canvas.width - pad * 2, rsiH);
             
+            // Border
+            ctx.strokeStyle = "#2b2f3a";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(pad, rsiY, canvas.width - pad * 2, rsiH);
+            
+            // Resize handle at top
+            ctx.fillStyle = "#FF4500";
+            ctx.fillRect(pad, rsiY - 2, canvas.width - pad * 2, 4);
+            
+            // Store window2 bounds for resize detection
+            window.window2Bounds = { x: pad, y: rsiY, width: canvas.width - pad * 2, height: rsiH };
+            
+            // Grid lines
             ctx.strokeStyle = "#1f2430";
             ctx.lineWidth = 1;
-            [30, 50, 70].forEach(level => {
+            [0, 30, 50, 70, 100].forEach(level => {
                 const y = rsiY + rsiH - (level / 100) * rsiH;
                 ctx.beginPath();
                 ctx.moveTo(pad, y);
                 ctx.lineTo(canvas.width - pad, y);
                 ctx.stroke();
+                
+                // Level labels
+                ctx.fillStyle = "#8b949e";
+                ctx.font = "10px Arial";
+                ctx.textAlign = "right";
+                ctx.fillText(level, canvas.width - pad + 5, y + 4);
             });
             
+            // Overbought/oversold zones
+            ctx.fillStyle = "rgba(255, 77, 79, 0.1)";
+            const y70 = rsiY + rsiH - (70 / 100) * rsiH;
+            ctx.fillRect(pad, rsiY, canvas.width - pad * 2, y70 - rsiY);
+            
+            ctx.fillStyle = "rgba(0, 193, 118, 0.1)";
+            const y30 = rsiY + rsiH - (30 / 100) * rsiH;
+            ctx.fillRect(pad, y30, canvas.width - pad * 2, rsiY + rsiH - y30);
+            
+            // RSI line
             ctx.strokeStyle = "#32cd32";
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -2429,14 +2633,18 @@
             });
             ctx.stroke();
             
+            // Title
             ctx.fillStyle = "#d1d4dc";
-            ctx.font = "10px Arial";
-            ctx.fillText("RSI", pad + 5, rsiY + 12);
+            ctx.font = isMobile ? "bold 10px Arial" : "bold 12px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("RSI (14)", pad + 5, rsiY + (isMobile ? 12 : 15));
         }
         
-        function drawMACD(macd, start, visible, spacing, pad) {
-            const h = 60;
-            const y = canvas.height - h - 10;
+        function drawMACD(macd, start, visible, spacing, pad, dataLength) {
+            const isMobile = window.innerWidth <= 768;
+            const defaultHeight = isMobile ? 100 : 180;
+            const h = window2Height || defaultHeight;
+            const y = canvas.height - h - (isMobile ? 80 : 250);
             ctx.fillStyle = "#161b22";
             ctx.fillRect(pad, y, canvas.width - pad * 2, h);
             const visibleMacd = macd.macd.slice(start, start + visible);
@@ -2454,9 +2662,11 @@
             ctx.stroke();
         }
         
-        function drawStoch(stoch, start, visible, spacing, pad) {
-            const h = 60;
-            const y = canvas.height - h - 10;
+        function drawStoch(stoch, start, visible, spacing, pad, dataLength) {
+            const isMobile = window.innerWidth <= 768;
+            const defaultHeight = isMobile ? 100 : 180;
+            const h = window2Height || defaultHeight;
+            const y = canvas.height - h - (isMobile ? 80 : 250);
             ctx.fillStyle = "#161b22";
             ctx.fillRect(pad, y, canvas.width - pad * 2, h);
             const visibleK = stoch.k.slice(start, start + visible);
@@ -2473,9 +2683,11 @@
             ctx.stroke();
         }
         
-        function drawATR(atr, spacing, pad) {
-            const h = 60;
-            const y = canvas.height - h - 10;
+        function drawATR(atr, spacing, pad, dataLength) {
+            const isMobile = window.innerWidth <= 768;
+            const defaultHeight = isMobile ? 100 : 180;
+            const h = window2Height || defaultHeight;
+            const y = canvas.height - h - (isMobile ? 80 : 250);
             ctx.fillStyle = "#161b22";
             ctx.fillRect(pad, y, canvas.width - pad * 2, h);
             ctx.strokeStyle = "#ff6347";
@@ -2855,6 +3067,9 @@
                 chartType = savedChartType;
                 document.getElementById('chartType').value = chartType;
             }
+            
+            // Load user's custom indicators from botstore
+            loadUserCustomIndicators();
             
             // Strategy selector
             const strategySelect = document.getElementById('strategySelect');
