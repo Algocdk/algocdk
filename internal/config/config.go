@@ -37,7 +37,7 @@ func Load() (*Config, error) {
 
 	// Set defaults if not provided
 	if config.Port == "" {
-		config.Port = "8080"
+		config.Port = "3000"
 	}
 	if config.DBPort == "" {
 		config.DBPort = "5433"

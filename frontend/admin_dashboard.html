@@ -63,7 +63,7 @@
             .sidebar {
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
-                z-index: 1000;
+                z-index: 1001;
             }
             .sidebar.open {
                 transform: translateX(0);
@@ -129,17 +129,19 @@
                 opacity: 0;
                 visibility: hidden;
                 transition: all 0.3s ease;
+                pointer-events: none;
             }
             .mobile-overlay.active {
                 opacity: 1;
                 visibility: visible;
+                pointer-events: none;
             }
         }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
     <!-- Mobile Overlay -->
-    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileSidebar()"></div>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
     
     <!-- Sidebar -->
     <div class="sidebar fixed inset-y-0 left-0 w-64 sidebar-gradient shadow-xl z-50" id="sidebar">
@@ -152,33 +154,33 @@
             
             <!-- Navigation -->
             <nav class="flex-1 px-4 py-6 space-y-2">
-                <a id="backToAppSideLink" href="/app" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" style="display:none;">
+                <a id="backToAppSideLink" href="/app" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" style="display:none;">
                     <i class="fas fa-arrow-left mr-3"></i>
                     Back to App
                 </a>
-                <a href="#dashboard" class="nav-link active flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#dashboard" class="nav-link active flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('dashboard');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-tachometer-alt mr-3"></i>
                     Dashboard
                 </a>
-                <a href="#bots" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#bots" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('bots');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-robot mr-3"></i>
                     My Bots
                     <span id="botsBadge" class="ml-auto bg-primary px-2 py-1 rounded-full text-xs">0</span>
                 </a>
-                <a href="#sites" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#sites" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('sites');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-globe mr-3"></i>
                     My Sites
                     <span id="sitesBadge" class="ml-auto bg-primary px-2 py-1 rounded-full text-xs">0</span>
                 </a>
-                <a href="#transactions" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#transactions" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('transactions');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-credit-card mr-3"></i>
                     Transactions
                 </a>
-                <a href="#users" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#users" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('users');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-users mr-3"></i>
                     Bot Users
                 </a>
-                <a href="#indicators" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#indicators" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('indicators');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-chart-line mr-3"></i>
                     Chart Indicators
                     <span id="indicatorsBadge" class="ml-auto bg-primary px-2 py-1 rounded-full text-xs">0</span>
@@ -187,11 +189,11 @@
                     <i class="fas fa-desktop mr-3"></i>
                     Screen Share
                 </a>
-                <a href="#bank" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#bank" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('bank');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-university mr-3"></i>
                     Bank Details
                 </a>
-                <a href="#profile" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <a href="#profile" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('profile');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-user mr-3"></i>
                     Profile
                 </a>
@@ -759,10 +761,10 @@
     </div>
 
     <!-- Include JavaScript modules -->
-    <script src="api.js?v=2"></script>
-    <script src="notifications.js"></script>
-    <script src="admin-dashboard.js"></script>
-    <script src="/theme-toggle.js"></script>
+    <script src="api.js?v=22"></script>
+    <script src="notifications.js?v=9"></script>
+    <script src="admin-dashboard.js?v=13"></script>
+    <script src="/theme-toggle.js?v=9"></script>
     
     <!-- Load Chart Indicators Module -->
     <script>
@@ -781,21 +783,90 @@
     </script>
 
     <script>
-        // Navigation handling
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const view = link.getAttribute('href').substring(1);
-                switchView(view);
+        // Attach navigation handlers - try multiple times to ensure DOM is ready
+        function attachNavHandlers() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            console.log('Found nav links:', navLinks.length);
+            
+            if (navLinks.length === 0) {
+                console.log('No nav links found, retrying...');
+                setTimeout(attachNavHandlers, 100);
+                return;
+            }
+            
+            navLinks.forEach((link, index) => {
+                // Add visual feedback
+                link.style.cursor = 'pointer';
+                link.style.userSelect = 'none';
+                
+                link.addEventListener('click', function(e) {
+                    console.log('=== NAV CLICK EVENT FIRED ===', this.textContent.trim());
+                    
+                    // Visual feedback
+                    this.style.backgroundColor = 'rgba(255, 69, 0, 0.3)';
+                    setTimeout(() => {
+                        this.style.backgroundColor = '';
+                    }, 300);
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const view = this.getAttribute('href').substring(1);
+                    console.log('Nav clicked:', view);
+                    
+                    // Switch view first
+                    switchView(view);
+                    console.log('View switched to:', view);
+                    
+                    // Then close sidebar on mobile with delay
+                    if (window.innerWidth <= 768) {
+                        console.log('Closing sidebar in 200ms');
+                        setTimeout(closeMobileSidebar, 200);
+                    }
+                }, {capture: true, passive: false});
             });
-        });
+            console.log('Navigation handlers attached successfully');
+            
+            // Force add onclick to all nav links
+            setTimeout(() => {
+                document.querySelectorAll('.nav-link').forEach((link, i) => {
+                    const href = link.getAttribute('href');
+                    
+                    // Skip external links (not starting with #)
+                    if (!href || !href.startsWith('#')) {
+                        return;
+                    }
+                    
+                    link.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        const view = this.getAttribute('href').substring(1);
+                        switchView(view);
+                        if(window.innerWidth <= 768) setTimeout(closeMobileSidebar, 200);
+                    };
+                });
+            }, 500);
+        }
+        
+        // Start trying to attach handlers
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachNavHandlers);
+        } else {
+            attachNavHandlers();
+        }
 
         function switchView(view) {
+            console.log('switchView called with:', view);
             // Update navigation
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active', 'bg-primary');
             });
-            document.querySelector(`[href="#${view}"]`).classList.add('active', 'bg-primary');
+            const targetLink = document.querySelector(`[href="#${view}"]`);
+            if (targetLink) {
+                targetLink.classList.add('active', 'bg-primary');
+                console.log('Active link updated');
+            }
 
             // Update page title
             const titles = {
@@ -811,16 +882,20 @@
             const title = titles[view] || 'Dashboard';
             document.getElementById('pageTitle').textContent = title;
             document.getElementById('mobilePageTitle').textContent = title;
+            console.log('Title updated to:', title);
 
             // Show/hide views
             document.querySelectorAll('.view-content').forEach(content => {
                 content.classList.add('hidden');
             });
-            document.getElementById(`${view}View`).classList.remove('hidden');
-            document.getElementById(`${view}View`).classList.add('fade-in');
-
-            // Close mobile sidebar after navigation
-            closeMobileSidebar();
+            const viewElement = document.getElementById(`${view}View`);
+            if (viewElement) {
+                viewElement.classList.remove('hidden');
+                viewElement.classList.add('fade-in');
+                console.log('View element shown:', view + 'View');
+            } else {
+                console.error('View element not found:', view + 'View');
+            }
 
             // Load data for specific views
             if (view === 'transactions') loadTransactions();
@@ -831,13 +906,17 @@
         }
         
         function openMobileSidebar() {
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('mobileOverlay').classList.add('active');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if (sidebar) sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('active');
         }
         
         function closeMobileSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('mobileOverlay').classList.remove('active');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if (sidebar) sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
         }
 
         // Modal functions
@@ -1295,17 +1374,8 @@
                 return;
             }
             
-            // Close mobile sidebar when clicking outside
-            document.addEventListener('click', (e) => {
-                if (window.innerWidth <= 768) {
-                    const sidebar = document.getElementById('sidebar');
-                    const mobileMenuBtn = e.target.closest('[onclick="openMobileSidebar()"]');
-                    
-                    if (!sidebar.contains(e.target) && !mobileMenuBtn && sidebar.classList.contains('open')) {
-                        closeMobileSidebar();
-                    }
-                }
-            });
+            // Overlay should not block clicks - it's just visual
+            // Clicks will go through to sidebar
         });
     </script>
 </body>
