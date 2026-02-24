@@ -618,6 +618,12 @@
         const totalSlides = 3;
         let favorites = new Set();
         
+        // Restore filter state from localStorage
+        const savedFilter = localStorage.getItem('botstore_filter');
+        if (savedFilter) {
+            currentFilter = savedFilter;
+        }
+        
         // Slideshow
         function changeSlide(direction) {
             const slides = document.querySelectorAll('.slide');
@@ -673,6 +679,11 @@
                 favorites = new Set(favs.map(f => f.bot_id || f.indicator_id || f.id));
                 
                 if (allBots.length === 0) allBots = generateSampleBots();
+                
+                // Restore active filter tab
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                const activeTab = document.querySelector(`.filter-tab[data-filter="${currentFilter}"]`);
+                if (activeTab) activeTab.classList.add('active');
                 
                 renderGrid();
                 document.getElementById('loading').style.display = 'none';
@@ -989,6 +1000,7 @@
                 document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
                 currentFilter = this.dataset.filter;
+                localStorage.setItem('botstore_filter', currentFilter);
                 renderGrid();
             });
         });
