@@ -491,6 +491,13 @@
             display: none;
         }
         
+        @media (min-width: 769px) {
+            /* Hide mobile tools on desktop */
+            .mobile-tools-panel {
+                display: none !important;
+            }
+        }
+        
         @media (max-width: 768px) {
             .mobile-tools-btn {
                 display: block;
@@ -652,6 +659,13 @@
                 <option value="rectangle">Rectangle</option>
                 <option value="text">Text Label</option>
             </select>
+        </div>
+        
+        <div class="mobile-tools-section">
+            <div class="mobile-tools-label">My Indicators</div>
+            <button id="mobileLoadBotBtn" style="width: 100%; padding: 10px; font-size: 14px; background: #FF4500; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-chart-line"></i> Load My Indicator
+            </button>
         </div>
         
         <div id="mobileActiveIndicators" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;"></div>
@@ -1180,6 +1194,8 @@
         function updatePriceDisplay(currentPrice) {
             const priceEl = document.getElementById('currentPrice');
             const changeEl = document.getElementById('priceChange');
+            
+            if (!priceEl || !changeEl) return; // Safety check
             
             if (candles.length > 0) {
                 const previousPrice = candles[candles.length - 1]?.close || currentPrice;
@@ -2375,7 +2391,7 @@
             
             // Draw volume bars
             if (showVolume) {
-                drawVolume(view, pad, candleSpacing, h);
+                drawVolume(view, pad, candleSpacing, h, pad);
             }
             
             // Draw market regime
@@ -2777,9 +2793,9 @@
             requestAnimationFrame(draw);
         }
         
-        function drawVolume(view, pad, spacing, h) {
+        function drawVolume(view, pad, spacing, h, chartPad) {
             const volHeight = 60;
-            const volY = canvas.height - volHeight - 10;
+            const volY = chartPad + h - volHeight; // Position at bottom of main chart area
             const maxVol = Math.max(...view.map(c => Math.abs(c.high - c.low)));
             
             view.forEach((c, i) => {
@@ -3070,6 +3086,36 @@
             
             // Load user's custom indicators from botstore
             loadUserCustomIndicators();
+            
+            // Mobile bot loader button
+            const mobileLoadBotBtn = document.getElementById('mobileLoadBotBtn');
+            if (mobileLoadBotBtn) {
+                mobileLoadBotBtn.onclick = async () => {
+                    const indicators = await loadUserIndicators();
+                    
+                    if (!indicators || indicators.length === 0) {
+                        const goToStore = confirm('No indicators found. Visit Bot Store to purchase?');
+                        if (goToStore) window.location.href = '/botstore';
+                        return;
+                    }
+                    
+                    const indicatorNames = indicators.map((ind, i) => {
+                        const indicator = ind.Indicator || ind.indicator;
+                        return `${i + 1}. ${indicator?.name || 'Unknown'} (${indicator?.category || 'Custom'})`;
+                    }).join('\n');
+                    
+                    const selection = prompt(`Select indicator to load:\n\n${indicatorNames}\n\nEnter number:`);
+                    
+                    if (selection) {
+                        const index = parseInt(selection) - 1;
+                        if (index >= 0 && index < indicators.length) {
+                            await applyIndicatorToChart(indicators[index]);
+                            // Close mobile tools panel
+                            document.getElementById('mobileToolsPanel').classList.remove('show');
+                        }
+                    }
+                };
+            }
             
             // Strategy selector
             const strategySelect = document.getElementById('strategySelect');
