@@ -1,9 +1,15 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/keyadaniel56/algocdk/internal/utils"
+	"gorm.io/gorm"
+)
 
 type ChartIndicator struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
+	UUID        string    `json:"uuid" gorm:"uniqueIndex;type:varchar(36)"`
 	Name        string    `gorm:"not null" json:"name"`
 	Description string    `json:"description"`
 	Code        string    `gorm:"type:text;not null" json:"code"`
@@ -16,6 +22,14 @@ type ChartIndicator struct {
 	Admin       Admin     `gorm:"foreignKey:AdminID" json:"admin,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// BeforeCreate hook to generate UUID
+func (c *ChartIndicator) BeforeCreate(tx *gorm.DB) error {
+	if c.UUID == "" {
+		c.UUID = utils.GenerateUUID()
+	}
+	return nil
 }
 
 type UserIndicator struct {

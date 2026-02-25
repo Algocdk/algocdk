@@ -2,10 +2,12 @@ package models
 
 import (
 	"github.com/keyadaniel56/algocdk/internal/utils"
+	"gorm.io/gorm"
 )
 
 type SuperAdmin struct {
 	ID           uint                `json:"id" gorm:"primaryKey"`
+	UUID         string              `json:"uuid" gorm:"uniqueIndex;type:varchar(36)"`
 	Name         string              `json:"name"`
 	Email        string              `json:"email" gorm:"uniqueIndex"`
 	Password     string              `json:"-"`
@@ -17,4 +19,12 @@ type SuperAdmin struct {
 	TotalProfits uint                `json:"total_profits"`
 	ActiveBots   uint                `json:"active_bots"`
 	TotalTrades  uint                `json:"total_trades"`
+}
+
+// BeforeCreate hook to generate UUID
+func (s *SuperAdmin) BeforeCreate(tx *gorm.DB) error {
+	if s.UUID == "" {
+		s.UUID = utils.GenerateUUID()
+	}
+	return nil
 }

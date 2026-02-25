@@ -243,6 +243,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
 	router.StaticFile("/token-refresh-manager.js", frontendPath+"/token-refresh-manager.js")
+	router.StaticFile("/offline-detector.js", frontendPath+"/offline-detector.js")
 	router.StaticFile("/dashboard.js", frontendPath+"/dashboard.js")
 	router.StaticFile("/notifications.js", frontendPath+"/notifications.js")
 	router.StaticFile("/trading.js", frontendPath+"/trading.js")
