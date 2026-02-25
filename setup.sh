@@ -1,23 +1,39 @@
 #!/bin/bash
 # Go local environment setup and gopls install (no sudo needed)
+# Works even if /etc/profile.d/go_env.sh exists
 
-# 1️⃣ Set GOPATH and GOMODCACHE to your home directory
-export GOPATH=$HOME/go
-export GOMODCACHE=$GOPATH/pkg/mod
-export PATH=$GOPATH/bin:$PATH
+set -e
 
-# 2️⃣ Persist settings in ~/.bashrc if not already added
-grep -qxF 'export GOPATH=$HOME/go' ~/.bashrc || echo 'export GOPATH=$HOME/go' >> ~/.bashrc
-grep -qxF 'export GOMODCACHE=$GOPATH/pkg/mod' ~/.bashrc || echo 'export GOMODCACHE=$GOPATH/pkg/mod' >> ~/.bashrc
-grep -qxF 'export PATH=$GOPATH/bin:$PATH' ~/.bashrc || echo 'export PATH=$GOPATH/bin:$PATH' >> ~/.bashrc
+echo "🔧 Configuring Go environment..."
 
-# 3️⃣ Create necessary directories
-mkdir -p $GOPATH/bin
-mkdir -p $GOMODCACHE
+# 0️⃣ Remove any system-level overrides for this session
+unset GOMODCACHE
+unset GOPATH
 
-# 4️⃣ Install gopls
+# 1️⃣ Force Go to use your home directory (permanent fix)
+go env -w GOPATH="$HOME/go"
+go env -w GOMODCACHE="$HOME/go/pkg/mod"
+
+# 2️⃣ Ensure PATH is correct for this session
+export PATH="$HOME/go/bin:$PATH"
+
+# 3️⃣ Persist PATH in ~/.bashrc (only if missing)
+if ! grep -qxF 'export PATH=$HOME/go/bin:$PATH' ~/.bashrc; then
+    echo 'export PATH=$HOME/go/bin:$PATH' >> ~/.bashrc
+fi
+
+# 4️⃣ Create necessary directories
+mkdir -p "$HOME/go/bin"
+mkdir -p "$HOME/go/pkg/mod"
+
+# 5️⃣ Install gopls (language server)
+echo "📦 Installing gopls..."
 go install golang.org/x/tools/gopls@latest
 
-# 5️⃣ Verify installation
+# 6️⃣ Verify configuration
+echo "----------------------------------"
+echo "GOPATH:     $(go env GOPATH)"
+echo "GOMODCACHE: $(go env GOMODCACHE)"
 echo "gopls location: $(which gopls)"
 gopls version
+echo "✅ Setup complete."
