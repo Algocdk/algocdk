@@ -27,6 +27,7 @@ func SetUpRouter(router *gin.Engine) {
 		{
 			auth.POST("/signup", handlers.SignupHandler)
 			auth.POST("/login", handlers.LoginHandler)
+			auth.POST("/refresh", handlers.RefreshTokenHandler)
 			auth.POST("/forgot_password/", handlers.ForgotPasswordHandler)
 			auth.GET("/verify-email", handlers.VerifyEmailHandler)
 			auth.POST("/resend-verification", handlers.ResendVerificationHandler)
@@ -241,6 +242,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
+	router.StaticFile("/token-refresh-manager.js", frontendPath+"/token-refresh-manager.js")
 	router.StaticFile("/dashboard.js", frontendPath+"/dashboard.js")
 	router.StaticFile("/notifications.js", frontendPath+"/notifications.js")
 	router.StaticFile("/trading.js", frontendPath+"/trading.js")

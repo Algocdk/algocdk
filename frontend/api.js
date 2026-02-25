@@ -6,7 +6,12 @@ const API_BASE_URL = window.location.origin + '/api';
 const TokenManager = {
   get: () => localStorage.getItem('token'),
   set: (token) => localStorage.setItem('token', token),
-  remove: () => localStorage.removeItem('token'),
+  remove: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+  },
+  getRefreshToken: () => localStorage.getItem('refresh_token'),
+  setRefreshToken: (token) => localStorage.setItem('refresh_token', token),
   isValid: () => {
     const token = TokenManager.get();
     if (!token) return false;
@@ -16,8 +21,18 @@ const TokenManager = {
     } catch {
       return false;
     }
-  }
-  ,
+  },
+  isExpiringSoon: () => {
+    const token = TokenManager.get();
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiresIn = payload.exp - Date.now() / 1000;
+      return expiresIn < 3600; // Less than 1 hour
+    } catch {
+      return false;
+    }
+  },
   getPayload: () => {
     const token = TokenManager.get();
     if (!token) return null;
@@ -27,11 +42,36 @@ const TokenManager = {
     } catch {
       return null;
     }
+  },
+  async refreshIfNeeded() {
+    if (!TokenManager.isValid() && TokenManager.getRefreshToken()) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: TokenManager.getRefreshToken() })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          TokenManager.set(data.token);
+          TokenManager.setRefreshToken(data.refresh_token);
+          return true;
+        }
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+      }
+    }
+    return false;
   }
 };
 
 // Helper function to make API requests
 async function apiRequest(endpoint, method = 'GET', data = null, headers = {}, requireAuth = false) {
+  // Try to refresh token if needed
+  if (requireAuth && TokenManager.isExpiringSoon()) {
+    await TokenManager.refreshIfNeeded();
+  }
+
   const config = {
     method,
     headers: {
@@ -55,6 +95,24 @@ async function apiRequest(endpoint, method = 'GET', data = null, headers = {}, r
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+  // If unauthorized, try to refresh token once
+  if (response.status === 401 && requireAuth) {
+    const refreshed = await TokenManager.refreshIfNeeded();
+    if (refreshed) {
+      // Retry the request with new token
+      config.headers.Authorization = `Bearer ${TokenManager.get()}`;
+      const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      if (!retryResponse.ok) {
+        const errorData = await retryResponse.json().catch(() => ({ message: retryResponse.statusText }));
+        const error = new Error(errorData.message || `API request failed: ${retryResponse.statusText}`);
+        if (errorData.code) error.code = errorData.code;
+        if (errorData.email) error.email = errorData.email;
+        throw error;
+      }
+      return retryResponse.json();
+    }
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
@@ -81,6 +139,7 @@ const api = {
   auth: {
     signup: (data) => apiRequest('/auth/signup', 'POST', data),
     login: (data) => apiRequest('/auth/login', 'POST', data),
+    refresh: (data) => apiRequest('/auth/refresh', 'POST', data),
     forgotPassword: (data) => apiRequest('/auth/forgot_password/', 'POST', data),
     verifyEmail: (token) => apiRequest(`/auth/verify-email?token=${token}`, 'GET'),
     resendVerification: (data) => apiRequest('/auth/resend-verification', 'POST', data),

@@ -100,6 +100,9 @@ class AuthHandler {
         console.log('Login response received:', response);
         
         TokenManager.set(response.token);
+        if (response.refresh_token) {
+          TokenManager.setRefreshToken(response.refresh_token);
+        }
         utils.notify('Login successful!', 'success');
         
         // Redirect based on user role
