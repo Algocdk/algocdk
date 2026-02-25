@@ -24,6 +24,8 @@ func CreateChartIndicator(c *gin.Context) {
 		Category    string  `json:"category"`
 		IsFree      bool    `json:"is_free"`
 		Price       float64 `json:"price"`
+		Image       string  `json:"image"`
+		Features    string  `json:"features"` // JSON array string
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -38,6 +40,8 @@ func CreateChartIndicator(c *gin.Context) {
 		Category:    input.Category,
 		IsFree:      input.IsFree,
 		Price:       input.Price,
+		Image:       input.Image,
+		Features:    input.Features,
 		AdminID:     adminID.(uint),
 	}
 
@@ -194,6 +198,8 @@ func UpdateChartIndicator(c *gin.Context) {
 		Category    string  `json:"category"`
 		IsFree      *bool   `json:"is_free"`
 		Price       float64 `json:"price"`
+		Image       string  `json:"image"`
+		Features    string  `json:"features"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -219,6 +225,12 @@ func UpdateChartIndicator(c *gin.Context) {
 	}
 	if input.Price >= 0 {
 		updates["price"] = input.Price
+	}
+	if input.Image != "" {
+		updates["image"] = input.Image
+	}
+	if input.Features != "" {
+		updates["features"] = input.Features
 	}
 
 	if err := database.DB.Model(&indicator).Updates(updates).Error; err != nil {
