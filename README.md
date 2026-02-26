@@ -59,11 +59,13 @@ A comprehensive trading platform with bot management, real-time market data, and
 - Platform statistics dashboard
 
 ### Site Builder
-- Create custom sites with HTML/CSS/JS
+- Upload complete website folders (HTML, CSS, JS, images, fonts)
+- Automatic security scanning for malicious code
 - Public and private site visibility
 - Site member management
 - View count tracking
 - Slug-based site routing
+- Static file serving with relative path support
 
 ### Screen Sharing
 - Real-time screen sharing for admins
@@ -244,6 +246,100 @@ docker-compose up -d
 ```bash
 go build -ldflags="-s -w" -o algocdk main.go
 ```
+
+## Creating and Uploading Sites
+
+### Site Structure Requirements
+
+Admins can upload complete website folders. Your site must follow this structure:
+
+```
+my-website/
+├── index.html          (required - main entry point)
+├── style.css           (optional)
+├── script.js           (optional)
+├── images/             (optional)
+│   ├── logo.png
+│   └── banner.jpg
+├── css/                (optional)
+│   └── custom.css
+├── js/                 (optional)
+│   └── app.js
+└── fonts/              (optional)
+    └── custom.woff2
+```
+
+### Important Rules
+
+**✅ DO:**
+- Use **relative paths** in your HTML:
+  ```html
+  <link href="style.css" rel="stylesheet">
+  <script src="script.js"></script>
+  <img src="images/logo.png">
+  ```
+- Include `index.html` as your main file
+- Keep all assets in the same folder or subfolders
+- Use allowed file types: `.html`, `.css`, `.js`, `.jpg`, `.png`, `.gif`, `.svg`, `.woff`, `.ttf`, `.mp4`, `.mp3`, `.pdf`
+
+**❌ DON'T:**
+- Use absolute paths:
+  ```html
+  <link href="/style.css">        <!-- ❌ Wrong -->
+  <script src="/js/script.js">   <!-- ❌ Wrong -->
+  ```
+- Include external CDN scripts (blocked by security)
+- Upload executable files (`.exe`, `.sh`, `.bat`)
+- Use `eval()`, `document.write()`, or external iframes
+- Exceed file limits (10MB per file, 50MB total)
+
+### Upload Process
+
+1. **Navigate to Sites**: Go to `/sites` in admin dashboard
+2. **Click Create Site**: Fill in site name, slug, and description
+3. **Upload Folder**: Click "Click to select website folder" and choose your complete website folder
+4. **Set Visibility**: Check "Make site public" if you want users to see it
+5. **Submit**: Click "Create Site"
+
+### Accessing Your Site
+
+After upload, your site will be available at:
+```
+http://localhost:3000/site/your-slug
+```
+
+Users can browse all public sites at:
+```
+http://localhost:3000/public-sites
+```
+
+### Security Features
+
+- **File Type Validation**: Only safe file types allowed
+- **Size Limits**: 10MB per file, 50MB total
+- **Content Scanning**: Detects malicious patterns in HTML/CSS/JS
+- **Path Security**: Prevents directory traversal attacks
+- **No Server-Side Code**: Static files only (no PHP, Python, etc.)
+
+### Example Site
+
+```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Site</title>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <h1>Welcome!</h1>
+    <img src="images/logo.png" alt="Logo">
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+See `SITE_UPLOAD_GUIDE.md` for detailed instructions.
 
 ## License
 
