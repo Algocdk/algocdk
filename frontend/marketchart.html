@@ -2519,8 +2519,9 @@
             const fastEMA = calculateEMAFromPrices(prices, fastPeriod);
             const slowEMA = calculateEMAFromPrices(prices, slowPeriod);
             const macdLine = fastEMA.map((fast, i) => fast - slowEMA[i]);
-            const signalLine = calculateEMAFromPrices(macdLine.filter(v => v !== null), signalPeriod);
-            return { macd: macdLine, signal: signalLine };
+            const signalLine = calculateEMAFromPrices(macdLine.filter(v => v !== null && !isNaN(v)), signalPeriod);
+            const histogram = macdLine.map((m, i) => m - (signalLine[i] || 0));
+            return { macd: macdLine, signal: signalLine, histogram };
         }
         
         function calculateEMAFromPrices(prices, period) {
@@ -2958,22 +2959,158 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const h = window2Height || defaultHeight;
-            const y = canvas.height - h - (isMobile ? 80 : 250);
+            const bottomOffset = isMobile ? 80 : 250;
+            const y = canvas.height - h - bottomOffset;
+            
+            // Background
             ctx.fillStyle = "#161b22";
             ctx.fillRect(pad, y, canvas.width - pad * 2, h);
+            
+            // Border
+            ctx.strokeStyle = "#2b2f3a";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(pad, y, canvas.width - pad * 2, h);
+            
+            // Resize handle at top
+            ctx.fillStyle = "#FF4500";
+            ctx.fillRect(pad, y - 2, canvas.width - pad * 2, 4);
+            
+            // Store window2 bounds for resize detection
+            window.window2Bounds = { x: pad, y: y, width: canvas.width - pad * 2, height: h };
+            
             const visibleMacd = macd.macd.slice(start, start + visible);
             const visibleSignal = macd.signal.slice(start, start + visible);
-            ctx.strokeStyle = "#ffff00";
+            const visibleHistogram = macd.histogram ? macd.histogram.slice(start, start + visible) : visibleMacd.map((m, i) => m - visibleSignal[i]);
+            
+            // Find min/max for scaling
+            const allValues = [...visibleMacd, ...visibleSignal, ...visibleHistogram].filter(v => v !== null && v !== undefined && !isNaN(v));
+            if (allValues.length === 0) return;
+            
+            const maxVal = Math.max(...allValues);
+            const minVal = Math.min(...allValues);
+            const range = maxVal - minVal || 1;
+            const centerY = y + h / 2;
+            
+            // Zero line
+            ctx.strokeStyle = "#2b2f3a";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(pad, centerY);
+            ctx.lineTo(canvas.width - pad, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw histogram bars first (background)
+            visibleHistogram.forEach((val, i) => {
+                if (val !== null && val !== undefined && !isNaN(val)) {
+                    const x = pad + i * spacing + spacing / 2;
+                    const barHeight = (val / range) * h * 0.8;
+                    const barY = centerY - barHeight;
+                    
+                    ctx.fillStyle = val >= 0 ? 'rgba(0, 193, 118, 0.5)' : 'rgba(255, 77, 79, 0.5)';
+                    ctx.fillRect(x - spacing / 3, Math.min(centerY, barY), spacing * 0.6, Math.abs(barHeight));
+                }
+            });
+            
+            // Draw MACD line
+            ctx.strokeStyle = "#00bfff";
             ctx.lineWidth = 2;
             ctx.beginPath();
+            let firstMacd = true;
             visibleMacd.forEach((val, i) => {
-                if (val) {
+                if (val !== null && val !== undefined && !isNaN(val)) {
                     const x = pad + i * spacing + spacing / 2;
-                    const py = y + h / 2 - val * 10;
-                    i === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py);
+                    const py = centerY - (val / range) * h * 0.8;
+                    if (firstMacd) {
+                        ctx.moveTo(x, py);
+                        firstMacd = false;
+                    } else {
+                        ctx.lineTo(x, py);
+                    }
                 }
             });
             ctx.stroke();
+            
+            // Draw Signal line
+            ctx.strokeStyle = "#ff6347";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let firstSignal = true;
+            visibleSignal.forEach((val, i) => {
+                if (val !== null && val !== undefined && !isNaN(val)) {
+                    const x = pad + i * spacing + spacing / 2;
+                    const py = centerY - (val / range) * h * 0.8;
+                    if (firstSignal) {
+                        ctx.moveTo(x, py);
+                        firstSignal = false;
+                    } else {
+                        ctx.lineTo(x, py);
+                    }
+                }
+            });
+            ctx.stroke();
+            
+            // Draw convergence/divergence markers
+            for (let i = 1; i < visibleMacd.length; i++) {
+                const prevMacd = visibleMacd[i - 1];
+                const currMacd = visibleMacd[i];
+                const prevSignal = visibleSignal[i - 1];
+                const currSignal = visibleSignal[i];
+                
+                if (prevMacd && currMacd && prevSignal && currSignal) {
+                    const x = pad + i * spacing + spacing / 2;
+                    
+                    // Bullish crossover (MACD crosses above Signal)
+                    if (prevMacd <= prevSignal && currMacd > currSignal) {
+                        const py = centerY - (currMacd / range) * h * 0.8;
+                        ctx.fillStyle = '#00c176';
+                        ctx.beginPath();
+                        ctx.arc(x, py, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                    
+                    // Bearish crossover (MACD crosses below Signal)
+                    if (prevMacd >= prevSignal && currMacd < currSignal) {
+                        const py = centerY - (currMacd / range) * h * 0.8;
+                        ctx.fillStyle = '#ff4d4f';
+                        ctx.beginPath();
+                        ctx.arc(x, py, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Title and legend
+            ctx.fillStyle = "#d1d4dc";
+            ctx.font = isMobile ? "bold 10px Arial" : "bold 12px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("MACD (12,26,9)", pad + 5, y + (isMobile ? 12 : 15));
+            
+            // Legend
+            const legendY = y + (isMobile ? 25 : 30);
+            ctx.font = isMobile ? "9px Arial" : "10px Arial";
+            
+            ctx.fillStyle = "#00bfff";
+            ctx.fillRect(pad + 5, legendY - 6, 12, 3);
+            ctx.fillStyle = "#d1d4dc";
+            ctx.fillText("MACD", pad + 20, legendY);
+            
+            ctx.fillStyle = "#ff6347";
+            ctx.fillRect(pad + 60, legendY - 6, 12, 3);
+            ctx.fillStyle = "#d1d4dc";
+            ctx.fillText("Signal", pad + 75, legendY);
+            
+            ctx.fillStyle = "rgba(0, 193, 118, 0.5)";
+            ctx.fillRect(pad + 120, legendY - 6, 8, 8);
+            ctx.fillStyle = "#d1d4dc";
+            ctx.fillText("Histogram", pad + 132, legendY);
         }
         
         function drawStoch(stoch, start, visible, spacing, pad, dataLength) {
