@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoTrader · Deriv mock</title>
+    <!-- Font Awesome 6 (free) for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #0b0f1a 0%, #141b2b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .trading-dashboard {
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(18, 25, 40, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(74, 144, 226, 0.25);
+            border-radius: 2.5rem;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 255, 255, 0.1) inset;
+            overflow: hidden;
+            padding: 1.5rem 2rem 2rem 2rem;
+        }
+
+        /* header with deriv badge */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            background: #e63025;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 10px 18px #e6302540;
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            background: linear-gradient(120deg, #fff, #aaccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .deriv-badge {
+            background: rgba(0, 192, 255, 0.12);
+            border: 1px solid #2a8cff;
+            border-radius: 60px;
+            padding: 0.45rem 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b3e0ff;
+            font-weight: 500;
+            font-size: 1rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .deriv-badge i {
+            font-size: 1.2rem;
+            color: #2a8cff;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 30px;
+            background: #20d472;
+            box-shadow: 0 0 12px #20d472;
+        }
+
+        /* tab navigation */
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            border-bottom: 1px solid #253244;
+            padding-bottom: 0.7rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #8a9bb5;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.7rem 1.8rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.2px;
+        }
+
+        .tab-btn i {
+            font-size: 1.1rem;
+        }
+
+        .tab-btn:hover {
+            background: rgba(42, 140, 255, 0.1);
+            color: #d3e6ff;
+        }
+
+        .tab-btn.active {
+            background: #2a8cff;
+            color: white;
+            box-shadow: 0 8px 18px #2a8cff30;
+        }
+
+        /* tab content */
+        .tab-pane {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .tab-pane.active-pane {
+            display: block;
+            opacity: 1;
+        }
+
+        /* grid cards etc */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(12, 22, 38, 0.7);
+            border: 1px solid #263951;
+            border-radius: 2rem;
+            padding: 1.5rem 1.6rem;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 20px 30px -15px black;
+        }
+
+        .card-title {
+            color: white;
+            font-weight: 500;
+            font-size: 1.1rem;
+            margin-bottom: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px dashed #2d405b;
+            padding-bottom: 0.7rem;
+        }
+
+        .card-title i {
+            color: #2a8cff;
+        }
+
+        /* strategy list */
+        .strategy-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0e1a28;
+            padding: 0.8rem 1.2rem;
+            border-radius: 40px;
+            margin-bottom: 0.7rem;
+            border: 1px solid #283952;
+        }
+
+        .strat-name {
+            color: #ebf5ff;
+            font-weight: 500;
+        }
+
+        .strat-badge {
+            background: #1e3b5c;
+            color: #9dc6ff;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background: #2d405b;
+            border-radius: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: #2a8cff;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        /* deriv mini widget */
+        .deriv-widget {
+            background: #0c1c2c;
+            border-radius: 1.5rem;
+            padding: 1.4rem;
+            margin-top: 0.5rem;
+            border: 1px solid #2c3f5a;
+            position: relative;
+        }
+
+        .deriv-widget::before {
+            content: "DERIV · synthetic index";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #1e3244;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #96b8e3;
+            border: 1px solid #3e5777;
+        }
+
+        .price-ticker {
+            display: flex;
+            align-items: baseline;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .price {
+            font-size: 2.4rem;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        .change {
+            background: #1f3e4b;
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            color: #20d472;
+            font-weight: 500;
+        }
+
+        .contracts-table {
+            width: 100%;
+            color: #b0c6dd;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .contracts-table td {
+            padding: 0.7rem 0.2rem;
+            border-bottom: 1px solid #1d3143;
+        }
+
+        .badge-profit {
+            background: #1e4a3a;
+            color: #7ae2b3;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+        }
+
+        .badge-loss {
+            background: #582e3c;
+            color: #ff9a9a;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+        }
+
+        /* log box */
+        .algo-log {
+            background: #0a121f;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            font-family: 'Menlo', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: #83b1e0;
+            height: 130px;
+            overflow-y: auto;
+            border: 1px solid #253b52;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            color: #b2d1ff;
+            border-bottom: 1px dotted #1f3143;
+            padding: 0.2rem 0;
+        }
+
+        .blink {
+            animation: blinkSoft 2s infinite;
+        }
+
+        @keyframes blinkSoft {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        button.action {
+            background: #2a8cff;
+            border: none;
+            color: white;
+            padding: 0.6rem 1.8rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 1px solid #70b2ff;
+        }
+
+        button.action:hover {
+            background: #1f70cc;
+            box-shadow: 0 0 15px #2a8cffa0;
+        }
+
+        .symbol-chip {
+            background: #192f44;
+            border-radius: 2rem;
+            padding: 0.3rem 1.2rem;
+            color: #cce2ff;
+            display: inline-block;
+        }
+
+        hr {
+            border: 0.5px solid #253b4e;
+            margin: 1.5rem 0;
+        }
+
+        .footer-note {
+            color: #4a6382;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="trading-dashboard">
+        <!-- header + deriv badge -->
+        <div class="header">
+            <div class="logo-area">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AlgoTrader</span>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div class="deriv-badge">
+                    <i class="fas fa-link"></i> <span>Deriv API · synthetic</span> <i class="fas fa-check-circle" style="color:#20d472;"></i>
+                </div>
+                <div class="connection-status">
+                    <span class="status-light"></span>
+                    <span style="color:#b1caf0;">live</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab navigation -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="tab-overview"><i class="fas fa-chart-line"></i> Overview</button>
+            <button class="tab-btn" data-tab="tab-strategies"><i class="fas fa-robot"></i> Strategies</button>
+            <button class="tab-btn" data-tab="tab-deriv"><i class="fas fa-coins"></i> Deriv trades</button>
+            <button class="tab-btn" data-tab="tab-logs"><i class="fas fa-terminal"></i> Logs & algo</button>
+        </div>
+
+        <!-- Tab: Overview (active by default) -->
+        <div id="tab-overview" class="tab-pane active-pane">
+            <div class="grid-2col">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-microchip"></i> Running algos</div>
+                    <div class="strategy-item">
+                        <span class="strat-name"><i class="fas fa-wave-square" style="color:#2a8cff;"></i> MACD cross</span>
+                        <span class="strat-badge">5m</span>
+                        <div class="toggle-switch active" data-strat="macd"></div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strat-name"><i class="fas fa-arrow-trend-up"></i> RSI bounce</span>
+                        <span class="strat-badge">1m</span>
+                        <div class="toggle-switch active" data-strat="rsi"></div>
+                    </div>
+                    <div class="strategy-item">
+                        <span class="strat-name"><i class="fas fa-chart-gantt"></i> Bollinger squeeze</span>
+                        <span class="strat-badge">15m</span>
+                        <div class="toggle-switch" data-strat="bb"></div>
+                    </div>
+                    <button class="action" style="width:100%; margin-top: 1rem;" id="deployStrategies"><i class="fas fa-play"></i> deploy selected</button>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-pie"></i> portfolio (Deriv)</div>
+                    <table style="width:100%; color:#b0c6dd;">
+                        <tr><td>total P&L</td><td style="color:#20d472;">+$1,432.80</td></tr>
+                        <tr><td>open positions</td><td>7</td></tr>
+                        <tr><td>win rate (today)</td><td>68%</td></tr>
+                        <tr><td>used margin</td><td>$420.50</td></tr>
+                    </table>
+                    <div class="deriv-widget" style="margin-top:1.2rem;">
+                        <div class="price-ticker">
+                            <span class="price" id="derivPrice">18743.62</span>
+                            <span class="change" id="derivChange">+0.34%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.6rem;">
+                            <span class="symbol-chip"><i class="fas fa-dice-d6"></i> R_100</span>
+                            <span><i class="fas fa-circle" style="color: #20d472; font-size: 0.6rem;"></i> tick update</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-clock"></i> recent signals (Deriv)</div>
+                <table class="contracts-table">
+                    <tr><td>16:42</td><td>R_75</td><td>CALL</td><td class="badge-profit">+$12.40</td></tr>
+                    <tr><td>16:38</td><td>R_100</td><td>PUT</td><td class="badge-loss">-$5.20</td></tr>
+                    <tr><td>16:31</td><td>R_50</td><td>CALL</td><td class="badge-profit">+$8.90</td></tr>
+                    <tr><td>16:22</td><td>R_100</td><td>PUT</td><td class="badge-profit">+$23.30</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Strategies -->
+        <div id="tab-strategies" class="tab-pane">
+            <div class="grid-2col">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-sliders"></i> strategy parameters</div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color:#b0cbe9;">MACD fast period</label>
+                        <input type="range" min="5" max="20" value="12" style="width:100%; background:#253b52; height:6px; border-radius:10px;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color:#b0cbe9;">RSI oversold (Deriv)</label>
+                        <input type="range" min="20" max="40" value="30" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="color:#b0cbe9;">max contracts</label>
+                        <select style="background:#0f1e2f; color:white; border:1px solid #2d4b6e; padding:0.3rem; border-radius:30px; width:100%;">
+                            <option>1 per signal</option>
+                            <option>2 per signal</option>
+                            <option>5 per signal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-file-code"></i> custom script (Deriv)</div>
+                    <textarea rows="5" style="width:100%; background:#102231; border:1px solid #2e4b6b; color:#b3d6ff; border-radius:20px; padding:1rem; font-family: monospace;">// deriv strategy snippet
+if (rsi &lt; 30 &amp;&amp; tick.price > sma_20) {
+   buy("CALL", "R_100", 1);
+}</textarea>
+                    <button class="action" style="margin-top:0.8rem;"><i class="fas fa-save"></i> compile & deploy</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Deriv trades (specific mock) -->
+        <div id="tab-deriv" class="tab-pane">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-list"></i> open Deriv contracts</div>
+                <table class="contracts-table" style="width:100%">
+                    <thead><tr style="color:#8aa9d1;"><th>ref</th><th>underlying</th><th>direction</th><th>entry</th><th>current</th></tr></thead>
+                    <tr><td>#D1231</td><td>R_100</td><td style="color:#20d472;">CALL</td><td>18734.2</td><td>18743.6</td></tr>
+                    <tr><td>#D1230</td><td>R_75</td><td style="color:#ff7575;">PUT</td><td>4321.5</td><td>4310.2</td></tr>
+                    <tr><td>#D1229</td><td>R_50</td><td style="color:#20d472;">CALL</td><td>1234.7</td><td>1242.0</td></tr>
+                </table>
+                <button class="action" style="margin-top:1rem;" id="syncDeriv"><i class="fas fa-rotate"></i> sync with Deriv</button>
+            </div>
+            <div class="grid-2col" style="margin-top:1rem;">
+                <div class="card">
+                    <span><i class="fas fa-download"></i> buy proposal (Deriv)</span>
+                    <div style="background:#0c1a28; border-radius:1.5rem; padding:1rem; margin-top:0.5rem;">
+                        <div>R_100 · CALL · duration: 5 ticks</div>
+                        <div style="font-size:1.8rem; color:#fff;">$43.20</div>
+                        <button class="action" style="margin-top:0.3rem;">execute</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <span><i class="fas fa-chart-simple"></i> account (Deriv mock)</span>
+                    <div style="font-size:1.5rem; color:#d6eaff;">$8,342.90</div>
+                    <div style="color:#8da9ce;">demo · virtual money</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Logs & algo -->
+        <div id="tab-logs" class="tab-pane">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-code-branch"></i> execution log (Deriv feed)</div>
+                <div class="algo-log" id="logContainer">
+                    <div class="log-entry">[14:32:18] deriv tick R_100: 18743.62</div>
+                    <div class="log-entry">[14:32:19] MACD cross signal → BUY (CALL)</div>
+                    <div class="log-entry">[14:32:20] order placed #D1231 @ deriv (demo)</div>
+                    <div class="log-entry">[14:33:01] RSI bounce condition met (R_75)</div>
+                    <div class="log-entry">[14:33:02] contract closed +12.4</div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                    <button class="action" id="simulateTick"><i class="fas fa-bolt"></i> simulate deriv tick</button>
+                    <button class="action" id="clearLog"><i class="fas fa-eraser"></i> clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- tiny footer -->
+        <div class="footer-note">
+            <span>🧪 all data mock · integrated with <i class="fas fa-circle-nodes" style="color:#2a8cff;"></i> deriv synthetic indices</span>
+            <span>v0.2.3 · real-time sim</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // --- tab switching ---
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const panes = document.querySelectorAll('.tab-pane');
+
+            function switchTab(tabId) {
+                panes.forEach(p => p.classList.remove('active-pane'));
+                tabBtns.forEach(b => b.classList.remove('active'));
+                const activePane = document.getElementById(tabId);
+                if (activePane) activePane.classList.add('active-pane');
+                const correspondingBtn = Array.from(tabBtns).find(btn => btn.dataset.tab === tabId);
+                if (correspondingBtn) correspondingBtn.classList.add('active');
+            }
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tabId = btn.dataset.tab;
+                    if (tabId) switchTab(tabId);
+                });
+            });
+
+            // --- toggle switches simulation (just UI) ---
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggle.classList.toggle('active');
+                });
+            });
+
+            // --- deriv price simulation & log updates ---
+            const derivPriceSpan = document.getElementById('derivPrice');
+            const derivChangeSpan = document.getElementById('derivChange');
+            const logContainer = document.getElementById('logContainer');
+            const simulateBtn = document.getElementById('simulateTick');
+            const clearLogBtn = document.getElementById('clearLog');
+            const syncDerivBtn = document.getElementById('syncDeriv');
+            const deployBtn = document.getElementById('deployStrategies');
+
+            // base price
+            let basePrice = 18743.62;
+            let lastPrice = basePrice;
+
+            function formatTime() {
+                const d = new Date();
+                return `[${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}]`;
+            }
+
+            function addLog(message) {
+                if (!logContainer) return;
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `${formatTime()} ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                // keep last ~20 logs tidy
+                if (logContainer.children.length > 12) {
+                    logContainer.removeChild(logContainer.children[0]);
+                }
+            }
+
+            // random walk for deriv price
+            function randomTick() {
+                const movement = (Math.random() * 4 - 2); // -2 .. +2
+                let newPrice = lastPrice + movement;
+                newPrice = Math.round(newPrice * 100) / 100;
+                lastPrice = newPrice;
+                derivPriceSpan.textContent = newPrice.toFixed(2);
+
+                // calculate fake change %
+                const change = ((newPrice - basePrice) / basePrice) * 100;
+                const sign = change >= 0 ? '+' : '';
+                derivChangeSpan.textContent = sign + change.toFixed(2) + '%';
+                derivChangeSpan.style.color = change >= 0 ? '#20d472' : '#ff9a9a';
+
+                // also add deriv log
+                addLog(`deriv tick R_100: ${newPrice.toFixed(2)}  (change ${sign}${change.toFixed(2)}%)`);
+
+                // 20% chance to also generate a mock algo signal (to feel alive)
+                if (Math.random() < 0.25) {
+                    const strat = ['MACD cross → BUY', 'RSI bounce → PUT', 'Bollinger squeeze → CALL', 'Scalper entry (deriv)'];
+                    const r = strat[Math.floor(Math.random() * strat.length)];
+                    addLog(`📈 algo signal: ${r}`);
+                }
+            }
+
+            if (simulateBtn) {
+                simulateBtn.addEventListener('click', () => {
+                    randomTick();
+                });
+            }
+
+            if (clearLogBtn) {
+                clearLogBtn.addEventListener('click', () => {
+                    if (logContainer) logContainer.innerHTML = ''; 
+                    addLog('log cleared · deriv listener active');
+                });
+            }
+
+            // sync deriv (mock)
+            if (syncDerivBtn) {
+                syncDerivBtn.addEventListener('click', () => {
+                    addLog('syncing with deriv API (demo) · positions updated');
+                });
+            }
+
+            if (deployBtn) {
+                deployBtn.addEventListener('click', () => {
+                    addLog('deploying selected strategies to deriv paper account');
+                });
+            }
+
+            // initial greeting
+            window.addEventListener('load', () => {
+                addLog('AlgoTrader · connected to Deriv (demo WebSocket)');
+                // set initial price
+                lastPrice = 18743.62;
+                derivPriceSpan.textContent = lastPrice.toFixed(2);
+                derivChangeSpan.textContent = '+0.00%';
+            });
+
+            // auto tick every 12 seconds (feel like live)
+            setInterval(() => {
+                randomTick();
+            }, 12000);
+
+            // additional toggle for deploy strategies button on overview (quick toggle demo)
+        })();
+    </script>
+</body>
+</html>

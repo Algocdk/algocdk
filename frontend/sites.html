@@ -362,14 +362,17 @@
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
+                    alert(`✅ Site ${currentSiteId ? 'updated' : 'created'} successfully!\n\nYour site is now available at:\n/site/${formData.slug}`);
                     closeSiteModal();
                     await loadSites();
                 } else {
                     const error = await response.json();
-                    alert(error.error || 'Failed to save site');
+                    alert('❌ Error: ' + (error.error || 'Failed to save site'));
                 }
             } catch (error) {
                 console.error('Failed to save site:', error);
+                alert('❌ Error: Failed to save site. Please try again.');
             }
         });
 

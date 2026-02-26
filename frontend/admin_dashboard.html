@@ -761,7 +761,9 @@
     </div>
 
     <!-- Include JavaScript modules -->
-    <script src="api.js?v=22"></script>
+    <script src="/api.js"></script>
+    <script src="/token-refresh-manager.js"></script>
+    <script src="/offline-detector.js"></script>
     <script src="notifications.js?v=9"></script>
     <script src="admin-dashboard.js?v=13"></script>
     <script src="/theme-toggle.js?v=9"></script>
@@ -1265,13 +1267,23 @@
         
         async function loadSites() {
             try {
-                const response = await fetch('/api/admin/sites', {
+                console.log('Loading sites...');
+                const token = TokenManager.get();
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('Token user_id:', payload.user_id, 'role:', payload.role);
+                console.log('Making fetch to:', '/api/admin/sites');
+                const response = await fetch('/api/admin/sites?t=' + Date.now(), {
                     headers: {
-                        'Authorization': `Bearer ${TokenManager.get()}`
-                    }
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache'
+                    },
+                    cache: 'no-store'
                 });
+                console.log('Sites response status:', response.status);
                 const data = await response.json();
+                console.log('Sites data:', data);
                 const sites = data.sites || [];
+                console.log('Sites count:', sites.length);
                 
                 document.getElementById('sitesBadge').textContent = sites.length;
                 
@@ -1318,6 +1330,7 @@
                 `).join('');
             } catch (error) {
                 console.error('Failed to load sites:', error);
+                document.getElementById('sitesBadge').textContent = '!';
             }
         }
 
@@ -1374,12 +1387,11 @@
                 return;
             }
             
-            // Overlay should not block clicks - it's just visual
-            // Clicks will go through to sidebar
+            // Wait a bit for all scripts to load before calling loadSites
+            setTimeout(() => {
+                loadSites();
+            }, 100);
         });
     </script>
-    <script src="/api.js"></script>
-    <script src="/token-refresh-manager.js"></script>
-    <script src="/offline-detector.js"></script>
 </body>
 </html>

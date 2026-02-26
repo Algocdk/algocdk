@@ -15,6 +15,17 @@ import (
 	"github.com/keyadaniel56/algocdk/internal/utils"
 )
 
+// GetPublicSitesHandler returns all public sites
+func GetPublicSitesHandler(ctx *gin.Context) {
+	var sites []models.Site
+	if err := database.DB.Where("is_public = ? AND status = ?", true, "active").Order("created_at DESC").Find(&sites).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch sites"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"sites": sites})
+}
+
 // CreateSiteHandler godoc
 // @Summary Create a new site
 // @Description Creates a new website with HTML, CSS, and JS content stored as files
@@ -93,7 +104,11 @@ func CreateSiteHandler(ctx *gin.Context) {
 	}
 
 	if err := database.DB.Create(&site).Error; err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to create site"})
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "A site with this slug already exists. Please choose a different slug."})
+		} else {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to create site"})
+		}
 		return
 	}
 
@@ -120,12 +135,16 @@ func GetAdminSitesHandler(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Printf("[GetAdminSites] Fetching sites for user_id: %d\n", userID)
+
 	var sites []models.Site
 	if err := database.DB.Where("owner_id = ?", userID).Order("created_at DESC").Find(&sites).Error; err != nil {
+		fmt.Printf("[GetAdminSites] Database error: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch sites"})
 		return
 	}
 
+	fmt.Printf("[GetAdminSites] Found %d sites for user_id %d\n", len(sites), userID)
 	ctx.JSON(http.StatusOK, gin.H{"sites": sites})
 }
 
@@ -278,7 +297,11 @@ func ViewSiteHandler(ctx *gin.Context) {
 		return
 	}
 
-	if !site.IsPublic || site.Status != "active" {
+	// Allow owner to view their own sites regardless of public status
+	userID, _ := ctx.Get("user_id")
+	isOwner := userID != nil && userID.(uint) == site.OwnerID
+
+	if !isOwner && (!site.IsPublic || site.Status != "active") {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "site not available"})
 		return
 	}

@@ -156,6 +156,9 @@ func SetUpRouter(router *gin.Engine) {
 			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
 		}
 
+		// Public Sites
+		api.GET("/sites/public", handlers.GetPublicSitesHandler)
+
 		// Chart Indicators (Public & User)
 		indicators := api.Group("/indicators")
 		{
@@ -342,6 +345,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/screenshare-viewer", func(c *gin.Context) {
 		c.File(frontendPath + "/screenshare-viewer.html")
+	})
+	router.GET("/public-sites", func(c *gin.Context) {
+		c.File(frontendPath + "/public-sites.html")
 	})
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
