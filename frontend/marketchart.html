@@ -951,6 +951,12 @@
         let resizeStartY = 0;
         let resizeStartHeight = 0;
         
+        // Main chart resize state
+        let mainChartHeight = localStorage.getItem('mainChartHeight') ? parseInt(localStorage.getItem('mainChartHeight')) : null;
+        let isResizingMainChart = false;
+        let mainChartResizeStartY = 0;
+        let mainChartResizeStartHeight = 0;
+        
         // Strategy state
         let activeStrategy = null;
         let strategySignals = [];
@@ -1307,6 +1313,23 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            // Check if clicking on main chart resize handle
+            if (window.mainChartResizeHandle) {
+                const handle = window.mainChartResizeHandle;
+                if (x >= handle.x && x <= handle.x + handle.width && 
+                    y >= handle.y && y <= handle.y + handle.height) {
+                    isResizingMainChart = true;
+                    mainChartResizeStartY = y;
+                    const isMobile = window.innerWidth <= 768;
+                    const hasWindow2 = indicators.some(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
+                    const defaultHeight = isMobile ? 100 : 180;
+                    const indicatorPanelHeight = hasWindow2 ? (window2Height || defaultHeight) + (isMobile ? 80 : 250) + 20 : 0;
+                    mainChartResizeStartHeight = mainChartHeight || (canvas.height - (isMobile ? 80 : 140) - indicatorPanelHeight);
+                    canvas.style.cursor = "ns-resize";
+                    return;
+                }
+            }
+            
             // Check if clicking on window2 resize handle
             if (window.window2Bounds) {
                 const bounds = window.window2Bounds;
@@ -1347,6 +1370,10 @@
             if (drawingInProgress) {
                 finishDrawing();
             }
+            if (isResizingMainChart) {
+                isResizingMainChart = false;
+                localStorage.setItem('mainChartHeight', mainChartHeight);
+            }
             if (isResizingWindow2) {
                 isResizingWindow2 = false;
                 localStorage.setItem('window2Height', window2Height);
@@ -1362,6 +1389,26 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
+            
+            if (isResizingMainChart) {
+                const delta = y - mainChartResizeStartY;
+                const isMobile = window.innerWidth <= 768;
+                const minHeight = isMobile ? 200 : 300;
+                const maxHeight = canvas.height - (isMobile ? 200 : 400);
+                mainChartHeight = Math.max(minHeight, Math.min(maxHeight, mainChartResizeStartHeight + delta));
+                
+                // Auto-adjust window2 height to fill remaining space
+                const hasWindow2 = indicators.some(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
+                if (hasWindow2) {
+                    const pad = isMobile ? 40 : 70;
+                    const bottomOffset = isMobile ? 80 : 250;
+                    const availableSpace = canvas.height - mainChartHeight - pad * 2 - bottomOffset - 20;
+                    window2Height = Math.max(80, Math.min(400, availableSpace));
+                }
+                
+                draw();
+                return;
+            }
             
             if (isResizingWindow2) {
                 const delta = resizeStartY - y;
@@ -1381,6 +1428,16 @@
                 lastX = e.clientX;
                 draw();
             } else {
+                // Check if hovering over main chart resize handle
+                if (window.mainChartResizeHandle) {
+                    const handle = window.mainChartResizeHandle;
+                    if (x >= handle.x && x <= handle.x + handle.width && 
+                        y >= handle.y && y <= handle.y + handle.height) {
+                        canvas.style.cursor = "ns-resize";
+                        return;
+                    }
+                }
+                
                 // Check if hovering over window2 resize handle
                 if (window.window2Bounds) {
                     const bounds = window.window2Bounds;
@@ -2540,8 +2597,29 @@
                 indicatorPanelHeight = actualWindow2Height + bottomOffset + 20; // +20 for spacing
             }
             
-            const h = canvas.height - pad * 2 - indicatorPanelHeight;
+            // Use custom main chart height if set, otherwise calculate automatically
+            let h;
+            if (mainChartHeight) {
+                h = mainChartHeight;
+            } else {
+                h = canvas.height - pad * 2 - indicatorPanelHeight;
+            }
             console.log('Main chart height:', h, 'Indicator panel height:', indicatorPanelHeight, 'Total canvas:', canvas.height);
+            
+            // Draw main chart resize handle
+            const handleY = pad + h;
+            const handleHeight = 8;
+            ctx.fillStyle = "#FF4500";
+            ctx.fillRect(pad, handleY - handleHeight / 2, w, handleHeight);
+            
+            // Store handle bounds for interaction
+            window.mainChartResizeHandle = { x: pad, y: handleY - handleHeight / 2, width: w, height: handleHeight };
+            
+            // Draw resize icon
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "12px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("⋮⋮⋮", canvas.width / 2, handleY + 2);
 
             // Responsive candle spacing
             const baseCandleSpacing = isMobile ? 4 : 6;
