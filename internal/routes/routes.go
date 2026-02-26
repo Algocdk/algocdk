@@ -15,6 +15,7 @@ import (
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.DBMiddleware()) // Add DB to context
+	// Serve user sites statically
 	router.Static("/sites", "./sites")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")

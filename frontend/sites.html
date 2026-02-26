@@ -94,18 +94,16 @@
                     <textarea id="siteDescription" rows="3" class="w-full bg-accent border border-gray-600 rounded-lg px-4 py-2 text-white"></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">HTML Content</label>
-                        <textarea id="htmlContent" rows="12" class="w-full bg-accent border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-sm" placeholder="<h1>Welcome to my site!</h1>"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">CSS Styles</label>
-                        <textarea id="cssContent" rows="12" class="w-full bg-accent border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-sm" placeholder="body { font-family: Arial; }"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">JavaScript</label>
-                        <textarea id="jsContent" rows="12" class="w-full bg-accent border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-sm" placeholder="console.log('Hello World!');"></textarea>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Upload Website Folder</label>
+                    <div class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-primary transition-colors">
+                        <input type="file" id="folderUpload" webkitdirectory directory multiple class="hidden">
+                        <label for="folderUpload" class="cursor-pointer">
+                            <i class="fas fa-folder-open text-4xl text-gray-500 mb-3"></i>
+                            <p class="text-gray-400 mb-2">Click to select website folder</p>
+                            <p class="text-sm text-gray-500">Upload your complete website with all files (HTML, CSS, JS, images, etc.)</p>
+                        </label>
+                        <div id="uploadStatus" class="mt-4 text-sm text-gray-400"></div>
                     </div>
                 </div>
 
@@ -255,9 +253,6 @@
             document.getElementById('siteName').value = site.name;
             document.getElementById('siteSlug').value = site.slug;
             document.getElementById('siteDescription').value = site.description || '';
-            document.getElementById('htmlContent').value = site.html_content || '';
-            document.getElementById('cssContent').value = site.css_content || '';
-            document.getElementById('jsContent').value = site.js_content || '';
             document.getElementById('isPublic').checked = site.is_public;
             
             document.getElementById('siteModal').classList.remove('hidden');
@@ -339,31 +334,46 @@
             }
         }
 
+        let uploadedFiles = [];
+
+        document.getElementById('folderUpload').addEventListener('change', (e) => {
+            uploadedFiles = Array.from(e.target.files);
+            const status = document.getElementById('uploadStatus');
+            if (uploadedFiles.length > 0) {
+                status.innerHTML = `<i class="fas fa-check-circle text-success mr-2"></i>${uploadedFiles.length} files selected`;
+            }
+        });
+
         document.getElementById('siteForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const formData = {
-                name: document.getElementById('siteName').value,
-                slug: document.getElementById('siteSlug').value,
-                description: document.getElementById('siteDescription').value,
-                html_content: document.getElementById('htmlContent').value,
-                css_content: document.getElementById('cssContent').value,
-                js_content: document.getElementById('jsContent').value,
-                is_public: document.getElementById('isPublic').checked
-            };
+            const formData = new FormData();
+            formData.append('name', document.getElementById('siteName').value);
+            formData.append('slug', document.getElementById('siteSlug').value);
+            formData.append('description', document.getElementById('siteDescription').value);
+            formData.append('is_public', document.getElementById('isPublic').checked);
+
+            uploadedFiles.forEach(file => {
+                formData.append('files', file, file.webkitRelativePath || file.name);
+            });
 
             try {
+                const token = localStorage.getItem('token');
                 const url = currentSiteId ? `/api/admin/update-site/${currentSiteId}` : '/api/admin/create-site';
                 const method = currentSiteId ? 'PUT' : 'POST';
                 
-                const response = await authFetch(url, {
+                const response = await fetch(url, {
                     method: method,
-                    body: JSON.stringify(formData)
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
                 });
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert(`✅ Site ${currentSiteId ? 'updated' : 'created'} successfully!\n\nYour site is now available at:\n/site/${formData.slug}`);
+                    const slug = document.getElementById('siteSlug').value;
+                    alert(`✅ Site ${currentSiteId ? 'updated' : 'created'} successfully!\n\nYour site is now available at:\n/site/${slug}`);
                     closeSiteModal();
                     await loadSites();
                 } else {

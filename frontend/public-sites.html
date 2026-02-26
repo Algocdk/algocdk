@@ -43,8 +43,9 @@
     <script>
         async function loadPublicSites() {
             try {
-                const response = await fetch('/api/sites/public');
+                const response = await fetch('/api/sites/public?t=' + Date.now());
                 const data = await response.json();
+                console.log('Loaded sites:', data);
                 const sites = data.sites || [];
                 
                 const grid = document.getElementById('sitesGrid');

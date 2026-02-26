@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/keyadaniel56/algocdk/internal/database"
 	"github.com/keyadaniel56/algocdk/internal/models"
+	"github.com/keyadaniel56/algocdk/internal/security"
 	"github.com/keyadaniel56/algocdk/internal/utils"
 )
 
@@ -28,11 +29,15 @@ func GetPublicSitesHandler(ctx *gin.Context) {
 
 // CreateSiteHandler godoc
 // @Summary Create a new site
-// @Description Creates a new website with HTML, CSS, and JS content stored as files
+// @Description Creates a new website by uploading a complete folder
 // @Tags admin
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param body body object true "Site creation details"
+// @Param name formData string true "Site name"
+// @Param slug formData string true "Site slug"
+// @Param description formData string false "Site description"
+// @Param is_public formData bool false "Is public"
+// @Param files formData file true "Website files"
 // @Security ApiKeyAuth
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
@@ -45,59 +50,98 @@ func CreateSiteHandler(ctx *gin.Context) {
 		return
 	}
 
-	var payload struct {
-		Name        string `json:"name" binding:"required"`
-		Description string `json:"description"`
-		Slug        string `json:"slug" binding:"required"`
-		HTMLContent string `json:"html_content"`
-		CSSContent  string `json:"css_content"`
-		JSContent   string `json:"js_content"`
-		IsPublic    bool   `json:"is_public"`
-	}
+	name := ctx.PostForm("name")
+	slug := ctx.PostForm("slug")
+	description := ctx.PostForm("description")
+	isPublic := ctx.PostForm("is_public") == "true"
 
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if name == "" || slug == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "name and slug are required"})
 		return
 	}
 
 	// Validate slug format
-	payload.Slug = strings.ToLower(strings.ReplaceAll(payload.Slug, " ", "-"))
-	if strings.Contains(payload.Slug, "/") {
-		parts := strings.Split(payload.Slug, "/")
-		payload.Slug = parts[len(parts)-1]
+	slug = strings.ToLower(strings.ReplaceAll(slug, " ", "-"))
+	if strings.Contains(slug, "/") {
+		parts := strings.Split(slug, "/")
+		slug = parts[len(parts)-1]
 	}
 
 	// Create site directory
-	siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, payload.Slug)
-	os.MkdirAll(siteDir, 0755)
+	siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, slug)
+	if err := os.MkdirAll(siteDir, 0755); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create site directory"})
+		return
+	}
 
-	// Save HTML file
-	htmlPath := fmt.Sprintf("%s/index.html", siteDir)
-	htmlContent := fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    <link rel="stylesheet" href="/sites/user_%d/%s/style.css">
-</head>
-<body>
-    %s
-    <script src="/sites/user_%d/%s/script.js"></script>
-</body>
-</html>`, payload.Name, userID, payload.Slug, payload.HTMLContent, userID, payload.Slug)
+	// Handle file uploads
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse form"})
+		return
+	}
 
-	ioutil.WriteFile(htmlPath, []byte(htmlContent), 0644)
-	ioutil.WriteFile(fmt.Sprintf("%s/style.css", siteDir), []byte(payload.CSSContent), 0644)
-	ioutil.WriteFile(fmt.Sprintf("%s/script.js", siteDir), []byte(payload.JSContent), 0644)
+	files := form.File["files"]
+	if len(files) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "no files uploaded"})
+		return
+	}
+
+	// Security scan
+	scanResult := security.ScanFiles(files)
+	if !scanResult.Safe {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Security scan failed",
+			"issues": scanResult.Issues,
+		})
+		return
+	}
+
+	// Save all uploaded files
+	for _, file := range files {
+		// Get relative path from form data
+		relPath := file.Filename
+		if strings.Contains(relPath, "/") {
+			// Extract path after first directory (folder name)
+			parts := strings.SplitN(relPath, "/", 2)
+			if len(parts) > 1 {
+				relPath = parts[1]
+			}
+		}
+
+		destPath := filepath.Join(siteDir, relPath)
+		
+		// Create subdirectories if needed
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			continue
+		}
+
+		// Save file
+		if err := ctx.SaveUploadedFile(file, destPath); err != nil {
+			continue
+		}
+	}
+
+	// Find index.html or first HTML file
+	indexPath := filepath.Join(siteDir, "index.html")
+	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+		// Look for any HTML file
+		filepath.Walk(siteDir, func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".html") {
+				indexPath = path
+				return filepath.SkipAll
+			}
+			return nil
+		})
+	}
 
 	site := models.Site{
-		Name:        strings.TrimSpace(payload.Name),
-		Description: strings.TrimSpace(payload.Description),
-		Slug:        payload.Slug,
-		HTMLContent: htmlPath,
+		Name:        strings.TrimSpace(name),
+		Description: strings.TrimSpace(description),
+		Slug:        slug,
+		HTMLContent: indexPath,
 		OwnerID:     userID,
-		IsPublic:    payload.IsPublic,
+		IsPublic:    isPublic,
 		Status:      "active",
 		CreatedAt:   utils.FormattedTime(time.Now()),
 		UpdatedAt:   utils.FormattedTime(time.Now()),
@@ -150,12 +194,17 @@ func GetAdminSitesHandler(ctx *gin.Context) {
 
 // UpdateSiteHandler godoc
 // @Summary Update a site
-// @Description Updates site details and content files
+// @Description Updates site details and optionally uploads new files
 // @Tags admin
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "Site ID"
-// @Param body body object true "Site update details"
+// @Param name formData string false "Site name"
+// @Param slug formData string false "Site slug"
+// @Param description formData string false "Site description"
+// @Param is_public formData bool false "Is public"
+// @Param status formData string false "Site status"
+// @Param files formData file false "Website files"
 // @Security ApiKeyAuth
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
@@ -173,69 +222,73 @@ func UpdateSiteHandler(ctx *gin.Context) {
 		return
 	}
 
-	var payload struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Slug        string `json:"slug"`
-		HTMLContent string `json:"html_content"`
-		CSSContent  string `json:"css_content"`
-		JSContent   string `json:"js_content"`
-		IsPublic    bool   `json:"is_public"`
-		Status      string `json:"status"`
+	name := ctx.PostForm("name")
+	slug := ctx.PostForm("slug")
+	description := ctx.PostForm("description")
+	isPublicStr := ctx.PostForm("is_public")
+	status := ctx.PostForm("status")
+
+	if name != "" {
+		site.Name = name
+	}
+	if slug != "" {
+		slug = strings.ToLower(strings.ReplaceAll(slug, " ", "-"))
+		if strings.Contains(slug, "/") {
+			parts := strings.Split(slug, "/")
+			slug = parts[len(parts)-1]
+		}
+		site.Slug = slug
+	}
+	if description != "" {
+		site.Description = description
+	}
+	if isPublicStr != "" {
+		site.IsPublic = isPublicStr == "true"
+	}
+	if status != "" {
+		site.Status = status
 	}
 
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
+	// Handle file uploads if provided
+	form, err := ctx.MultipartForm()
+	if err == nil {
+		files := form.File["files"]
+		if len(files) > 0 {
+			// Security scan
+			scanResult := security.ScanFiles(files)
+			if !scanResult.Safe {
+				ctx.JSON(http.StatusBadRequest, gin.H{
+					"error":  "Security scan failed",
+					"issues": scanResult.Issues,
+				})
+				return
+			}
+
+			siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, site.Slug)
+			os.MkdirAll(siteDir, 0755)
+
+			for _, file := range files {
+				relPath := file.Filename
+				if strings.Contains(relPath, "/") {
+					parts := strings.SplitN(relPath, "/", 2)
+					if len(parts) > 1 {
+						relPath = parts[1]
+					}
+				}
+
+				destPath := filepath.Join(siteDir, relPath)
+				os.MkdirAll(filepath.Dir(destPath), 0755)
+				ctx.SaveUploadedFile(file, destPath)
+			}
+
+			// Update index path
+			indexPath := filepath.Join(siteDir, "index.html")
+			if _, err := os.Stat(indexPath); err == nil {
+				site.HTMLContent = indexPath
+			}
+		}
 	}
 
-	if payload.Name != "" {
-		site.Name = payload.Name
-	}
-	if payload.Slug != "" {
-		// Validate slug format
-		payload.Slug = strings.ToLower(strings.ReplaceAll(payload.Slug, " ", "-"))
-		// Remove any URL parts if user entered full URL
-		if strings.Contains(payload.Slug, "/") {
-			parts := strings.Split(payload.Slug, "/")
-			payload.Slug = parts[len(parts)-1]
-		}
-		site.Slug = payload.Slug
-	}
-	site.Description = payload.Description
-	site.IsPublic = payload.IsPublic
-
-	// Update files if content provided
-	if payload.HTMLContent != "" || payload.CSSContent != "" || payload.JSContent != "" {
-		siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, site.Slug)
-		os.MkdirAll(siteDir, 0755)
-
-		if payload.HTMLContent != "" {
-			htmlContent := fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    %s
-    <script src="script.js"></script>
-</body>
-</html>`, site.Name, payload.HTMLContent)
-			ioutil.WriteFile(fmt.Sprintf("%s/index.html", siteDir), []byte(htmlContent), 0644)
-		}
-		if payload.CSSContent != "" {
-			ioutil.WriteFile(fmt.Sprintf("%s/style.css", siteDir), []byte(payload.CSSContent), 0644)
-		}
-		if payload.JSContent != "" {
-			ioutil.WriteFile(fmt.Sprintf("%s/script.js", siteDir), []byte(payload.JSContent), 0644)
-		}
-	}
-	if payload.Status != "" {
-		site.Status = payload.Status
-	}
 	site.UpdatedAt = utils.FormattedTime(time.Now())
 
 	if err := database.DB.Save(&site).Error; err != nil {
@@ -309,8 +362,50 @@ func ViewSiteHandler(ctx *gin.Context) {
 	// Increment view count
 	database.DB.Model(&site).Update("view_count", site.ViewCount+1)
 
-	// Serve HTML file
-	ctx.File(site.HTMLContent)
+	// Redirect to static site path
+	siteDir := filepath.Dir(site.HTMLContent)
+	relPath := strings.TrimPrefix(siteDir, "./")
+	ctx.Redirect(http.StatusFound, "/"+relPath+"/index.html")
+}
+
+// ServeSiteAsset serves static assets for a site
+func ServeSiteAsset(ctx *gin.Context) {
+	slug := ctx.Param("slug")
+	assetPath := ctx.Param("filepath")
+
+	var site models.Site
+	if err := database.DB.Where("slug = ?", slug).First(&site).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+		return
+	}
+
+	// Check permissions
+	userID, _ := ctx.Get("user_id")
+	isOwner := userID != nil && userID.(uint) == site.OwnerID
+
+	if !isOwner && (!site.IsPublic || site.Status != "active") {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "site not available"})
+		return
+	}
+
+	// Construct full path
+	siteDir := filepath.Dir(site.HTMLContent)
+	fullPath := filepath.Join(siteDir, assetPath)
+
+	// Security: ensure path is within site directory
+	if !strings.HasPrefix(fullPath, siteDir) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+		return
+	}
+
+	// Serve the file
+	ctx.File(fullPath)
 }
 
 // GetSiteMembersHandler godoc
