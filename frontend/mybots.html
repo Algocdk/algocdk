@@ -287,10 +287,10 @@
                             class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">My Bots</a>
                         <a href="settings"
                             class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">Settings</a>
-                        <a id="adminDashboardLink" href="admin_dashboard.html" style="display:none"
+                        <a id="adminDashboardLink" href="admin" style="display:none"
                             class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
                             <i class="fas fa-user-shield mr-2"></i>Admin Dashboard</a>
-                        <a id="superadminDashboardLink" href="superadmin_dashboard.html" style="display:none"
+                        <a id="superadminDashboardLink" href="superadmin" style="display:none"
                             class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
                             <i class="fas fa-crown mr-2"></i>SuperAdmin Dashboard</a>
                         <div class="my-1" style="border-top: 1px solid var(--border-color);"></div>
@@ -972,6 +972,9 @@
             loadUserBots();
         });
     </script>
+    <script src="/api.js"></script>
+    <script src="/token-refresh-manager.js"></script>
+    <script src="/offline-detector.js"></script>
 </body>
 
 </html>

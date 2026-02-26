@@ -27,10 +27,14 @@ package models
 
 import (
 	"time"
+
+	"github.com/keyadaniel56/algocdk/internal/utils"
+	"gorm.io/gorm"
 )
 
 type Bot struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
+	UUID      string    `json:"uuid" gorm:"uniqueIndex;type:varchar(36)"`
 	Name      string    `json:"name"`
 	HTMLFile  string    `json:"html_file"`
 	Image     string    `json:"image"`
@@ -49,4 +53,20 @@ type Bot struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Version     string `json:"version"`
+	
+	// Performance metrics
+	Performance     string `json:"performance"`      // e.g., "+187%"
+	WinRate         string `json:"win_rate"`         // e.g., "89%"
+	TotalTrades     string `json:"trades"`           // e.g., "12,847"
+	Backtested      bool   `json:"backtested" gorm:"default:false"`
+	BacktestImage   string `json:"backtest_image"`   // Screenshot/proof of backtest results
+	Features        string `gorm:"type:text" json:"features"` // JSON array of features
+}
+
+// BeforeCreate hook to generate UUID
+func (b *Bot) BeforeCreate(tx *gorm.DB) error {
+	if b.UUID == "" {
+		b.UUID = utils.GenerateUUID()
+	}
+	return nil
 }

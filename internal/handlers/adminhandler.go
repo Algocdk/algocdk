@@ -244,6 +244,11 @@ func CreateBotHandler(c *gin.Context) {
 	description := c.PostForm("description")
 	category := c.PostForm("category")
 	version := c.PostForm("version")
+	performance := c.PostForm("performance")
+	winRate := c.PostForm("win_rate")
+	totalTrades := c.PostForm("total_trades")
+	backtestedStr := c.PostForm("backtested")
+	features := c.PostForm("features")
 
 	if name == "" || priceStr == "" || strategy == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required fields (name, price, strategy)"})
@@ -264,6 +269,8 @@ func CreateBotHandler(c *gin.Context) {
 			return
 		}
 	}
+	
+	backtested := backtestedStr == "true" || backtestedStr == "1"
 
 	now := time.Now()
 	baseFolder := fmt.Sprintf("uploads/user_%d/%d/%02d/%02d", userID, now.Year(), now.Month(), now.Day())
@@ -304,6 +311,12 @@ func CreateBotHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save image file"})
 		return
 	}
+	
+	// Save backtest image if provided
+	var backtestImagePath string
+	if backtestFile, err := c.FormFile("backtest_image"); err == nil {
+		backtestImagePath, _ = saveFile(backtestFile, filepath.Join(baseFolder, "backtest"))
+	}
 
 	// Create bot record
 	bot := models.Bot{
@@ -316,11 +329,17 @@ func CreateBotHandler(c *gin.Context) {
 		OwnerID:          userID,
 		CreatedAt:        now,
 		UpdatedAt:        now,
-		Status:           "inactive", // Admin can activate later
+		Status:           "inactive",
 		SubscriptionType: subscriptionType,
 		Description:      description,
 		Category:         category,
 		Version:          version,
+		Performance:      performance,
+		WinRate:          winRate,
+		TotalTrades:      totalTrades,
+		Backtested:       backtested,
+		BacktestImage:    backtestImagePath,
+		Features:         features,
 	}
 
 	if err := database.DB.Create(&bot).Error; err != nil {

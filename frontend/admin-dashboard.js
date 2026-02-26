@@ -259,24 +259,21 @@ class AdminDashboard {
   }
 
   setupEventListeners() {
-    // Navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        if (href.startsWith('#')) {
-          this.switchView(href.substring(1));
-        }
-      });
-    });
+    // Navigation handlers are set up in the HTML file
+    // Don't add duplicate handlers here
   }
 
   switchView(view) {
+    // This method is called from the HTML navigation handlers
+    console.log('AdminDashboard.switchView called:', view);
     // Update active nav
     document.querySelectorAll('.nav-link').forEach(link => {
       link.classList.remove('active');
     });
-    document.querySelector(`[href="#${view}"]`)?.classList.add('active');
+    const targetLink = document.querySelector(`[href="#${view}"]`);
+    if (targetLink) {
+      targetLink.classList.add('active');
+    }
 
     // Handle view switching logic here
     console.log('Switching to view:', view);

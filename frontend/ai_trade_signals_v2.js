@@ -1,4 +1,4 @@
-// AI Trade Signals - Simple Buy/Sell Signal Indicator
+// AI Trade Signals v2 - Simple Buy/Sell Signal Indicator
 // Shows buy (▲) and sell (▼) signals based on moving average and price action
 
 function calculateIndicator(candles, params = {}) {
@@ -28,7 +28,7 @@ function calculateIndicator(candles, params = {}) {
     });
     
     return {
-        name: 'AI Trade Signals',
+        name: 'AI Trade Signals v2',
         type: 'overlay',
         panel: 'overlay',
         data: signals,

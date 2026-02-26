@@ -1,1381 +1,1138 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Marketplace | AlgoCDK - Premium Trading Bots</title>
-    <link rel="stylesheet" href="output.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Bot Marketplace | AlgoCDK</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#FF4500',
-                        secondary: '#FF6347',
-                        success: '#00C851',
-                        danger: '#FF4444',
-                        warning: '#FFBB33',
-                        dark: '#0D1421',
-                        darker: '#0A0E1A',
-                        accent: '#1E293B'
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        /* Theme Variables */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         :root {
             --bg-primary: #0e1117;
             --bg-secondary: #161b22;
             --bg-tertiary: #1f2430;
-            --border-color: #2b2f3a;
+            --border: #2b2f3a;
             --text-primary: #d1d4dc;
             --text-secondary: #8b949e;
-            --accent-primary: #FF4500;
-            --accent-secondary: #FF6347;
+            --accent: #FF4500;
             --success: #00c176;
             --danger: #ff4d4f;
-            --warning: #ffa500;
         }
-
+        
         body {
             background: var(--bg-primary);
             color: var(--text-primary);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden;
         }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--accent-primary);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-secondary);
-        }
-
-        /* Navigation */
+        
+        /* Navbar */
         .navbar {
             background: rgba(22, 27, 34, 0.95);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-
-        /* Cards */
-        .bot-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+        
+        .logo { font-size: 20px; font-weight: bold; }
+        .logo span:first-child { color: var(--accent); }
+        
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+        
+        /* Hero */
+        .hero {
+            max-width: 1400px;
+            margin: 0 auto 40px;
+            padding: 20px;
+        }
+        
+        .slideshow {
             position: relative;
+            height: 400px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
             overflow: hidden;
+            border: 1px solid var(--border);
         }
-
-        .bot-card::before {
+        
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 1s;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(14,17,23,0.85) 0%, rgba(22,27,34,0.85) 100%);
+        }
+        
+        .slide.active { opacity: 1; }
+        
+        .slide-content {
+            text-align: center;
+            padding: 40px;
+            max-width: 800px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .slide h2 { 
+            font-size: 48px; 
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+        
+        .slide p { 
+            color: var(--text-secondary); 
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        
+        .slide-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 4px;
+        }
+        
+        .slide-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(22, 27, 34, 0.8);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .slide-nav:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .slide-nav.prev { left: 20px; }
+        .slide-nav.next { right: 20px; }
+        
+        /* Filters */
+        .filters {
+            max-width: 1400px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-tab {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .filter-tab:hover { background: var(--bg-tertiary); }
+        .filter-tab.active {
+            background: rgba(255,69,0,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .search-box {
+            position: relative;
+            width: 280px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 8px 16px 8px 36px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        /* Grid */
+        .grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        
+        /* Card */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            background: linear-gradient(90deg, var(--accent), #ff6347);
             opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .bot-card:hover::before {
-            opacity: 1;
-        }
-
-        .bot-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 69, 0, 0.4);
-        }
-
-        /* Form Elements */
-        .form-input {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
-        }
-
-        /* Buttons */
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: scale(1.02);
-            box-shadow: 0 10px 30px rgba(255, 69, 0, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 69, 0, 0.1);
-            border-color: var(--accent-primary);
-        }
-
-        /* Filter buttons */
-        .filter-btn {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .filter-btn.active {
-            background: rgba(255, 69, 0, 0.2);
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-        }
-
-        /* Performance indicators */
-        .performance-positive {
-            color: var(--success);
-        }
-
-        .performance-negative {
-            color: var(--danger);
-        }
-
-        /* Glass effect */
-        .glass-effect {
-            background: rgba(22, 27, 34, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-        }
-
-        /* Loading spinner */
-        .loading-spinner {
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--accent-primary);
-        }
-
-        /* Animations */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Featured badge */
-        .featured-badge {
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.8;
-            }
-        }
-
-        /* Price tag */
-        .price-tag {
-            background: linear-gradient(135deg, var(--success), #00a86b);
-        }
-
-        /* Mobile Responsive Enhancements */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 12px 16px;
-            }
-            
-            .navbar .hidden {
-                display: none !important;
-            }
-            
-            .mobile-menu {
-                display: block !important;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem !important;
-                line-height: 1.2;
-            }
-            
-            .hero-subtitle {
-                font-size: 1rem !important;
-            }
-            
-            .trust-badges {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .trust-badge {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .search-filters {
-                flex-direction: column;
-                gap: 16px;
-            }
-            
-            .filter-buttons {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            
-            .filter-btn {
-                font-size: 12px;
-                padding: 8px 12px;
-            }
-            
-            .bot-card {
-                margin-bottom: 16px;
-            }
-            
-            .bot-card .grid-cols-3 {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            
-            .bot-card .performance-stat {
-                text-align: center;
-                padding: 12px;
-            }
-            
-            .modal-content {
-                padding: 16px;
-                max-height: 85vh;
-            }
-            
-            .modal-grid {
-                grid-template-columns: 1fr !important;
-                gap: 24px;
-            }
-            
-            .modal-stats {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-            
-            .modal-actions {
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .modal-actions button {
-                width: 100%;
-            }
+            transition: opacity 0.3s;
         }
         
-        @media (max-width: 480px) {
-            .hero-title {
-                font-size: 2rem !important;
-            }
-            
-            .bot-card {
-                padding: 16px;
-            }
-            
-            .bot-card h3 {
-                font-size: 1rem;
-            }
-            
-            .bot-card .performance-stat p:first-child {
-                font-size: 1.25rem;
-            }
-            
-            .modal-stats {
-                grid-template-columns: 1fr !important;
-            }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-color: rgba(255,69,0,0.3);
+        }
+        
+        .card:hover::before { opacity: 1; }
+        
+        .card-image {
+            height: 180px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover .card-image img {
+            transform: scale(1.05);
+        }
+        
+        .card-image .icon-fallback {
+            font-size: 64px;
+            color: rgba(255,255,255,0.3);
+            position: absolute;
+            z-index: 0;
+        }
+        
+        .card-image img {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            z-index: 2;
+        }
+        
+        .favorite-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(22, 27, 34, 0.9);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 2;
+        }
+        
+        .favorite-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(1.1);
+        }
+        
+        .favorite-btn i {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        .favorite-btn.active i {
+            color: #ff4d4f;
+        }
+        
+        .favorite-btn:hover i {
+            color: white;
+        }
+        
+        .badge-free { background: var(--success); color: white; }
+        .badge-featured { background: var(--accent); color: white; }
+        .badge-new { background: #3b82f6; color: white; }
+        
+        .card-body { padding: 20px; }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .card-creator { font-size: 12px; color: var(--text-secondary); }
+        
+        .card-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .card-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-box {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-box-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+        .stat-box-value { font-size: 16px; font-weight: bold; }
+        .positive { color: var(--success); }
+        .negative { color: var(--danger); }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .price { font-size: 24px; font-weight: bold; }
+        .price-sub { font-size: 12px; color: var(--text-secondary); }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #ff6347);
+            color: white;
+        }
+        
+        .btn-primary:hover { transform: scale(1.05); }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover { background: rgba(255,69,0,0.1); border-color: var(--accent); }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title { font-size: 24px; font-weight: bold; }
+        
+        .modal-body { padding: 24px; }
+        
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+        
+        .modal-section { margin-bottom: 24px; }
+        .modal-section h3 { font-size: 16px; margin-bottom: 12px; }
+        
+        .feature-list { list-style: none; }
+        .feature-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .feature-list i { color: var(--success); }
+        
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .modal-footer .btn { flex: 1; padding: 14px; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .slideshow { height: 300px; }
+            .slide h2 { font-size: 32px; }
+            .slide p { font-size: 16px; }
+            .slide-nav { width: 32px; height: 32px; font-size: 14px; }
+            .filters { flex-direction: column; align-items: stretch; }
+            .search-box { width: 100%; }
+            .nav-links { display: none; }
+            .modal-grid { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
-
 <body>
-    <!-- Top Navigation Bar -->
-    <nav class="navbar py-3 px-6 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center">
-            <a href="#" class="text-xl font-bold flex items-center" style="color: var(--text-primary);">
-                <span class="hidden sm:inline"><span style="color: #FF4500;">Algo</span><span style="color: white;">cdk</span></span>
-            </a>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo"><span>Algo</span><span>cdk</span></div>
+        <div class="nav-links">
+            <a href="app">Dashboard</a>
+            <a href="mybots">My Bots</a>
+            <a href="botstore" class="active">Marketplace</a>
+            <a href="marketchart">Charts</a>
+            <a href="support">Support</a>
         </div>
-
-        <!-- Mobile Menu Button -->
-        <button id="mobileMenuBtn" class="md:hidden p-2" style="color: var(--text-primary);">
-            <i class="fas fa-bars text-xl"></i>
+        <button class="btn btn-secondary" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
         </button>
-
-        <!-- Navigation Links -->
-        <div id="navLinks" class="hidden md:flex items-center space-x-6">
-            <a href="app" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Dashboard</a>
-            <a href="mybots" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">My Bots</a>
-            <a href="botstore" class="font-medium" style="color: var(--accent-primary);">Marketplace</a>
-            <a id="adminDashboardLink" href="/admin" class="transition-colors" style="color: var(--text-secondary); display:none;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Admin Dashboard</a>
-            <a id="superadminDashboardLink" href="/superadmin" class="transition-colors" style="color: var(--text-secondary); display:none;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">SuperAdmin Dashboard</a>
-            <a href="support" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Support</a>
-        </div>
-
-        <!-- User Menu -->
-        <div class="relative hidden md:block">
-            <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
-                <div id="userAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" style="background: var(--accent-primary);">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span id="userName" class="hidden lg:block">Loading...</span>
-                <i class="fas fa-chevron-down text-xs" style="color: var(--text-secondary);"></i>
-            </button>
-
-            <!-- User Dropdown -->
-            <div id="userDropdown" class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg hidden z-10 glass-effect">
-                <div class="py-1">
-                    <a href="profile" class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">Profile</a>
-                    <a href="mybots" class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">My Bots</a>
-                    <a href="settings" class="block px-4 py-2 text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">Settings</a>
-                    <div class="my-1" style="border-top: 1px solid var(--border-color);"></div>
-                    <a href="#" id="logoutButton" class="block px-4 py-2 text-sm transition-colors" style="color: var(--danger);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                    </a>
-                </div>
-            </div>
-        </div>
     </nav>
 
-    <!-- Mobile Navigation Menu -->
-    <div id="mobileMenu" class="hidden md:hidden glass-effect border-b" style="border-color: var(--border-color);">
-        <div class="px-4 py-3 space-y-3">
-            <a href="app" class="block py-2 transition-colors" style="color: var(--text-secondary);">Dashboard</a>
-            <a href="mybots" class="block py-2 transition-colors" style="color: var(--text-secondary);">My Bots</a>
-            <a href="botstore" class="block py-2 font-medium" style="color: var(--accent-primary);">Marketplace</a>
-            <a id="mobileAdminLink" href="/admin" class="block py-2 transition-colors" style="color: var(--text-secondary); display:none;">Admin Dashboard</a>
-            <a id="mobileSuperadminLink" href="/superadmin" class="block py-2 transition-colors" style="color: var(--text-secondary); display:none;">SuperAdmin Dashboard</a>
-            <a href="support" class="block py-2 transition-colors" style="color: var(--text-secondary);">Support</a>
-            <div class="border-t pt-3" style="border-color: var(--border-color);">
-                <a href="profile" class="block py-2 transition-colors" style="color: var(--text-secondary);">Profile</a>
-                <a href="settings" class="block py-2 transition-colors" style="color: var(--text-secondary);">Settings</a>
-                <a href="#" id="mobileLogoutButton" class="block py-2 transition-colors" style="color: var(--danger);">Logout</a>
+    <!-- Hero Slideshow -->
+    <section class="hero">
+        <div class="slideshow">
+            <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1600&q=80')">
+                <div class="slide-content">
+                    <h2>Bot Marketplace</h2>
+                    <p>Discover and deploy professional trading bots with proven strategies</p>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1600&q=80')">
+                <div class="slide-content">
+                    <h2>AI-Powered Trading</h2>
+                    <p>Automate your trades with advanced algorithms and machine learning</p>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1600&q=80')">
+                <div class="slide-content">
+                    <h2>24/7 Market Coverage</h2>
+                    <p>Never miss an opportunity with round-the-clock automated trading</p>
+                </div>
+            </div>
+            <button class="slide-nav prev" onclick="changeSlide(-1)"><i class="fas fa-chevron-left"></i></button>
+            <button class="slide-nav next" onclick="changeSlide(1)"><i class="fas fa-chevron-right"></i></button>
+            <div class="slide-dots">
+                <span class="dot active" onclick="goToSlide(0)"></span>
+                <span class="dot" onclick="goToSlide(1)"></span>
+                <span class="dot" onclick="goToSlide(2)"></span>
             </div>
         </div>
-    <script>
-        (function showRoleLinks(){
-            function reveal(){
-                const ids = ['adminDashboardLink','superadminDashboardLink','mobileAdminLink','mobileSuperadminLink'];
-                const els = ids.map(id=>document.getElementById(id)).filter(Boolean);
-                if(els.length===0) return;
-                try{
-                    const token = localStorage.getItem('token');
-                    if(!token) return;
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    const role = (payload.role || payload.user_role || '').toString().toLowerCase();
-                    if(role.includes('admin')) { document.getElementById('adminDashboardLink')?.style.display='inline-block'; document.getElementById('mobileAdminLink')?.style.display='block'; }
-                    if(role.includes('superadmin')) { document.getElementById('superadminDashboardLink')?.style.display='inline-block'; document.getElementById('mobileSuperadminLink')?.style.display='block'; }
-                    return;
-                }catch(e){}
+    </section>
 
-                const token = localStorage.getItem('token');
-                if(!token) return;
-                fetch('/api/user/profile', { headers: { 'Authorization': `Bearer ${token}` } })
-                    .then(r=>r.json()).then(data=>{
-                        const role = (data.role || data.user?.role || '').toString().toLowerCase();
-                        if(role.includes('admin')) { document.getElementById('adminDashboardLink')?.style.display='inline-block'; document.getElementById('mobileAdminLink')?.style.display='block'; }
-                        if(role.includes('superadmin')) { document.getElementById('superadminDashboardLink')?.style.display='inline-block'; document.getElementById('mobileSuperadminLink')?.style.display='block'; }
-                    }).catch(()=>{});
-            }
-            document.addEventListener('DOMContentLoaded', reveal);
-            const mobileBtn = document.getElementById('mobileMenuBtn');
-            if (mobileBtn) mobileBtn.addEventListener('click', reveal);
-        })();
-    </script>
-    </div>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-6 fade-in">
-        <!-- Hero Section -->
-        <section class="mb-12 text-center px-4">
-            <h1 class="hero-title text-3xl sm:text-4xl md:text-5xl font-bold mb-4" style="color: var(--text-primary);">
-                Premium Trading Bots
-            </h1>
-            <p class="hero-subtitle text-base sm:text-lg mb-6" style="color: var(--text-secondary);">
-                Discover professional trading bots with proven track records
-            </p>
-            <div class="trust-badges flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <div class="trust-badge flex items-center gap-2 px-4 py-2 rounded-lg" style="background: rgba(0, 193, 118, 0.1); border: 1px solid rgba(0, 193, 118, 0.2);">
-                    <i class="fas fa-shield-alt" style="color: var(--success);"></i>
-                    <span class="text-sm" style="color: var(--success);">Verified Strategies</span>
-                </div>
-                <div class="trust-badge flex items-center gap-2 px-4 py-2 rounded-lg" style="background: rgba(255, 69, 0, 0.1); border: 1px solid rgba(255, 69, 0, 0.2);">
-                    <i class="fas fa-clock" style="color: var(--accent-primary);"></i>
-                    <span class="text-sm" style="color: var(--accent-primary);">24/7 Trading</span>
-                </div>
-                <div class="trust-badge flex items-center gap-2 px-4 py-2 rounded-lg" style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.2);">
-                    <i class="fas fa-chart-line" style="color: var(--warning);"></i>
-                    <span class="text-sm" style="color: var(--warning);">Real-time Analytics</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Search and Filters -->
-        <section class="mb-8">
-            <div class="search-filters flex flex-col lg:flex-row gap-4 items-center justify-between">
-                <!-- Search Bar -->
-                <div class="relative w-full lg:w-96">
-                    <input type="text" id="searchInput" placeholder="Search trading bots..."
-                        class="w-full pl-12 pr-4 py-3 form-input rounded-lg">
-                    <i class="fas fa-search absolute left-4 top-4" style="color: var(--text-secondary);"></i>
-                </div>
-
-                <!-- Filters -->
-                <div class="filter-buttons flex flex-wrap gap-2 w-full lg:w-auto justify-center lg:justify-start">
-                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-lg text-sm font-medium" data-filter="all" data-type="bots">
-                        All Bots
-                    </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="featured" data-type="bots">
-                        <i class="fas fa-star mr-1"></i> <span class="hidden sm:inline">Featured</span>
-                    </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="trending" data-type="bots">
-                        <i class="fas fa-fire mr-1"></i> <span class="hidden sm:inline">Trending</span>
-                    </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="new" data-type="bots">
-                        <i class="fas fa-plus mr-1"></i> <span class="hidden sm:inline">New</span>
-                    </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="free" data-type="bots">
-                        <i class="fas fa-gift mr-1"></i> <span class="hidden sm:inline">Free</span>
-                    </button>
-                    <button class="filter-btn px-3 sm:px-4 py-2 rounded-lg text-sm" data-filter="all" data-type="indicators">
-                        <i class="fas fa-chart-line mr-1"></i> <span class="hidden sm:inline">Indicators</span>
-                    </button>
-                </div>
-
-                <!-- Sort -->
-                <select id="sortSelect" class="form-input rounded-lg px-4 py-2 text-sm w-full lg:w-auto">
-                    <option value="popular">Most Popular</option>
-                    <option value="performance">Best Performance</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="newest">Newest First</option>
-                </select>
-            </div>
-        </section>
-
-        <!-- Loading State -->
-        <div id="loadingIndicator" class="flex justify-center items-center py-20">
-            <div class="animate-spin rounded-full h-12 w-12 loading-spinner"></div>
-            <span class="ml-3" style="color: var(--text-secondary);">Loading premium bots...</span>
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="featured"><i class="fas fa-star"></i> Featured</button>
+            <button class="filter-tab" data-filter="free"><i class="fas fa-gift"></i> Free</button>
+            <button class="filter-tab" data-filter="new"><i class="fas fa-plus"></i> New</button>
+            <button class="filter-tab" data-filter="indicators"><i class="fas fa-chart-line"></i> Indicators</button>
         </div>
-
-        <!-- Bots Grid -->
-        <section id="botsGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Bot cards will be populated here -->
-        </section>
-
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden text-center py-20">
-            <i class="fas fa-search text-6xl mb-4" style="color: var(--text-secondary);"></i>
-            <h3 class="text-xl font-medium mb-2" style="color: var(--text-primary);">No bots found</h3>
-            <p style="color: var(--text-secondary);">Try adjusting your search or filters</p>
-        </div>
-    </main>
-
-    <!-- Bot Details Modal -->
-    <div id="botModal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4 z-50">
-        <div class="glass-effect max-w-4xl w-full rounded-2xl max-h-[90vh] overflow-y-auto">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-4 sm:p-6 border-b" style="border-color: var(--border-color);">
-                <div class="flex items-center gap-3 sm:gap-4">
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                        <i class="fas fa-robot text-white text-lg sm:text-xl"></i>
-                    </div>
-                    <div>
-                        <h2 id="modalTitle" class="text-lg sm:text-2xl font-bold" style="color: var(--text-primary);"></h2>
-                        <p id="modalCreator" class="text-xs sm:text-sm" style="color: var(--text-secondary);"></p>
-                    </div>
-                </div>
-                <button id="closeModal" class="p-2 rounded-lg transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-times text-lg sm:text-xl"></i>
-                </button>
-            </div>
-
-            <!-- Modal Content -->
-            <div id="modalContent" class="modal-content p-4 sm:p-6">
-                <!-- Content will be populated by JavaScript -->
-            </div>
-
-            <!-- Modal Actions -->
-            <div class="modal-actions p-4 sm:p-6 border-t flex flex-col sm:flex-row gap-3 sm:gap-4" style="border-color: var(--border-color);">
-                <button id="purchaseBtn" class="btn-primary flex-1 py-3 rounded-lg text-white font-medium">
-                    <i class="fas fa-shopping-cart mr-2"></i>
-                    Purchase Bot
-                </button>
-                <button id="testBtn" class="btn-secondary px-6 py-3 rounded-lg font-medium">
-                    <i class="fas fa-play mr-2"></i>
-                    Test Run
-                </button>
-                <button id="favoriteBtn" class="btn-secondary px-6 py-3 rounded-lg">
-                    <i class="fas fa-heart"></i>
-                </button>
-            </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search" placeholder="Search...">
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="border-t py-8 mt-12" style="background: var(--bg-secondary); border-color: var(--border-color);">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="mb-4 md:mb-0">
-                    <div class="flex items-center mb-2">
-                        <span class="text-lg font-bold"><span style="color: #FF4500;">Algo</span><span style="color: white;">cdk</span></span>
-                    </div>
-                    <p class="text-sm" style="color: var(--text-secondary);">&copy; <span id="currentYear"></span> Algocdk. All rights reserved.</p>
+    <!-- Loading -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p style="color: var(--text-secondary);">Loading marketplace...</p>
+    </div>
+
+    <!-- Grid -->
+    <div id="grid" class="grid" style="display: none;"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modalTitle"></div>
+                    <div style="color: var(--text-secondary); font-size: 14px;" id="modalCreator"></div>
                 </div>
-                <div class="flex space-x-6">
-                    <a href="terms" class="text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Terms</a>
-                    <a href="privacy" class="text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Privacy</a>
-                    <a href="support" class="text-sm transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Support</a>
-                </div>
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
         </div>
-    </footer>
+    </div>
 
-    <!-- JavaScript -->
     <script>
-        // Set current year
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/';
 
-        // Authentication check
-        if (!localStorage.getItem('token')) {
-            window.location.href = '/';
-        }
-
-        // Global variables
         let allBots = [];
         let allIndicators = [];
         let currentFilter = 'all';
-        let currentType = 'bots';
-        let currentSort = 'popular';
+        let currentSlide = 0;
+        const totalSlides = 3;
+        let favorites = new Set();
+        
+        // Restore filter state from localStorage
+        const savedFilter = localStorage.getItem('botstore_filter');
+        if (savedFilter) {
+            currentFilter = savedFilter;
+        }
+        
+        // Slideshow
+        function changeSlide(direction) {
+            const slides = document.querySelectorAll('.slide');
+            const dots = document.querySelectorAll('.dot');
+            
+            slides[currentSlide].classList.remove('active');
+            dots[currentSlide].classList.remove('active');
+            
+            currentSlide = (currentSlide + direction + totalSlides) % totalSlides;
+            
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
+        }
+        
+        function goToSlide(index) {
+            const slides = document.querySelectorAll('.slide');
+            const dots = document.querySelectorAll('.dot');
+            
+            slides[currentSlide].classList.remove('active');
+            dots[currentSlide].classList.remove('active');
+            
+            currentSlide = index;
+            
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
+        }
+        
+        // Auto-advance slideshow
+        setInterval(() => changeSlide(1), 5000);
 
-        // Utility function for authenticated fetch requests
         async function authFetch(url, options = {}) {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('No authentication token found');
-            }
-
-            const defaultOptions = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-            };
-
-            const response = await fetch(url, { ...defaultOptions, ...options });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || errorData.message || `Request failed: ${response.status}`);
-            }
-
-            return response.json();
-        }
-
-        // Mobile menu functionality
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        const mobileLogoutButton = document.getElementById('mobileLogoutButton');
-
-        if (mobileMenuBtn && mobileMenu) {
-            mobileMenuBtn.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
+            const res = await fetch(url, {
+                ...options,
+                headers: { ...options.headers, 'Authorization': `Bearer ${token}` }
             });
+            if (!res.ok) throw new Error('Request failed');
+            return res.json();
         }
 
-        if (mobileLogoutButton) {
-            mobileLogoutButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem('token');
-                localStorage.removeItem('userData');
-                window.location.href = '/';
-            });
-        }
-
-        // User dropdown functionality
-        const userMenuButton = document.getElementById('userMenuButton');
-        const userDropdown = document.getElementById('userDropdown');
-
-        userMenuButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            userDropdown.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!userMenuButton.contains(event.target) && !userDropdown.contains(event.target)) {
-                userDropdown.classList.add('hidden');
-            }
-        });
-
-        // Logout functionality
-        document.getElementById('logoutButton').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('token');
-            localStorage.removeItem('userData');
-            window.location.href = '/';
-        });
-
-        // Load user profile
-        async function loadUserProfile() {
+        async function loadData() {
             try {
-                const response = await authFetch('/api/user/profile');
-                const userData = response.data || response.user || response;
-
-                const userName = document.getElementById('userName');
-                const userAvatar = document.getElementById('userAvatar');
-
-                if (userData.name) {
-                    userName.textContent = userData.name;
-                    userAvatar.textContent = userData.name.charAt(0).toUpperCase();
-                }
-            } catch (error) {
-                console.error('Failed to load user profile:', error);
-            }
-        }
-
-        // Load bots from marketplace
-        async function loadBots() {
-            try {
-                console.log('Loading marketplace bots...');
-                const response = await authFetch('/api/marketplace');
-                allBots = response.bots || response.data || response || [];
+                const [botsRes, indicatorsRes, favoritesRes] = await Promise.all([
+                    authFetch('/api/marketplace').catch(() => ({ bots: [] })),
+                    authFetch('/api/user/indicators').catch(() => ({ indicators: [] })),
+                    authFetch('/api/user/favorite').catch(() => ({ favorites: [] }))
+                ]);
                 
-                // Add some sample data if empty
-                if (allBots.length === 0) {
-                    allBots = generateSampleBots();
-                }
-
-                // Load indicators
-                await loadIndicators();
-
-                displayBots(allBots);
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                document.getElementById('botsGrid').classList.remove('hidden');
+                allBots = botsRes.bots || botsRes.data || [];
+                allIndicators = indicatorsRes.indicators || [];
+                
+                // Load favorites (both bots and indicators)
+                const favs = favoritesRes.favorites || favoritesRes.data || [];
+                favorites = new Set(favs.map(f => f.bot_id || f.indicator_id || f.id));
+                
+                if (allBots.length === 0) allBots = generateSampleBots();
+                
+                // Restore active filter tab
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                const activeTab = document.querySelector(`.filter-tab[data-filter="${currentFilter}"]`);
+                if (activeTab) activeTab.classList.add('active');
+                
+                renderGrid();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('grid').style.display = 'grid';
             } catch (error) {
-                console.error('Failed to load bots:', error);
-                document.getElementById('loadingIndicator').innerHTML = `
-                    <div class="text-center py-12">
-                        <i class="fas fa-exclamation-triangle text-2xl mb-2" style="color: var(--danger);"></i>
-                        <p style="color: var(--danger);">Failed to load bots</p>
-                        <p class="text-sm mt-1" style="color: var(--text-secondary);">${error.message || 'Please try again later'}</p>
-                        <button onclick="loadBots()" class="mt-4 btn-primary px-4 py-2 rounded-lg text-white">
-                            Retry
-                        </button>
-                    </div>
-                `;
+                console.error(error);
+                document.getElementById('loading').innerHTML = '<p style="color: var(--danger);">Failed to load marketplace</p>';
             }
         }
-
-        // Load indicators
-        async function loadIndicators() {
-            try {
-                const response = await authFetch('/api/indicators');
-                allIndicators = response.indicators || [];
-            } catch (error) {
-                console.error('Failed to load indicators:', error);
-            }
+        
+        function updateStats() {
+            const totalBots = allBots.length;
+            const avgWinRate = allBots.reduce((sum, bot) => {
+                const rate = parseFloat((bot.win_rate || '0').replace('%', ''));
+                return sum + rate;
+            }, 0) / (totalBots || 1);
+            
+            animateValue('statBots', 0, totalBots, 1000, '');
+            animateValue('statVolume', 0, 2400000, 1500, '$', true);
+            animateValue('statWinRate', 0, avgWinRate, 1200, '%');
         }
 
-        // Generate sample bots for demo
         function generateSampleBots() {
+            const robotImages = [
+                'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=400&q=80',
+                'https://images.unsplash.com/photo-1563207153-f403bf289096?w=400&q=80',
+                'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80',
+                'https://images.unsplash.com/photo-1555255707-c07966088b7b?w=400&q=80',
+                'https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?w=400&q=80',
+                'https://images.unsplash.com/photo-1507146153580-69a1fe6d8aa1?w=400&q=80'
+            ];
+            
             return [
-                {
-                    id: 1,
-                    name: "AI Scalper Pro",
-                    description: "High-frequency scalping bot with advanced AI algorithms for maximum profit extraction",
-                    creator: { name: "TradingAI Labs" },
-                    price: 299,
-                    rent_price: 49,
-                    performance: "+187.5%",
-                    win_rate: "89.2%",
-                    trades: "12,847",
-                    status: "featured",
-                    category: "scalping",
-                    image: null,
-                    features: ["24/7 Trading", "Risk Management", "Real-time Analytics", "Custom Parameters"]
-                },
-                {
-                    id: 2,
-                    name: "Trend Master",
-                    description: "Long-term trend following strategy with proven results across multiple markets",
-                    creator: { name: "Quantum Trading" },
-                    price: 199,
-                    rent_price: 29,
-                    performance: "+124.8%",
-                    win_rate: "76.4%",
-                    trades: "3,421",
-                    status: "trending",
-                    category: "trend",
-                    image: null,
-                    features: ["Multi-Market", "Trend Analysis", "Stop Loss", "Portfolio Management"]
-                },
-                {
-                    id: 3,
-                    name: "Arbitrage Hunter",
-                    description: "Cross-exchange arbitrage opportunities detector with lightning-fast execution",
-                    creator: { name: "ArbiBot Systems" },
-                    price: 499,
-                    rent_price: 79,
-                    performance: "+95.3%",
-                    win_rate: "94.7%",
-                    trades: "8,932",
-                    status: "new",
-                    category: "arbitrage",
-                    image: null,
-                    features: ["Cross-Exchange", "Low Risk", "High Frequency", "Automated Execution"]
-                },
-                {
-                    id: 4,
-                    name: "DCA Bot Elite",
-                    description: "Dollar-cost averaging strategy with smart entry and exit points",
-                    creator: { name: "Smart Invest" },
-                    price: 0,
-                    rent_price: 0,
-                    performance: "+67.2%",
-                    win_rate: "82.1%",
-                    trades: "1,567",
-                    status: "free",
-                    category: "dca",
-                    image: null,
-                    features: ["Dollar Cost Averaging", "Smart Entries", "Risk Control", "Long-term Strategy"]
-                },
-                {
-                    id: 5,
-                    name: "Volatility Crusher",
-                    description: "Exploits market volatility with advanced statistical models and machine learning",
-                    creator: { name: "ML Trading Co" },
-                    price: 399,
-                    rent_price: 59,
-                    performance: "+156.7%",
-                    win_rate: "85.9%",
-                    trades: "7,234",
-                    status: "featured",
-                    category: "volatility",
-                    image: null,
-                    features: ["Machine Learning", "Volatility Analysis", "Statistical Models", "Adaptive Strategy"]
-                },
-                {
-                    id: 6,
-                    name: "Grid Trading Pro",
-                    description: "Professional grid trading system with dynamic grid adjustment and risk management",
-                    creator: { name: "Grid Masters" },
-                    price: 149,
-                    rent_price: 24,
-                    performance: "+89.4%",
-                    win_rate: "78.6%",
-                    trades: "5,678",
-                    status: "trending",
-                    category: "grid",
-                    image: null,
-                    features: ["Dynamic Grids", "Risk Management", "Market Adaptation", "Profit Optimization"]
-                }
+                { id: 1, name: "AI Scalper Pro", description: "High-frequency scalping with AI", creator: { name: "TradingAI" }, price: 299, rent_price: 49, performance: "+187%", win_rate: "89%", trades: "12,847", status: "featured", image: robotImages[0] },
+                { id: 2, name: "Trend Master", description: "Long-term trend following", creator: { name: "Quantum" }, price: 199, rent_price: 29, performance: "+124%", win_rate: "76%", trades: "3,421", status: "trending", image: robotImages[1] },
+                { id: 3, name: "DCA Bot Elite", description: "Smart dollar-cost averaging", creator: { name: "Smart Invest" }, price: 0, performance: "+67%", win_rate: "82%", trades: "1,567", status: "free", image: robotImages[2] },
+                { id: 4, name: "Grid Trading Pro", description: "Dynamic grid system", creator: { name: "Grid Masters" }, price: 149, rent_price: 24, performance: "+89%", win_rate: "78%", trades: "5,678", status: "new", image: robotImages[3] },
+                { id: 5, name: "Volatility Crusher", description: "Exploit market volatility", creator: { name: "ML Trading" }, price: 399, rent_price: 59, performance: "+156%", win_rate: "85%", trades: "7,234", status: "featured", image: robotImages[4] },
+                { id: 6, name: "Arbitrage Hunter", description: "Cross-exchange arbitrage", creator: { name: "ArbiBot" }, price: 499, rent_price: 79, performance: "+95%", win_rate: "94%", trades: "8,932", status: "trending", image: robotImages[5] }
             ];
         }
 
-        // Display bots in grid
-        function displayBots(bots) {
-            const botsGrid = document.getElementById('botsGrid');
-            const emptyState = document.getElementById('emptyState');
-
-            if (!bots || bots.length === 0) {
-                botsGrid.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            botsGrid.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            botsGrid.innerHTML = '';
-
-            bots.forEach(bot => {
-                const botCard = createBotCard(bot);
-                botsGrid.appendChild(botCard);
-            });
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            const items = currentFilter === 'indicators' ? allIndicators : 
+                         currentFilter === 'all' ? allBots :
+                         allBots.filter(b => b.status === currentFilter);
+            
+            grid.innerHTML = items.map(item => {
+                if (currentFilter === 'indicators') return renderIndicatorCard(item);
+                return renderBotCard(item);
+            }).join('');
         }
 
-        // Create bot card
-        function createBotCard(bot) {
-            const card = document.createElement('div');
-            card.className = 'bot-card rounded-xl p-6 cursor-pointer';
-            card.setAttribute('data-bot-id', bot.id);
-            card.setAttribute('data-status', bot.status);
-            card.setAttribute('data-category', bot.category);
-
+        function renderBotCard(bot) {
             const isFree = !bot.price || bot.price === 0;
-            const isFeatured = bot.status === 'featured';
-            const isNew = bot.status === 'new';
-            const isTrending = bot.status === 'trending';
+            const imageUrl = bot.image_url || bot.image || bot.thumbnail;
+            const isFavorite = favorites.has(bot.id);
+            return `
+                <div class="card" onclick="showModal(${bot.id})">
+                    <div class="card-image">
+                        <i class="fas fa-robot icon-fallback"></i>
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${bot.name}" onerror="this.style.display='none'">` : ''}
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${bot.id}, 'bot')">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        ${bot.status === 'featured' ? '<div class="badge badge-featured">Featured</div>' : ''}
+                        ${bot.status === 'free' ? '<div class="badge badge-free">Free</div>' : ''}
+                        ${bot.status === 'new' ? '<div class="badge badge-new">New</div>' : ''}
+                    </div>
+                    <div class="card-body">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">${bot.name}</div>
+                                <div class="card-creator">by ${bot.creator?.name || 'Unknown'}</div>
+                            </div>
+                        </div>
+                        <div class="card-desc">${bot.description}</div>
+                        <div class="card-footer">
+                            <div>
+                                <div class="price">${isFree ? 'FREE' : 'KSh ' + bot.price}</div>
+                                ${!isFree ? `<div class="price-sub">or KSh ${bot.rent_price}/mo</div>` : ''}
+                            </div>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); purchase(${bot.id})">
+                                ${isFree ? 'Get' : 'Buy'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-            card.innerHTML = `
-                <!-- Featured Badge -->
-                ${isFeatured ? `
-                <div class="absolute -top-2 -right-2 featured-badge text-white text-xs font-bold px-3 py-1 rounded-full">
-                    <i class="fas fa-star mr-1"></i> Featured
+        function renderIndicatorCard(item) {
+            const ind = item.Indicator || item.indicator || item;
+            const indicatorId = ind.id || item.indicator_id;
+            const isFavorite = favorites.has(indicatorId);
+            const imageUrl = ind.image;
+            return `
+                <div class="card" onclick="showIndicatorModal(${indicatorId})">
+                    <div class="card-image" style="background: linear-gradient(135deg, #8B5CF6, #3B82F6);">
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${ind.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                        <i class="fas fa-chart-line icon-fallback"></i>
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${indicatorId}, 'indicator')">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        ${ind.is_free ? '<div class="badge badge-free">Free</div>' : ''}
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">${ind.name || 'Indicator'}</div>
+                        <div class="card-creator">${ind.category || 'Custom'}</div>
+                        <div class="card-desc">${ind.description || 'Chart indicator'}</div>
+                        <div class="card-footer">
+                            <div class="price">${ind.is_free ? 'FREE' : 'KSh ' + (ind.price || 0)}</div>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); addIndicator(${ind.id || item.indicator_id})">Add</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showModal(botId) {
+            const bot = allBots.find(b => b.id === botId);
+            if (!bot) return;
+            
+            const isFree = !bot.price || bot.price === 0;
+            const imageUrl = bot.image_url || bot.image || bot.thumbnail;
+            
+            document.getElementById('modalTitle').textContent = bot.name;
+            document.getElementById('modalCreator').textContent = 'by ' + (bot.creator?.name || 'Unknown');
+            document.getElementById('modalBody').innerHTML = `
+                <!-- Bot Image -->
+                ${imageUrl ? `
+                <div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; height: 300px;">
+                    <img src="${imageUrl}" alt="${bot.name}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 ` : ''}
                 
-                ${isNew ? `
-                <div class="absolute -top-2 -right-2 text-white text-xs font-bold px-3 py-1 rounded-full" style="background: var(--success);">
-                    <i class="fas fa-plus mr-1"></i> New
+                <!-- About -->
+                <div class="modal-section">
+                    <h3>About This Bot</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.8;">${bot.description}</p>
                 </div>
-                ` : ''}
-
-                ${isTrending ? `
-                <div class="absolute -top-2 -right-2 text-white text-xs font-bold px-3 py-1 rounded-full" style="background: var(--warning);">
-                    <i class="fas fa-fire mr-1"></i> Trending
-                </div>
-                ` : ''}
-
-                <!-- Header -->
-                <div class="mb-4">
-                    ${bot.image ? `
-                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px;">
-                        <img src="${bot.image}" alt="${bot.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center" style="display:none;">
-                            <i class="fas fa-robot text-white text-5xl"></i>
-                        </div>
-                    </div>
-                    ` : `
-                    <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                        <div class="w-full h-full flex items-center justify-center">
-                            <i class="fas fa-robot text-white text-5xl"></i>
-                        </div>
-                    </div>
-                    `}
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <h3 class="font-bold text-lg" style="color: var(--text-primary);">${bot.name}</h3>
-                            <p class="text-xs" style="color: var(--text-secondary);">by ${bot.creator?.name || 'Unknown'}</p>
-                        </div>
-                        ${isFree ? `
-                        <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">
-                            FREE
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <!-- Description -->
-                <p class="text-sm mb-4 line-clamp-2" style="color: var(--text-secondary);">
-                    ${bot.description}
-                </p>
-
+                
                 <!-- Performance Stats -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                    <div class="performance-stat text-center p-2 sm:p-3 rounded-lg" style="background: var(--bg-tertiary);">
-                        <p class="text-xs mb-1" style="color: var(--text-secondary);">Performance</p>
-                        <p class="text-sm sm:text-base font-bold ${bot.performance?.startsWith('+') ? 'performance-positive' : 'performance-negative'}">${bot.performance || '+0%'}</p>
-                    </div>
-                    <div class="performance-stat text-center p-2 sm:p-3 rounded-lg" style="background: var(--bg-tertiary);">
-                        <p class="text-xs mb-1" style="color: var(--text-secondary);">Win Rate</p>
-                        <p class="text-sm sm:text-base font-bold" style="color: var(--text-primary);">${bot.win_rate || '0%'}</p>
-                    </div>
-                    <div class="performance-stat text-center p-2 sm:p-3 rounded-lg" style="background: var(--bg-tertiary);">
-                        <p class="text-xs mb-1" style="color: var(--text-secondary);">Trades</p>
-                        <p class="text-sm sm:text-base font-bold" style="color: var(--text-primary);">${bot.trades || '0'}</p>
+                ${bot.performance ? `
+                <div class="modal-section">
+                    <h3>Performance Metrics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--success); margin-bottom: 4px;">${bot.performance}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Total Return</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--text-primary); margin-bottom: 4px;">${bot.win_rate}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Win Rate</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--text-primary); margin-bottom: 4px;">${bot.trades}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Total Trades</div>
+                        </div>
                     </div>
                 </div>
-
+                ` : ''}
+                
+                <!-- Backtest Results -->
+                ${bot.backtest_image ? `
+                <div class="modal-section">
+                    <h3>Backtest Results</h3>
+                    <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">
+                        <img src="${bot.backtest_image}" alt="Backtest Results" style="width: 100%; display: block;">
+                    </div>
+                    ${bot.backtested ? '<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; color: var(--success); font-size: 13px;"><i class="fas fa-check-circle"></i> Verified Backtest Results</div>' : ''}
+                </div>
+                ` : ''}
+                
+                <!-- Features -->
+                <div class="modal-section">
+                    <h3>Key Features</h3>
+                    <ul class="feature-list">
+                        ${bot.features ? JSON.parse(bot.features).map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('') : `
+                        <li><i class="fas fa-check"></i> 24/7 Automated Trading</li>
+                        <li><i class="fas fa-check"></i> Advanced Risk Management</li>
+                        <li><i class="fas fa-check"></i> Real-time Market Analytics</li>
+                        <li><i class="fas fa-check"></i> Customizable Parameters</li>
+                        <li><i class="fas fa-check"></i> Backtested Strategy</li>
+                        <li><i class="fas fa-check"></i> Regular Updates & Support</li>
+                        `}
+                    </ul>
+                </div>
+                
+                <!-- Creator Info -->
+                <div class="modal-section">
+                    <h3>Creator</h3>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px;">
+                            ${(bot.creator?.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${bot.creator?.name || 'Unknown Creator'}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Verified Bot Developer</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Pricing -->
-                <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--border-color);">
-                    <div>
-                        ${isFree ? `
-                        <p class="text-2xl font-bold" style="color: var(--success);">FREE</p>
-                        <p class="text-xs" style="color: var(--text-secondary);">No cost</p>
+                <div class="modal-section">
+                    <h3>Pricing Options</h3>
+                    <div style="display: grid; gap: 12px;">
+                        ${!isFree ? `
+                        <div style="padding: 20px; background: rgba(255,69,0,0.1); border: 2px solid var(--accent); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 28px; font-weight: bold; color: var(--accent);">KSh ${bot.price}</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">One-time purchase • Lifetime access</div>
+                                </div>
+                                <i class="fas fa-crown" style="font-size: 32px; color: var(--accent);"></i>
+                            </div>
+                        </div>
+                        <div style="padding: 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 28px; font-weight: bold; color: var(--text-primary);">KSh ${bot.rent_price}/mo</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Monthly subscription • Cancel anytime</div>
+                                </div>
+                                <i class="fas fa-calendar" style="font-size: 32px; color: var(--text-secondary);"></i>
+                            </div>
+                        </div>
                         ` : `
-                        <p class="text-2xl font-bold" style="color: var(--text-primary);">KSh ${bot.price}</p>
-                        <p class="text-xs" style="color: var(--text-secondary);">or KSh ${bot.rent_price}/month</p>
+                        <div style="padding: 20px; background: rgba(0,193,118,0.1); border: 2px solid var(--success); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 28px; font-weight: bold; color: var(--success);">FREE</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">No cost • Lifetime access</div>
+                                </div>
+                                <i class="fas fa-gift" style="font-size: 32px; color: var(--success);"></i>
+                            </div>
+                        </div>
                         `}
                     </div>
-                    <div class="flex gap-2">
-                        <button class="btn-secondary px-3 py-2 rounded-lg text-sm view-details">
-                            <i class="fas fa-eye mr-1"></i> View
-                        </button>
-                        <button class="btn-primary px-3 py-2 rounded-lg text-sm text-white">
-                            ${isFree ? '<i class="fas fa-download mr-1"></i> Get' : '<i class="fas fa-shopping-cart mr-1"></i> Buy'}
-                        </button>
+                </div>
+                
+                <!-- Trust Badges -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 16px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-shield-alt" style="color: var(--success);"></i>
+                        Secure Payment
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-sync" style="color: var(--accent);"></i>
+                        Regular Updates
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-headset" style="color: var(--accent);"></i>
+                        24/7 Support
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        Verified Strategy
                     </div>
                 </div>
             `;
-
-            // Add click handlers
-            card.addEventListener('click', (e) => {
-                if (!e.target.closest('button')) {
-                    showBotDetails(bot);
-                }
-            });
-
-            card.querySelector('.view-details').addEventListener('click', (e) => {
-                e.stopPropagation();
-                showBotDetails(bot);
-            });
-
-            return card;
-        }
-
-        // Show bot details modal
-        function showBotDetails(bot) {
-            const modal = document.getElementById('botModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalCreator = document.getElementById('modalCreator');
-            const modalContent = document.getElementById('modalContent');
-            const purchaseBtn = document.getElementById('purchaseBtn');
-
-            modalTitle.textContent = bot.name;
-            modalCreator.textContent = `by ${bot.creator?.name || 'Unknown Creator'}`;
-
-            const isFree = !bot.price || bot.price === 0;
-
-            modalContent.innerHTML = `
-                <div class="modal-grid grid md:grid-cols-2 gap-6 sm:gap-8">
-                    <!-- Left Column -->
-                    <div class="space-y-4 sm:space-y-6">
-                        <!-- Description -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">About This Bot</h3>
-                            <p style="color: var(--text-secondary);">${bot.description}</p>
-                        </div>
-
-                        <!-- Features -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Key Features</h3>
-                            <ul class="space-y-2">
-                                ${(bot.features || ['24/7 Trading', 'Risk Management', 'Real-time Analytics', 'Custom Parameters']).map(feature => `
-                                <li class="flex items-center gap-2">
-                                    <i class="fas fa-check-circle text-sm" style="color: var(--success);"></i>
-                                    <span style="color: var(--text-secondary);">${feature}</span>
-                                </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-
-                        <!-- Pricing -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Pricing Options</h3>
-                            <div class="space-y-3">
-                                ${isFree ? `
-                                <div class="p-4 rounded-lg border" style="background: rgba(0, 193, 118, 0.1); border-color: var(--success);">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="font-bold" style="color: var(--success);">FREE</p>
-                                            <p class="text-sm" style="color: var(--text-secondary);">No cost, lifetime access</p>
-                                        </div>
-                                        <i class="fas fa-gift text-2xl" style="color: var(--success);"></i>
-                                    </div>
-                                </div>
-                                ` : `
-                                <div class="p-4 rounded-lg" style="background: var(--bg-tertiary); border: 1px solid var(--border-color);">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="font-bold text-lg" style="color: var(--text-primary);">KSh ${bot.price}</p>
-                                            <p class="text-sm" style="color: var(--text-secondary);">One-time purchase</p>
-                                        </div>
-                                        <i class="fas fa-crown text-2xl" style="color: var(--accent-primary);"></i>
-                                    </div>
-                                </div>
-                                <div class="p-4 rounded-lg" style="background: var(--bg-tertiary); border: 1px solid var(--border-color);">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="font-bold text-lg" style="color: var(--text-primary);">$${bot.rent_price}/month</p>
-                                            <p class="text-sm" style="color: var(--text-secondary);">Monthly subscription</p>
-                                        </div>
-                                        <i class="fas fa-calendar text-2xl" style="color: var(--warning);"></i>
-                                    </div>
-                                </div>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="space-y-4 sm:space-y-6">
-                        <!-- Performance Stats -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Performance Metrics</h3>
-                            <div class="modal-stats grid grid-cols-2 gap-3 sm:gap-4">
-                                <div class="text-center p-3 sm:p-4 rounded-lg" style="background: var(--bg-tertiary);">
-                                    <p class="text-xl sm:text-2xl font-bold ${bot.performance?.startsWith('+') ? 'performance-positive' : 'performance-negative'}">${bot.performance || '+0%'}</p>
-                                    <p class="text-xs" style="color: var(--text-secondary);">Total Return</p>
-                                </div>
-                                <div class="text-center p-3 sm:p-4 rounded-lg" style="background: var(--bg-tertiary);">
-                                    <p class="text-xl sm:text-2xl font-bold" style="color: var(--text-primary);">${bot.win_rate || '0%'}</p>
-                                    <p class="text-xs" style="color: var(--text-secondary);">Win Rate</p>
-                                </div>
-                                <div class="text-center p-3 sm:p-4 rounded-lg" style="background: var(--bg-tertiary);">
-                                    <p class="text-xl sm:text-2xl font-bold" style="color: var(--text-primary);">${bot.trades || '0'}</p>
-                                    <p class="text-xs" style="color: var(--text-secondary);">Total Trades</p>
-                                </div>
-                                <div class="text-center p-3 sm:p-4 rounded-lg" style="background: var(--bg-tertiary);">
-                                    <p class="text-xl sm:text-2xl font-bold" style="color: var(--success);">4.8★</p>
-                                    <p class="text-xs" style="color: var(--text-secondary);">User Rating</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Risk Information -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Risk Assessment</h3>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <span style="color: var(--text-secondary);">Risk Level</span>
-                                    <span class="px-2 py-1 rounded text-xs font-medium" style="background: rgba(255, 165, 0, 0.2); color: var(--warning);">Medium</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span style="color: var(--text-secondary);">Max Drawdown</span>
-                                    <span style="color: var(--text-primary);">-12.5%</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span style="color: var(--text-secondary);">Sharpe Ratio</span>
-                                    <span style="color: var(--text-primary);">2.34</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Requirements -->
-                        <div>
-                            <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Requirements</h3>
-                            <ul class="space-y-2">
-                                <li class="flex items-center gap-2">
-                                    <i class="fas fa-dollar-sign text-sm" style="color: var(--accent-primary);"></i>
-                                    <span class="text-sm" style="color: var(--text-secondary);">Min. Balance: $1,000</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <i class="fas fa-exchange-alt text-sm" style="color: var(--accent-primary);"></i>
-                                    <span class="text-sm" style="color: var(--text-secondary);">Supported Exchanges: Binance, Coinbase</span>
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <i class="fas fa-clock text-sm" style="color: var(--accent-primary);"></i>
-                                    <span class="text-sm" style="color: var(--text-secondary);">Setup Time: 5 minutes</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+            document.getElementById('modalFooter').innerHTML = `
+                <button class="btn btn-primary" onclick="purchase(${bot.id})">${isFree ? 'Get Bot' : 'Purchase'}</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
             `;
-
-            // Update purchase button
-            if (isFree) {
-                purchaseBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Get Bot for Free';
-                purchaseBtn.onclick = () => purchaseBot(bot);
-            } else {
-                purchaseBtn.innerHTML = '<i class="fas fa-shopping-cart mr-2"></i>Purchase for $' + bot.price;
-                purchaseBtn.onclick = () => purchaseBot(bot);
-            }
-
-            // Set up other buttons
-            document.getElementById('testBtn').onclick = () => testBot(bot);
-            document.getElementById('favoriteBtn').onclick = () => toggleFavorite(bot.id);
-
-            modal.classList.remove('hidden');
+            document.getElementById('modal').classList.add('show');
         }
 
-        // Purchase bot
-        async function purchaseBot(bot) {
-            const isFree = !bot.price || bot.price === 0;
+        function showIndicatorModal(indicatorId) {
+            const indicator = allIndicators.find(i => {
+                const ind = i.Indicator || i.indicator || i;
+                return (ind.id || i.indicator_id) === indicatorId;
+            });
+            if (!indicator) return;
             
-            if (isFree) {
-                try {
-                    // Add free bot to user's collection
-                    showNotification('Free bot added to your collection!', 'success');
-                    document.getElementById('botModal').classList.add('hidden');
-                } catch (error) {
-                    showNotification('Failed to add bot: ' + error.message, 'error');
-                }
-                return;
-            }
-
-            try {
-                // Initialize payment
-                const response = await authFetch('/api/payment/initialize', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        amount: bot.price,
-                        bot_id: bot.id,
-                        payment_type: 'purchase',
-                        description: `Purchase of ${bot.name}`
-                    })
-                });
-
-                if (response.data && response.data.authorization_url) {
-                    window.location.href = response.data.authorization_url;
-                } else if (response.authorization_url) {
-                    window.location.href = response.authorization_url;
-                } else {
-                    showNotification('Payment initialization failed', 'error');
-                }
-            } catch (error) {
-                console.error('Purchase error:', error);
-                showNotification('Failed to process purchase: ' + error.message, 'error');
-            }
-        }
-
-        // Test bot
-        function testBot(bot) {
-            showNotification('Test run initiated! Check your dashboard for results.', 'info');
-            document.getElementById('botModal').classList.add('hidden');
-        }
-
-        // Toggle favorite
-        async function toggleFavorite(botId) {
-            try {
-                await authFetch(`/api/user/favorite/${botId}`, {
-                    method: 'POST'
-                });
-                showNotification('Favorite updated!', 'success');
-            } catch (error) {
-                console.error('Favorite error:', error);
-                showNotification('Failed to update favorite', 'error');
-            }
-        }
-
-        // Filter and search functionality
-        function setupFilters() {
-            // Filter buttons
-            document.querySelectorAll('.filter-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                    currentFilter = this.getAttribute('data-filter');
-                    currentType = this.getAttribute('data-type') || 'bots';
-                    filterAndDisplayBots();
-                });
-            });
-
-            // Search input
-            document.getElementById('searchInput').addEventListener('input', function () {
-                filterAndDisplayBots();
-            });
-
-            // Sort select
-            document.getElementById('sortSelect').addEventListener('change', function () {
-                currentSort = this.value;
-                filterAndDisplayBots();
-            });
-        }
-
-        // Filter and display bots
-        function filterAndDisplayBots() {
-            if (currentType === 'indicators') {
-                filterAndDisplayIndicators();
-                return;
-            }
-
-            let filteredBots = [...allBots];
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            // Apply search filter
-            if (searchTerm) {
-                filteredBots = filteredBots.filter(bot =>
-                    bot.name.toLowerCase().includes(searchTerm) ||
-                    bot.description.toLowerCase().includes(searchTerm) ||
-                    (bot.creator?.name || '').toLowerCase().includes(searchTerm)
-                );
-            }
-
-            // Apply category filter
-            if (currentFilter !== 'all') {
-                filteredBots = filteredBots.filter(bot => bot.status === currentFilter);
-            }
-
-            // Apply sorting
-            filteredBots.sort((a, b) => {
-                switch (currentSort) {
-                    case 'performance':
-                        return parseFloat(b.performance?.replace('%', '').replace('+', '') || 0) - 
-                               parseFloat(a.performance?.replace('%', '').replace('+', '') || 0);
-                    case 'price-low':
-                        return (a.price || 0) - (b.price || 0);
-                    case 'price-high':
-                        return (b.price || 0) - (a.price || 0);
-                    case 'newest':
-                        return b.id - a.id;
-                    case 'popular':
-                    default:
-                        return 0; // Keep original order
-                }
-            });
-
-            displayBots(filteredBots);
-        }
-
-        // Filter and display indicators
-        function filterAndDisplayIndicators() {
-            let filtered = [...allIndicators];
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            if (searchTerm) {
-                filtered = filtered.filter(ind =>
-                    ind.name.toLowerCase().includes(searchTerm) ||
-                    (ind.description || '').toLowerCase().includes(searchTerm) ||
-                    (ind.category || '').toLowerCase().includes(searchTerm)
-                );
-            }
-
-            const botsGrid = document.getElementById('botsGrid');
-            const emptyState = document.getElementById('emptyState');
-
-            if (!filtered || filtered.length === 0) {
-                botsGrid.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            botsGrid.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            botsGrid.innerHTML = '';
-
-            filtered.forEach(indicator => {
-                const card = document.createElement('div');
-                card.className = 'bot-card rounded-xl p-6 cursor-pointer';
-                card.innerHTML = `
-                    <div class="mb-4">
-                        <div class="mb-3 rounded-lg overflow-hidden" style="height: 160px; background: linear-gradient(135deg, #8B5CF6, #3B82F6);">
-                            <div class="w-full h-full flex items-center justify-center">
-                                <i class="fas fa-chart-line text-white text-5xl"></i>
-                            </div>
+            const ind = indicator.Indicator || indicator.indicator || indicator;
+            const imageUrl = ind.image;
+            
+            document.getElementById('modalTitle').textContent = ind.name || 'Indicator';
+            document.getElementById('modalCreator').textContent = 'Category: ' + (ind.category || 'Custom');
+            document.getElementById('modalBody').innerHTML = `
+                <!-- Indicator Image -->
+                ${imageUrl ? `
+                <div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; height: 300px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); display: flex; align-items: center; justify-content: center;">
+                    <img src="${imageUrl}" alt="${ind.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                ` : `
+                <div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; height: 300px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-chart-line" style="font-size: 120px; color: white; opacity: 0.9;"></i>
+                </div>
+                `}
+                
+                <!-- About -->
+                <div class="modal-section">
+                    <h3>About This Indicator</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.8;">${ind.description || 'Custom chart indicator for technical analysis.'}</p>
+                </div>
+                
+                <!-- Category & Type -->
+                <div class="modal-section">
+                    <h3>Details</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Category</div>
+                            <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${ind.category || 'Custom'}</div>
                         </div>
-                        <div class="flex items-start justify-between">
+                        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Type</div>
+                            <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${ind.is_free ? 'Free' : 'Premium'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Features -->
+                <div class="modal-section">
+                    <h3>Features</h3>
+                    <ul class="feature-list">
+                        ${ind.features ? JSON.parse(ind.features).map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('') : '<li><i class="fas fa-check"></i> Custom indicator functionality</li>'}
+                    </ul>
+                </div>
+                
+                <!-- Pricing -->
+                <div class="modal-section">
+                    <h3>Pricing</h3>
+                    <div style="padding: 20px; background: ${ind.is_free ? 'rgba(0,193,118,0.1)' : 'rgba(255,69,0,0.1)'}; border: 2px solid ${ind.is_free ? 'var(--success)' : 'var(--accent)'}; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <h3 class="font-bold text-lg" style="color: var(--text-primary);">${indicator.name}</h3>
-                                <p class="text-xs" style="color: var(--text-secondary);">${indicator.category || 'Indicator'}</p>
+                                <div style="font-size: 28px; font-weight: bold; color: ${ind.is_free ? 'var(--success)' : 'var(--accent)'};">${ind.is_free ? 'FREE' : 'KSh ' + (ind.price || 0)}</div>
+                                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">${ind.is_free ? 'No cost • Lifetime access' : 'One-time purchase • Lifetime access'}</div>
                             </div>
-                            ${indicator.is_free ? `
-                            <div class="price-tag text-white text-xs font-bold px-2 py-1 rounded-full">FREE</div>
-                            ` : ''}
+                            <i class="fas ${ind.is_free ? 'fa-gift' : 'fa-star'}" style="font-size: 32px; color: ${ind.is_free ? 'var(--success)' : 'var(--accent)'};"></i>
                         </div>
                     </div>
-                    <p class="text-sm mb-4 line-clamp-2" style="color: var(--text-secondary);">
-                        ${indicator.description || 'Custom chart indicator'}
-                    </p>
-                    <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--border-color);">
-                        <div>
-                            ${indicator.is_free ? `
-                            <p class="text-2xl font-bold" style="color: var(--success);">FREE</p>
-                            ` : `
-                            <p class="text-2xl font-bold" style="color: var(--text-primary);">$${indicator.price}</p>
-                            `}
-                        </div>
-                        <button class="btn-primary px-4 py-2 rounded-lg text-sm text-white" onclick="addIndicator(${indicator.id})">
-                            <i class="fas fa-plus mr-1"></i> Add
-                        </button>
+                </div>
+                
+                <!-- Trust Badges -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 16px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-shield-alt" style="color: var(--success);"></i>
+                        Secure
                     </div>
-                `;
-                botsGrid.appendChild(card);
-            });
-        }
-
-        // Add indicator to user
-        async function addIndicator(indicatorId) {
-            try {
-                await authFetch(`/api/indicators/${indicatorId}/add`, { method: 'POST' });
-                showNotification('Indicator added successfully!', 'success');
-            } catch (error) {
-                showNotification(error.message || 'Failed to add indicator', 'error');
-            }
-        }
-
-        // Show notification
-        function showNotification(message, type = 'info') {
-            const existingNotification = document.getElementById('global-notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
-
-            const notification = document.createElement('div');
-            notification.id = 'global-notification';
-            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 ${
-                type === 'success' ? 'text-white' :
-                type === 'error' ? 'text-white' :
-                type === 'info' ? 'text-white' :
-                type === 'warning' ? 'text-white' :
-                'text-white'
-            }`;
-            
-            notification.style.background = 
-                type === 'success' ? 'var(--success)' :
-                type === 'error' ? 'var(--danger)' :
-                type === 'info' ? 'var(--accent-primary)' :
-                type === 'warning' ? 'var(--warning)' :
-                'var(--accent-primary)';
-
-            notification.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-${
-                        type === 'success' ? 'check-circle' : 
-                        type === 'error' ? 'exclamation-circle' : 
-                        type === 'warning' ? 'exclamation-triangle' : 
-                        'info-circle'
-                    } mr-3"></i>
-                    <span>${message}</span>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-sync" style="color: var(--accent);"></i>
+                        Regular Updates
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-headset" style="color: var(--accent);"></i>
+                        Support
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        Verified
+                    </div>
                 </div>
             `;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            document.getElementById('modalFooter').innerHTML = `
+                <button class="btn btn-primary" onclick="addIndicator(${ind.id || indicator.indicator_id})">${ind.is_free ? 'Add Indicator' : 'Purchase'}</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            `;
+            document.getElementById('modal').classList.add('show');
         }
 
-        // Close modal functionality
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('botModal').classList.add('hidden');
-        });
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
 
-        document.getElementById('botModal').addEventListener('click', (e) => {
-            if (e.target.id === 'botModal') {
-                document.getElementById('botModal').classList.add('hidden');
+        async function purchase(botId) {
+            const bot = allBots.find(b => b.id === botId);
+            if (!bot) return;
+            
+            if (!bot.price || bot.price === 0) {
+                alert('Bot added to your collection!');
+                closeModal();
+                return;
             }
+            
+            try {
+                const res = await authFetch('/api/payment/initialize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: bot.price, bot_id: bot.id, payment_type: 'purchase' })
+                });
+                if (res.data?.authorization_url) window.location.href = res.data.authorization_url;
+            } catch (error) {
+                alert('Payment failed: ' + error.message);
+            }
+        }
+
+        async function toggleFavorite(id, type) {
+            try {
+                const endpoint = type === 'bot' ? `/api/user/favorite/${id}` : `/api/user/favorite/indicator/${id}`;
+                await authFetch(endpoint, { method: 'POST' });
+                
+                if (favorites.has(id)) {
+                    favorites.delete(id);
+                } else {
+                    favorites.add(id);
+                }
+                
+                renderGrid();
+            } catch (error) {
+                console.error('Failed to toggle favorite:', error);
+            }
+        }
+
+        async function addIndicator(id) {
+            try {
+                await authFetch(`/api/indicators/${id}/add`, { method: 'POST' });
+                alert('Indicator added!');
+            } catch (error) {
+                alert('Failed: ' + error.message);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+
+        // Filters
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                localStorage.setItem('botstore_filter', currentFilter);
+                renderGrid();
+            });
         });
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function () {
-            loadUserProfile();
-            setupFilters();
-            loadBots();
+        document.getElementById('search').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const items = currentFilter === 'indicators' ? allIndicators : allBots;
+            const filtered = items.filter(item => {
+                const name = item.name || item.Indicator?.name || '';
+                const desc = item.description || item.Indicator?.description || '';
+                return name.toLowerCase().includes(term) || desc.toLowerCase().includes(term);
+            });
+            
+            const grid = document.getElementById('grid');
+            grid.innerHTML = filtered.map(item => 
+                currentFilter === 'indicators' ? renderIndicatorCard(item) : renderBotCard(item)
+            ).join('');
         });
+
+        loadData();
     </script>
+    <script src="/api.js"></script>
+    <script src="/token-refresh-manager.js"></script>
+    <script src="/offline-detector.js"></script>
 </body>
-
 </html>

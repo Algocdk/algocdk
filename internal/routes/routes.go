@@ -14,6 +14,8 @@ import (
 
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.DBMiddleware()) // Add DB to context
+	// Serve user sites statically
 	router.Static("/sites", "./sites")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
@@ -26,6 +28,7 @@ func SetUpRouter(router *gin.Engine) {
 		{
 			auth.POST("/signup", handlers.SignupHandler)
 			auth.POST("/login", handlers.LoginHandler)
+			auth.POST("/refresh", handlers.RefreshTokenHandler)
 			auth.POST("/forgot_password/", handlers.ForgotPasswordHandler)
 			auth.GET("/verify-email", handlers.VerifyEmailHandler)
 			auth.POST("/resend-verification", handlers.ResendVerificationHandler)
@@ -60,7 +63,12 @@ func SetUpRouter(router *gin.Engine) {
 			user.GET("/trades", handlers.GetUserTradesHandler)
 
 			user.POST("/favorite/:bot_id", handlers.ToggleFavorite)
+			user.POST("/favorite/indicator/:indicator_id", handlers.ToggleFavoriteIndicator)
 			user.GET("/favorite", handlers.GetUserFavorites)
+
+			// Chart Indicators
+			user.GET("/indicators", handlers.GetUserIndicators)
+			user.POST("/indicators/:id/add", handlers.AddIndicatorToUser)
 
 			// Admin requests
 			user.POST("/request-admin", handlers.RequestAdminStatus)
@@ -149,6 +157,9 @@ func SetUpRouter(router *gin.Engine) {
 			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
 		}
 
+		// Public Sites
+		api.GET("/sites/public", handlers.GetPublicSitesHandler)
+
 		// Chart Indicators (Public & User)
 		indicators := api.Group("/indicators")
 		{
@@ -235,6 +246,8 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
+	router.StaticFile("/token-refresh-manager.js", frontendPath+"/token-refresh-manager.js")
+	router.StaticFile("/offline-detector.js", frontendPath+"/offline-detector.js")
 	router.StaticFile("/dashboard.js", frontendPath+"/dashboard.js")
 	router.StaticFile("/notifications.js", frontendPath+"/notifications.js")
 	router.StaticFile("/trading.js", frontendPath+"/trading.js")
@@ -333,6 +346,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/screenshare-viewer", func(c *gin.Context) {
 		c.File(frontendPath + "/screenshare-viewer.html")
+	})
+	router.GET("/public-sites", func(c *gin.Context) {
+		c.File(frontendPath + "/public-sites.html")
 	})
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
