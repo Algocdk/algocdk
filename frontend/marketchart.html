@@ -645,6 +645,40 @@
             border-color: #FF6347;
             color: white;
         }
+        
+        /* Timeframe Collapse */
+        .tf-collapse-header {
+            background: #2b2f3a;
+            border: 1px solid #444;
+            color: #d1d4dc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .tf-collapse-header:hover {
+            background: #3b3f4a;
+        }
+        .tf-collapse-header .arrow {
+            transition: transform 0.2s;
+        }
+        .tf-collapse-header.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+        .tf-buttons-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+        .tf-buttons-container.collapsed {
+            display: none;
+        }
     </style>
 </head>
 
@@ -863,25 +897,19 @@
             </optgroup>
         </select>
 
-        <div style="display: flex; gap: 5px; align-items: center;">
-            <button onclick="quickTimeframe(60)" class="tf-btn" data-tf="60">1m</button>
-            <button onclick="quickTimeframe(300)" class="tf-btn" data-tf="300">5m</button>
-            <button onclick="quickTimeframe(900)" class="tf-btn" data-tf="900">15m</button>
-            <button onclick="quickTimeframe(3600)" class="tf-btn" data-tf="3600">1h</button>
-            <button onclick="quickTimeframe(14400)" class="tf-btn" data-tf="14400">4h</button>
-            <button onclick="quickTimeframe(86400)" class="tf-btn" data-tf="86400">1D</button>
-            <select id="timeframe" style="margin-left: 5px;">
-                <option value="10">10s</option>
-                <option value="30">30s</option>
-                <option value="60" selected>1m</option>
-                <option value="180">3m</option>
-                <option value="300">5m</option>
-                <option value="900">15m</option>
-                <option value="1800">30m</option>
-                <option value="3600">1h</option>
-                <option value="14400">4h</option>
-                <option value="86400">1D</option>
-            </select>
+        <div style="display: flex; flex-direction: column;">
+            <div class="tf-collapse-header" onclick="toggleTimeframeCollapse()">
+                <span class="arrow">▼</span>
+                <span id="tfCurrentLabel">1m</span>
+            </div>
+            <div class="tf-buttons-container" id="tfButtonsContainer">
+                <button onclick="quickTimeframe(60)" class="tf-btn" data-tf="60">1m</button>
+                <button onclick="quickTimeframe(300)" class="tf-btn" data-tf="300">5m</button>
+                <button onclick="quickTimeframe(900)" class="tf-btn" data-tf="900">15m</button>
+                <button onclick="quickTimeframe(3600)" class="tf-btn" data-tf="3600">1h</button>
+                <button onclick="quickTimeframe(14400)" class="tf-btn" data-tf="14400">4h</button>
+                <button onclick="quickTimeframe(86400)" class="tf-btn" data-tf="86400">1D</button>
+            </div>
         </div>
         
         <select id="indicators">
@@ -1111,11 +1139,14 @@
             restart();
         };
 
-        document.getElementById("timeframe").onchange = e => {
-            TIMEFRAME = +e.target.value;
-            localStorage.setItem('chart_timeframe', TIMEFRAME);
-            restart();
-        };
+        const timeframeEl = document.getElementById("timeframe");
+        if (timeframeEl) {
+            timeframeEl.onchange = e => {
+                TIMEFRAME = +e.target.value;
+                localStorage.setItem('chart_timeframe', TIMEFRAME);
+                restart();
+            };
+        }
         
         document.getElementById("chartType").onchange = e => {
             chartType = e.target.value;
@@ -1251,12 +1282,34 @@
 
         function quickTimeframe(tf) {
             TIMEFRAME = tf;
-            document.getElementById('timeframe').value = tf;
             localStorage.setItem('currentTimeframe', tf);
             document.querySelectorAll('.tf-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tf == tf);
             });
+            
+            // Update label
+            const labels = { 60: '1m', 300: '5m', 900: '15m', 3600: '1h', 14400: '4h', 86400: '1D' };
+            const label = document.getElementById('tfCurrentLabel');
+            if (label) label.textContent = labels[tf] || tf + 's';
+            
+            // Collapse after selection
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+            
             restart();
+        }
+        
+        function toggleTimeframeCollapse() {
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.toggle('collapsed');
+                header.classList.toggle('collapsed');
+            }
         }
         
         function restart() {
@@ -3914,8 +3967,28 @@
         
         async function initializeEventHandlers() {
             // Set saved values in dropdowns
-            document.getElementById('symbol').value = SYMBOL;
-            document.getElementById('timeframe').value = TIMEFRAME;
+            const symbolEl = document.getElementById('symbol');
+            if (symbolEl) symbolEl.value = SYMBOL;
+            
+            const timeframeEl = document.getElementById('timeframe');
+            if (timeframeEl) timeframeEl.value = TIMEFRAME;
+            
+            // Set active timeframe button and label
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tf == TIMEFRAME);
+            });
+            
+            const labels = { 60: '1m', 300: '5m', 900: '15m', 3600: '1h', 14400: '4h', 86400: '1D' };
+            const label = document.getElementById('tfCurrentLabel');
+            if (label) label.textContent = labels[TIMEFRAME] || TIMEFRAME + 's';
+            
+            // Start collapsed
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
             
             // Load saved chart type
             const savedChartType = localStorage.getItem('chart_type');
