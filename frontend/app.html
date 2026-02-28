@@ -1023,6 +1023,9 @@
                 <button id="screenshotBtn" onclick="takeScreenshot()" style="background: #4a5568; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Screenshot">
                     <i class="fas fa-camera"></i>
                 </button>
+                <button id="crosshairBtn" onclick="toggleCrosshair()" style="background: #4a5568; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Toggle Crosshair">
+                    <i class="fas fa-crosshairs"></i>
+                </button>
                 <select id="symbol">
                     <option value="R_10">Volatility 10</option>
                     <option value="R_25">Volatility 25</option>
@@ -1706,6 +1709,138 @@
             draw();
         }
 
+        /* ================= CROSSHAIR ================= */
+        let showCrosshair = localStorage.getItem('showCrosshair') !== 'false';
+        let crosshairX = 0;
+        let crosshairY = 0;
+        let crosshairVisible = false;
+        
+        function toggleCrosshair() {
+            showCrosshair = !showCrosshair;
+            localStorage.setItem('showCrosshair', showCrosshair);
+            crosshairVisible = false;
+            draw();
+        }
+        
+        canvas.addEventListener("mousemove", e => {
+            if (!showCrosshair || isDragging || isDrawing || isDraggingDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            crosshairX = e.clientX - rect.left;
+            crosshairY = e.clientY - rect.top;
+            crosshairVisible = true;
+            draw();
+        });
+        
+        canvas.addEventListener("mouseleave", () => {
+            crosshairVisible = false;
+            draw();
+        });
+        
+        function drawCrosshair() {
+            if (!crosshairVisible || !showCrosshair) return;
+            
+            const pad = 70;
+            
+            // Don't draw crosshair outside chart area
+            if (crosshairX < pad || crosshairX > canvas.width - pad) return;
+            if (crosshairY < pad || crosshairY > canvas.height - pad) return;
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(crosshairX, pad);
+            ctx.lineTo(crosshairX, canvas.height - pad);
+            ctx.stroke();
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(pad, crosshairY);
+            ctx.lineTo(canvas.width - pad, crosshairY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            // Get price at crosshair
+            const price = getPriceFromY(crosshairY);
+            
+            // Price label on right
+            const priceText = price.toFixed(5);
+            ctx.font = 'bold 11px Arial';
+            const textWidth = ctx.measureText(priceText).width;
+            
+            ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+            ctx.fillRect(canvas.width - pad + 2, crosshairY - 10, textWidth + 8, 20);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'left';
+            ctx.fillText(priceText, canvas.width - pad + 6, crosshairY + 4);
+            
+            // Get candle at crosshair
+            const candleIndex = getCandleIndexFromX(crosshairX);
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            
+            if (candleIndex >= 0 && candleIndex < data.length) {
+                const candle = data[candleIndex];
+                const date = new Date(candle.time * 1000);
+                const timeStr = TIMEFRAME >= 86400 ? 
+                    `${date.getMonth()+1}/${date.getDate()}/${date.getFullYear()}` : 
+                    `${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
+                
+                // Time label on bottom
+                const timeWidth = ctx.measureText(timeStr).width;
+                ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+                ctx.fillRect(crosshairX - timeWidth/2 - 4, canvas.height - pad + 2, timeWidth + 8, 18);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText(timeStr, crosshairX, canvas.height - pad + 14);
+                
+                // Candle info tooltip
+                const tooltipLines = [
+                    `O: ${candle.open.toFixed(5)}`,
+                    `H: ${candle.high.toFixed(5)}`,
+                    `L: ${candle.low.toFixed(5)}`,
+                    `C: ${candle.close.toFixed(5)}`
+                ];
+                
+                const tooltipWidth = 120;
+                const tooltipHeight = tooltipLines.length * 16 + 10;
+                let tooltipX = crosshairX + 15;
+                let tooltipY = crosshairY - tooltipHeight / 2;
+                
+                // Keep tooltip in bounds
+                if (tooltipX + tooltipWidth > canvas.width - pad) {
+                    tooltipX = crosshairX - tooltipWidth - 15;
+                }
+                if (tooltipY < pad) tooltipY = pad;
+                if (tooltipY + tooltipHeight > canvas.height - pad) {
+                    tooltipY = canvas.height - pad - tooltipHeight;
+                }
+                
+                ctx.fillStyle = 'rgba(22, 27, 34, 0.95)';
+                ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'left';
+                tooltipLines.forEach((line, i) => {
+                    ctx.fillText(line, tooltipX + 8, tooltipY + 16 + i * 16);
+                });
+            }
+            
+            ctx.restore();
+        }
+
         /* ================= INTERACTION ================= */
         canvas.addEventListener("mousedown", e => {
             const rect = canvas.getBoundingClientRect();
@@ -1809,9 +1944,25 @@
 
         canvas.addEventListener("wheel", e => {
             e.preventDefault();
-            zoom += e.deltaY * -0.001;
-            zoom = Math.max(0.5, Math.min(3, zoom));
+            if (e.shiftKey) {
+                offset += e.deltaY * 0.1;
+            } else {
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.5, Math.min(3, zoom));
+            }
             draw();
+        });
+        
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') {
+                offset -= 5;
+                draw();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                offset += 5;
+                draw();
+                e.preventDefault();
+            }
         });
 
         /* ================= CUSTOM INDICATORS ================= */
@@ -2592,6 +2743,9 @@
             
             // Draw drawings on top
             drawDrawings();
+            
+            // Draw crosshair last (on top of everything)
+            drawCrosshair();
         }
         
         function drawLine(values, pad, spacing, yFunc) {
