@@ -772,6 +772,50 @@
         
         .price-up { color: #00C851; }
         .price-down { color: #FF4444; }
+        
+        /* Market Watch Collapse */
+        .market-watch-panel {
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+        
+        .market-watch-panel.collapsed {
+            transform: translateX(-100%);
+            width: 0 !important;
+        }
+        
+        .market-toggle-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #FF4500;
+            border: none;
+            color: white;
+            width: 30px;
+            height: 60px;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .market-toggle-btn:hover {
+            background: #FF6347;
+            width: 35px;
+        }
+        
+        .market-toggle-btn i {
+            font-size: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .market-toggle-btn {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-dark text-gray-100">
@@ -912,7 +956,10 @@
     <!-- Main Interface -->
     <div class="flex h-screen">
         <!-- Left Panel - Market Watch -->
-        <div class="w-80 bg-darker border-r border-gray-700 flex flex-col relative z-10">
+        <div class="w-80 bg-darker border-r border-gray-700 flex flex-col relative z-10 market-watch-panel" id="marketWatchPanel">
+            <button class="market-toggle-btn" id="marketToggleBtn" onclick="toggleMarketWatch()" title="Toggle Market Watch">
+                <i class="fas fa-chevron-left"></i>
+            </button>
             <div class="p-4 border-b border-gray-700">
                 <h3 class="font-semibold mb-3 text-sm">Market Watch</h3>
                 <div class="relative mb-3">
@@ -4307,6 +4354,31 @@
             const isActive = document.body.classList.contains('mobile-tools-active');
             btn.innerHTML = isActive ? '<i class="fas fa-times"></i>' : '<i class="fas fa-tools"></i>';
             btn.style.background = isActive ? '#FF4444' : '#FF4500';
+        }
+        
+        /* ================= MARKET WATCH TOGGLE ================= */
+        function toggleMarketWatch() {
+            const panel = document.getElementById('marketWatchPanel');
+            const btn = document.getElementById('marketToggleBtn');
+            const icon = btn.querySelector('i');
+            
+            panel.classList.toggle('collapsed');
+            
+            if (panel.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+                btn.style.right = '-30px';
+                btn.style.left = 'auto';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+                btn.style.right = '-30px';
+                btn.style.left = 'auto';
+            }
+            
+            // Resize canvas after animation
+            setTimeout(() => {
+                resize();
+                draw();
+            }, 300);
         }
         
         /* ================= EXIT APP ================= */
