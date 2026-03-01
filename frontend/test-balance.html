@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Deriv Balance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+    <div class="max-w-2xl w-full mx-4">
+        <div class="bg-gray-800 rounded-lg p-8">
+            <h1 class="text-3xl font-bold mb-6 text-center">Test Deriv Balance</h1>
+            
+            <div id="status" class="mb-6 p-4 rounded bg-gray-700">
+                <p class="text-gray-400">Checking tokens...</p>
+            </div>
+            
+            <div id="results" class="space-y-4"></div>
+            
+            <div class="mt-6 text-center">
+                <a href="/deriv-connect" class="text-orange-500 hover:text-orange-400">← Back to Connect</a>
+                <span class="mx-4">|</span>
+                <a href="/app" class="text-orange-500 hover:text-orange-400">Go to App →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testBalance() {
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            if (accounts.length === 0) {
+                statusDiv.innerHTML = '<p class="text-red-400">❌ No tokens found in localStorage</p>';
+                resultsDiv.innerHTML = '<p class="text-gray-400">Please connect your Deriv account first.</p>';
+                return;
+            }
+            
+            statusDiv.innerHTML = `<p class="text-blue-400">✓ Found ${accounts.length} account(s) in localStorage</p>`;
+            
+            for (const account of accounts) {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'bg-gray-700 rounded p-4';
+                resultCard.innerHTML = `
+                    <h3 class="font-bold mb-2">${account.account} (${account.currency})</h3>
+                    <p class="text-sm text-gray-400 mb-2">Token: ${account.token.substring(0, 20)}...</p>
+                    <p class="text-yellow-400">Testing...</p>
+                `;
+                resultsDiv.appendChild(resultCard);
+                
+                try {
+                    const response = await fetch('/api/deriv/user/balance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_token: account.token })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        resultCard.innerHTML = `
+                            <h3 class="font-bold mb-2">✅ ${account.account} (${account.currency})</h3>
+                            <p class="text-sm text-gray-400 mb-2">Token: ${account.token.substring(0, 20)}...</p>
+                            <div class="mt-2 p-3 bg-green-900 bg-opacity-30 rounded">
+                                <p class="text-green-400 font-bold text-xl">Balance: ${data.data.balance} ${data.data.currency}</p>
+                                <p class="text-sm text-gray-400">Account Type: ${data.data.is_virtual ? 'Demo' : 'Real'}</p>
+                                <p class="text-sm text-gray-400">Login ID: ${data.data.loginid}</p>
+                            </div>
+                        `;
+                    } else {
+                        resultCard.innerHTML = `
+                            <h3 class="font-bold mb-2">❌ ${account.account} (${account.currency})</h3>
+                            <p class="text-sm text-gray-400 mb-2">Token: ${account.token.substring(0, 20)}...</p>
+                            <div class="mt-2 p-3 bg-red-900 bg-opacity-30 rounded">
+                                <p class="text-red-400">Error: ${data.error || 'Unknown error'}</p>
+                                <p class="text-sm text-gray-400">${data.details || ''}</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    resultCard.innerHTML = `
+                        <h3 class="font-bold mb-2">❌ ${account.account} (${account.currency})</h3>
+                        <p class="text-sm text-gray-400 mb-2">Token: ${account.token.substring(0, 20)}...</p>
+                        <div class="mt-2 p-3 bg-red-900 bg-opacity-30 rounded">
+                            <p class="text-red-400">Network Error: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        testBalance();
+    </script>
+</body>
+</html>

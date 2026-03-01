@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Deriv Account - Algocdk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0D1421;
+            color: #E2E8F0;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #FF4500 0%, #FF6347 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(255, 69, 0, 0.4);
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 69, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold mb-6">Link Your Deriv Account</h1>
+            
+            <div class="card rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Secure OAuth Authentication</h2>
+                <p class="text-gray-300 mb-4">
+                    Connect your Deriv account securely using OAuth. Your API tokens are never stored on our servers.
+                </p>
+                
+                <div class="space-y-4">
+                    <button id="linkDerivBtn" class="btn-primary w-full text-white font-bold py-3 px-6 rounded-lg">
+                        Link Deriv Account via OAuth
+                    </button>
+                </div>
+            </div>
+
+            <div id="linkedAccounts" class="card rounded-lg p-6 hidden">
+                <h2 class="text-xl font-semibold mb-4">Linked Accounts</h2>
+                <div id="accountsList" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4 mt-6">
+                <h3 class="font-semibold mb-2">⚠️ Important</h3>
+                <ul class="text-sm text-yellow-200 space-y-1">
+                    <li>• OAuth tokens expire after 24 hours</li>
+                    <li>• You'll need to re-authenticate periodically</li>
+                    <li>• Tokens are encrypted and session-based</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/auth';
+        }
+
+        // Handle OAuth redirect from Deriv
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const accounts = params.get('acct1');
+            const token1 = params.get('token1');
+            const currency1 = params.get('cur1');
+            
+            if (accounts && token1) {
+                const accountData = {
+                    accounts: [{
+                        account: accounts,
+                        token: token1,
+                        currency: currency1
+                    }]
+                };
+                
+                // Add additional accounts if present
+                if (params.get('acct2')) {
+                    accountData.accounts.push({
+                        account: params.get('acct2'),
+                        token: params.get('token2'),
+                        currency: params.get('cur2')
+                    });
+                }
+                
+                handleOAuthCallback(accountData);
+            }
+        });
+
+        async function linkDerivAccount() {
+            try {
+                const res = await fetch(`${API_BASE}/deriv/oauth/initiate`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    window.location.href = data.oauth_url;
+                }
+            } catch (err) {
+                alert('Failed to initiate OAuth: ' + err.message);
+            }
+        }
+
+        async function handleOAuthCallback(accountData) {
+            try {
+                const res = await fetch(`${API_BASE}/deriv/oauth/callback`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(accountData)
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('Deriv account linked successfully!');
+                    window.history.replaceState({}, document.title, '/deriv-oauth');
+                    setTimeout(() => {
+                        window.location.href = '/app';
+                    }, 1000);
+                }
+            } catch (err) {
+                alert('Failed to link account: ' + err.message);
+            }
+        }
+
+        async function loadLinkedAccounts() {
+            try {
+                const res = await fetch(`${API_BASE}/deriv/oauth/accounts`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.success && data.accounts.length > 0) {
+                    document.getElementById('linkedAccounts').classList.remove('hidden');
+                    const list = document.getElementById('accountsList');
+                    list.innerHTML = data.accounts.map(acc => `
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded">
+                            <div>
+                                <span class="font-semibold">${acc.account_id}</span>
+                                <span class="text-sm text-gray-400 ml-2">${acc.currency}</span>
+                                <span class="text-xs ${acc.is_virtual ? 'text-green-400' : 'text-blue-400'} ml-2">
+                                    ${acc.is_virtual ? 'Demo' : 'Real'}
+                                </span>
+                            </div>
+                            <button onclick="unlinkAccount('${acc.account_id}')" class="text-red-400 hover:text-red-300">
+                                Unlink
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Failed to load accounts:', err);
+            }
+        }
+
+        async function unlinkAccount(accountId) {
+            if (!confirm('Unlink this account?')) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/deriv/oauth/accounts/${accountId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    loadLinkedAccounts();
+                }
+            } catch (err) {
+                alert('Failed to unlink account: ' + err.message);
+            }
+        }
+
+        document.getElementById('linkDerivBtn').addEventListener('click', linkDerivAccount);
+        loadLinkedAccounts();
+    </script>
+</body>
+</html>

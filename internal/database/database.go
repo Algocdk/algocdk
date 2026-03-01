@@ -31,6 +31,7 @@ func InitDB() {
 		&models.UserBot{},
 		&models.Sale{},
 		&models.DerivCredentials{},
+		&models.DerivOAuthSession{},
 		&models.SuperAdmin{},
 		&models.ScreenShareSession{},
 		&models.Notification{},

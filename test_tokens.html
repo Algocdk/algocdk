@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Deriv Tokens</title>
+</head>
+<body>
+    <h1>Testing Deriv Tokens</h1>
+    <div id="results"></div>
+
+    <script>
+        const tokens = [
+            { account: 'CR4323586', token: 'a1-RGy7qXqnb3dSAfJXCIqJIELtb4SCP', currency: 'USD' },
+            { account: 'VRTC6565689', token: 'a1-vpM1RTu32PWZSPmtvSTOkxbETkt7r', currency: 'USD' }
+        ];
+
+        async function testToken(account, token) {
+            const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=63623');
+            
+            return new Promise((resolve) => {
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({
+                        authorize: token
+                    }));
+                };
+
+                ws.onmessage = (msg) => {
+                    const data = JSON.parse(msg.data);
+                    console.log(`${account}:`, data);
+                    
+                    if (data.authorize) {
+                        ws.send(JSON.stringify({ balance: 1, account: 'all' }));
+                    }
+                    
+                    if (data.balance) {
+                        resolve({ account, success: true, balance: data.balance.balance, currency: data.balance.currency });
+                        ws.close();
+                    }
+                    
+                    if (data.error) {
+                        resolve({ account, success: false, error: data.error.message });
+                        ws.close();
+                    }
+                };
+
+                ws.onerror = () => {
+                    resolve({ account, success: false, error: 'WebSocket error' });
+                };
+            });
+        }
+
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing tokens...</p>';
+            
+            for (const { account, token, currency } of tokens) {
+                const result = await testToken(account, token);
+                const div = document.createElement('div');
+                div.style.margin = '10px 0';
+                div.style.padding = '10px';
+                div.style.border = '1px solid ' + (result.success ? 'green' : 'red');
+                
+                if (result.success) {
+                    div.innerHTML = `<strong>${result.account}</strong>: ✅ Balance: ${result.balance} ${result.currency}`;
+                } else {
+                    div.innerHTML = `<strong>${result.account}</strong>: ❌ ${result.error}`;
+                }
+                
+                results.appendChild(div);
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

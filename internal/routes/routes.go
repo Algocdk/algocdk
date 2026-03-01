@@ -184,7 +184,20 @@ func SetUpRouter(router *gin.Engine) {
 		}
 
 		// ============================================
-		// DERIV BROKER INTEGRATION
+		// DERIV OAUTH INTEGRATION
+		// ============================================
+
+		derivOAuth := api.Group("/deriv/oauth")
+		derivOAuth.Use(middleware.AuthMiddleware())
+		{
+			derivOAuth.GET("/initiate", handlers.InitiateDerivOAuth)
+			derivOAuth.POST("/callback", handlers.HandleDerivOAuthCallback)
+			derivOAuth.GET("/accounts", handlers.GetLinkedDerivAccounts)
+			derivOAuth.DELETE("/accounts/:account_id", handlers.UnlinkDerivAccount)
+		}
+
+		// ============================================
+		// DERIV BROKER INTEGRATION (Legacy - Token Based)
 		// ============================================
 
 		// Public Deriv endpoints - no auth required
@@ -219,6 +232,15 @@ func SetUpRouter(router *gin.Engine) {
 			derivProtected.GET("/me/accounts", handlers.GetDerivAccountListWithStoredToken)
 			derivProtected.POST("/me/switch", handlers.SwitchDerivAccountWithStoredToken)
 			derivProtected.POST("/trade", handlers.PlaceDerivTrade)
+		}
+
+		// ============================================
+		// DERIV TRADING WITH OAUTH
+		// ============================================
+		derivTrading := api.Group("/deriv/trading")
+		derivTrading.Use(middleware.AuthMiddleware())
+		{
+			derivTrading.POST("/place", handlers.PlaceDerivTrade)
 		}
 
 		// Screen Sharing (requires auth)
@@ -349,6 +371,18 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/public-sites", func(c *gin.Context) {
 		c.File(frontendPath + "/public-sites.html")
+	})
+	router.GET("/deriv-oauth", func(c *gin.Context) {
+		c.File(frontendPath + "/deriv-oauth.html")
+	})
+	router.GET("/deriv-connect", func(c *gin.Context) {
+		c.File(frontendPath + "/deriv-connect.html")
+	})
+	router.GET("/deriv/callback", func(c *gin.Context) {
+		c.File(frontendPath + "/deriv-connect.html")
+	})
+	router.GET("/test-balance", func(c *gin.Context) {
+		c.File(frontendPath + "/test-balance.html")
 	})
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")

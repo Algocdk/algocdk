@@ -3041,50 +3041,58 @@
         
         async function toggleAccount() {
             const wantReal = document.getElementById('accountToggle').checked;
-            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
             
-            // Save user's account preference
-            localStorage.setItem('preferredAccountType', wantReal ? 'real' : 'demo');
-            
-            if (!token) {
-                console.log('No auth token found, using local demo mode');
-                isRealAccount = false;
+            if (accounts.length === 0) {
+                alert('Please connect your Deriv account first');
                 document.getElementById('accountToggle').checked = false;
-                updateAccountDisplay();
+                return;
+            }
+            
+            // Find real and demo accounts
+            const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+            const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+            
+            const targetAccount = wantReal ? realAccount : demoAccount;
+            
+            if (!targetAccount) {
+                alert(`No ${wantReal ? 'real' : 'demo'} account found`);
+                document.getElementById('accountToggle').checked = !wantReal;
                 return;
             }
             
             try {
-                const accountType = wantReal ? 'real' : 'demo';
-                const response = await fetch(`/api/deriv/token?account_type=${accountType}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
+                const response = await fetch('/api/deriv/user/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_token: targetAccount.token })
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.has_token && data.token) {
-                        connectDeriv(data.token, accountType === 'demo');
-                        isRealAccount = wantReal;
-                    } else {
-                        isRealAccount = false;
-                        document.getElementById('accountToggle').checked = false;
-                        alert(`No ${accountType} token found. Please add your Deriv API token in Settings.`);
+                    if (data.success && data.data) {
+                        isRealAccount = data.data.is_virtual !== 1;
+                        document.getElementById('accountBalance').textContent = `Balance: $${data.data.balance.toFixed(2)}`;
+                        document.getElementById('topAccountBalance').textContent = `$${data.data.balance.toFixed(2)}`;
+                        document.getElementById('accountType').textContent = data.data.is_virtual === 1 ? 'Demo Account' : 'Real Account';
+                        
+                        // Update account status styling
+                        const accountStatus = document.getElementById('accountStatus');
+                        if (data.data.is_virtual === 1) {
+                            accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
+                        } else {
+                            accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
+                        }
                     }
                 } else {
-                    isRealAccount = false;
-                    document.getElementById('accountToggle').checked = false;
-                    console.log('Token fetch failed, using local demo mode');
+                    alert('Failed to switch account');
+                    document.getElementById('accountToggle').checked = !wantReal;
                 }
             } catch (error) {
-                isRealAccount = false;
-                document.getElementById('accountToggle').checked = false;
-                console.log('Network error, using local demo mode:', error);
+                console.log('Error switching account:', error);
+                alert('Error switching account');
+                document.getElementById('accountToggle').checked = !wantReal;
             }
-            
-            updateAccountDisplay();
         }
         
         function updateAccountDisplay() {
@@ -3117,54 +3125,92 @@
         }
         
         // Initialize account display on page load
-        async function initializeAccountDisplay() {
-            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
-            const preferredType = localStorage.getItem('preferredAccountType') || 'demo';
-            
-            // Sync initial trading market with chart symbol
-            const tradeMarket = document.getElementById('tradeMarket');
-            if (tradeMarket) {
-                tradeMarket.value = SYMBOL;
+async function initializeAccountDisplay() {
+    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+    
+    const tradeMarket = document.getElementById('tradeMarket');
+    if (tradeMarket) tradeMarket.value = SYMBOL;
+    
+    if (accounts.length === 0) {
+        isRealAccount = false;
+        document.getElementById('accountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Connect Deriv</a>';
+        document.getElementById('topAccountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Connect</a>';
+        return;
+    }
+    
+    try {
+        const derivToken = accounts[0].token;
+        const response = await fetch('/api/deriv/user/balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_token: derivToken })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+                isRealAccount = data.data.is_virtual !== 1;
+                document.getElementById('accountBalance').textContent = `Balance: $${data.data.balance.toFixed(2)}`;
+                document.getElementById('topAccountBalance').textContent = `$${data.data.balance.toFixed(2)}`;
+                document.getElementById('accountType').textContent = data.data.is_virtual === 1 ? 'Demo Account' : 'Real Account';
+                document.getElementById('accountToggle').checked = data.data.is_virtual !== 1;
             }
-            
-            if (!token) {
-                console.log('No auth token found');
-                isRealAccount = false;
-                document.getElementById('accountBalance').textContent = 'Not Available';
-                document.getElementById('topAccountBalance').textContent = 'Not Available';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/deriv/token?account_type=${preferredType}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.has_token && data.token) {
-                        connectDeriv(data.token, preferredType === 'demo');
-                        isRealAccount = preferredType === 'real';
-                    } else {
-                        isRealAccount = false;
-                        document.getElementById('accountBalance').textContent = 'Not Available';
-                        document.getElementById('topAccountBalance').textContent = 'Not Available';
-                    }
-                } else {
-                    isRealAccount = false;
-                    document.getElementById('accountBalance').textContent = 'Not Available';
-                    document.getElementById('topAccountBalance').textContent = 'Not Available';
-                }
-            } catch (error) {
-                isRealAccount = false;
-                document.getElementById('accountBalance').textContent = 'Not Available';
-                document.getElementById('topAccountBalance').textContent = 'Not Available';
-                console.log('Failed to initialize account:', error);
-            }
+        } else {
+            localStorage.removeItem('deriv_accounts');
+            document.getElementById('accountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Reconnect</a>';
+            document.getElementById('topAccountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Reconnect</a>';
         }
+    } catch (error) {
+        console.log('Failed to load balance:', error);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         function connectDeriv(token, isDemo = true) {
             const endpoint = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
