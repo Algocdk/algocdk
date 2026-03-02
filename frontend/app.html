@@ -848,7 +848,7 @@
             <div class="flex items-center space-x-4">
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Balance</div>
-                    <div class="font-mono font-bold" id="topAccountBalance">$10,000.00</div>
+                    <div class="font-mono font-bold" id="topAccountBalance">Loading...</div>
                 </div>
                 
                 <!-- Notifications -->
@@ -1176,7 +1176,7 @@
                 <div class="mb-3 p-2 rounded" id="accountStatus">
                     <div class="text-xs text-gray-400">Account Type</div>
                     <div class="font-semibold text-sm" id="accountType">Demo Account</div>
-                    <div class="text-xs" id="accountBalance">Balance: $10,000.00</div>
+                    <div class="text-xs" id="accountBalance">Balance: Loading...</div>
                 </div>
                 
                 <!-- Deriv-style Trading Interface -->
@@ -1531,7 +1531,7 @@
 
         /* ================= BACKGROUND PRICE UPDATES ================= */
         function startBackgroundUpdates() {
-            backgroundWs = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            backgroundWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
             
             backgroundWs.onopen = () => {
                 const symbols = Array.from(marketData.keys());
@@ -1617,7 +1617,7 @@
 
         /* ================= WS ================= */
         function connect() {
-            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
             ws.onopen = () => {
                 ws.send(JSON.stringify({
@@ -3061,38 +3061,33 @@
                 return;
             }
             
-            try {
-                const response = await fetch('/api/deriv/user/balance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ api_token: targetAccount.token })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data) {
-                        isRealAccount = data.data.is_virtual !== 1;
-                        document.getElementById('accountBalance').textContent = `Balance: $${data.data.balance.toFixed(2)}`;
-                        document.getElementById('topAccountBalance').textContent = `$${data.data.balance.toFixed(2)}`;
-                        document.getElementById('accountType').textContent = data.data.is_virtual === 1 ? 'Demo Account' : 'Real Account';
-                        
-                        // Update account status styling
-                        const accountStatus = document.getElementById('accountStatus');
-                        if (data.data.is_virtual === 1) {
-                            accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
-                        } else {
-                            accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
-                        }
-                    }
-                } else {
-                    alert('Failed to switch account');
-                    document.getElementById('accountToggle').checked = !wantReal;
-                }
-            } catch (error) {
-                console.log('Error switching account:', error);
-                alert('Error switching account');
-                document.getElementById('accountToggle').checked = !wantReal;
+            // Save account preference
+            isRealAccount = wantReal;
+            localStorage.setItem('preferredAccountType', wantReal ? 'real' : 'demo');
+            localStorage.setItem('preferredAccountId', targetAccount.account);
+            
+            // Update UI immediately
+            document.getElementById('accountBalance').textContent = 'Balance: Loading...';
+            document.getElementById('topAccountBalance').textContent = 'Loading...';
+            document.getElementById('accountType').textContent = wantReal ? 'Real Account' : 'Demo Account';
+            
+            // Update account status styling
+            const accountStatus = document.getElementById('accountStatus');
+            if (wantReal) {
+                accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
+            } else {
+                accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
             }
+            
+            // Reconnect WebSocket with new token
+            if (derivWS) {
+                derivWS.onclose = null; // Prevent auto-reconnect
+                derivWS.close(1000, 'Account switch'); // Clean close
+            }
+            // Small delay to ensure clean disconnect before reconnecting
+            setTimeout(() => {
+                connectDeriv(targetAccount.token, !wantReal);
+            }, 100);
         }
         
         function updateAccountDisplay() {
@@ -3138,31 +3133,48 @@ async function initializeAccountDisplay() {
         return;
     }
     
-    try {
-        const derivToken = accounts[0].token;
-        const response = await fetch('/api/deriv/user/balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_token: derivToken })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-                isRealAccount = data.data.is_virtual !== 1;
-                document.getElementById('accountBalance').textContent = `Balance: $${data.data.balance.toFixed(2)}`;
-                document.getElementById('topAccountBalance').textContent = `$${data.data.balance.toFixed(2)}`;
-                document.getElementById('accountType').textContent = data.data.is_virtual === 1 ? 'Demo Account' : 'Real Account';
-                document.getElementById('accountToggle').checked = data.data.is_virtual !== 1;
-            }
-        } else {
-            localStorage.removeItem('deriv_accounts');
-            document.getElementById('accountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Reconnect</a>';
-            document.getElementById('topAccountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Reconnect</a>';
-        }
-    } catch (error) {
-        console.log('Failed to load balance:', error);
+    // Check user's preferred account ID first, then type
+    const preferredAccountId = localStorage.getItem('preferredAccountId');
+    const preferredType = localStorage.getItem('preferredAccountType');
+    
+    let targetAccount;
+    
+    // If we have a preferred account ID, use it
+    if (preferredAccountId) {
+        targetAccount = accounts.find(a => a.account === preferredAccountId);
     }
+    
+    // If no specific account found, use type preference or default to demo
+    if (!targetAccount) {
+        const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+        const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+        
+        // Always prefer demo unless explicitly set to real
+        if (preferredType === 'real' && realAccount) {
+            targetAccount = realAccount;
+        } else {
+            targetAccount = demoAccount || realAccount || accounts[0];
+        }
+    }
+    
+    const derivToken = targetAccount.token;
+    const isDemo = targetAccount.account.startsWith('VRT');
+    
+    // Set initial state
+    isRealAccount = !isDemo;
+    document.getElementById('accountType').textContent = isDemo ? 'Demo Account' : 'Real Account';
+    document.getElementById('accountToggle').checked = !isDemo;
+    
+    // Update account status styling
+    const accountStatus = document.getElementById('accountStatus');
+    if (isDemo) {
+        accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
+    } else {
+        accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
+    }
+    
+    // Connect WebSocket - balance will update via WebSocket
+    connectDeriv(derivToken, isDemo);
 }
 
 
@@ -3212,14 +3224,41 @@ async function initializeAccountDisplay() {
 
 
         
+        const DERIV_APP_ID = '63623'; // Your Deriv app ID
+        let tokenRefreshInterval = null;
+        
+        // Refresh tokens every 30 minutes
+        function startTokenRefresh() {
+            if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+            
+            tokenRefreshInterval = setInterval(() => {
+                const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                if (accounts.length > 0 && derivWS && derivWS.readyState === WebSocket.OPEN) {
+                    // Re-authorize to keep token alive
+                    const currentAccountId = localStorage.getItem('preferredAccountId');
+                    const currentAccount = accounts.find(a => a.account === currentAccountId) || accounts[0];
+                    derivWS.send(JSON.stringify({ authorize: currentAccount.token }));
+                    console.log('Token refresh sent');
+                }
+            }, 30 * 60 * 1000); // 30 minutes
+        }
+        
+        function stopTokenRefresh() {
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval);
+                tokenRefreshInterval = null;
+            }
+        }
+        
         function connectDeriv(token, isDemo = true) {
-            const endpoint = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
+            const endpoint = `wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`;
                 
             derivWS = new WebSocket(endpoint);
             
             derivWS.onopen = () => {
                 console.log(`Connected to Deriv ${isDemo ? 'Demo' : 'Real'} API`);
                 derivWS.send(JSON.stringify({ authorize: token }));
+                startTokenRefresh(); // Start token refresh on connection
             };
             
             derivWS.onmessage = (event) => {
@@ -3227,15 +3266,33 @@ async function initializeAccountDisplay() {
                 handleDerivResponse(data);
             };
             
-            // Auto-reconnect on close
-            derivWS.onclose = () => {
-                setTimeout(() => connectDeriv(token, isDemo), 3000);
+            derivWS.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            // Auto-reconnect on close (but not during manual account switch)
+            derivWS.onclose = (event) => {
+                stopTokenRefresh(); // Stop refresh on disconnect
+                // Only auto-reconnect if it wasn't a manual close (code 1000)
+                if (event.code !== 1000) {
+                    console.log('WebSocket closed unexpectedly, reconnecting...');
+                    setTimeout(() => connectDeriv(token, isDemo), 3000);
+                }
             };
         }
         
         function handleDerivResponse(data) {
             if (data.error) {
-                alert('Trade Error: ' + data.error.message);
+                // Only show alerts for trade-related errors, not connection/auth errors
+                if (data.error.code === 'InvalidToken' || data.error.message.includes('Token is not valid')) {
+                    console.warn('Token validation issue:', data.error.message);
+                    // Don't clear accounts or show reconnect - just ignore balance subscription errors
+                    return;
+                }
+                // Only show alert for actual trade errors
+                if (data.msg_type === 'buy' || data.echo_req?.buy) {
+                    alert('Trade Error: ' + data.error.message);
+                }
                 return;
             }
             
@@ -3295,10 +3352,16 @@ async function initializeAccountDisplay() {
             const duration = parseInt(document.getElementById('duration').value);
             const durationUnit = document.getElementById('durationUnit').value;
             
-            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            if (accounts.length === 0) {
                 if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
                     window.location.href = '/settings';
                 }
+                return;
+            }
+            
+            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+                alert('Connecting to Deriv...');
                 return;
             }
             
@@ -4583,6 +4646,9 @@ async function initializeAccountDisplay() {
         
         /* ================= EXIT APP ================= */
         function exitApp() {
+            // Stop token refresh
+            stopTokenRefresh();
+            
             // Clear all tokens and session data
             localStorage.removeItem('authToken');
             localStorage.removeItem('jwt_token');
@@ -4592,6 +4658,7 @@ async function initializeAccountDisplay() {
             localStorage.removeItem('adminId');
             localStorage.removeItem('superadminId');
             localStorage.removeItem('preferredAccountType');
+            localStorage.removeItem('preferredAccountId');
             localStorage.removeItem('demoBalance');
             localStorage.removeItem('realBalance');
             
@@ -4601,7 +4668,8 @@ async function initializeAccountDisplay() {
                 ws = null;
             }
             if (derivWS) {
-                derivWS.close();
+                derivWS.onclose = null;
+                derivWS.close(1000, 'User logout');
                 derivWS = null;
             }
             if (backgroundWs) {
