@@ -3332,6 +3332,7 @@ async function initializeAccountDisplay() {
             }
             
             if (data.buy) {
+                console.log('Buy response from Deriv:', data);
                 const trade = {
                     id: data.buy.contract_id,
                     symbol: data.buy.shortcode,
@@ -3340,7 +3341,7 @@ async function initializeAccountDisplay() {
                     time: new Date().toLocaleTimeString()
                 };
                 addLiveTrade(trade);
-                alert(`Trade placed successfully! Contract ID: ${data.buy.contract_id}`);
+                showNotification(`Trade placed successfully! Contract ID: ${data.buy.contract_id}`, 'success');
                 
                 // Balance will update automatically via subscription
             }
@@ -3444,8 +3445,8 @@ async function initializeAccountDisplay() {
             }
             
             // Clean up trade display
-            const cleanSymbol = trade.symbol.replace(/^(R_|BOOM|CRASH|frx|cry)/, '');
-            const tradeTypeDisplay = trade.type.replace(/DIGIT|CALL|PUT/, match => {
+            const cleanSymbol = (trade.symbol || '').replace(/^(R_|BOOM|CRASH|frx|cry)/, '');
+            const tradeTypeDisplay = (trade.type || '').toString().replace(/DIGIT|CALL|PUT/, match => {
                 switch(match) {
                     case 'DIGIT': return 'Digit';
                     case 'CALL': return 'Rise';
