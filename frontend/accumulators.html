@@ -45,6 +45,8 @@ body{background:#0D1421;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 #appBody{display:flex;flex-direction:column;height:calc(100vh - 52px)}
 @media(max-width:768px){
   #appBody{height:calc(100vh - 70px)}
+  #toolbar{display:none}
+  #indicatorChips{display:none}
 }
 #mainRow{display:flex;flex:1;min-height:0;overflow:hidden}
 #chartPane{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
@@ -309,9 +311,17 @@ select option{background:#0f1923}
 <div id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
 <!-- Mobile toggle button -->
-<button id="mobileToggle" onclick="toggleMobileSidebar()">
+<button id="mobileToggle" onclick="toggleMobileMenu()">
   <i class="fas fa-sliders-h"></i>
 </button>
+
+<!-- Mobile radial menu -->
+<div id="mobileMenu" style="display:none;position:fixed;bottom:160px;right:25px;z-index:99998">
+  <button onclick="openMobileSection('trade')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FF4500;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(255,69,0,.6);cursor:pointer"><i class="fas fa-chart-line"></i></button>
+  <button onclick="openMobileSection('indicators')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#3B82F6;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(59,130,246,.6);cursor:pointer"><i class="fas fa-wave-square"></i></button>
+  <button onclick="showMobileDrawTools()" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#A855F7;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(168,85,247,.6);cursor:pointer"><i class="fas fa-pen"></i></button>
+  <button onclick="openMobileSection('alerts')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FBBF24;border:2px solid #fff;color:#000;font-size:20px;box-shadow:0 4px 15px rgba(251,191,36,.6);cursor:pointer"><i class="fas fa-bell"></i></button>
+</div>
 
 <!-- ALERT MODAL -->
 <div class="modal-overlay" id="alertModal">
@@ -1404,6 +1414,67 @@ function toggleMobileSidebar() {
   const overlay = document.getElementById('sidebarOverlay');
   sidebar.classList.toggle('show');
   overlay.classList.toggle('show');
+}
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.getElementById('mobileToggle');
+  const isOpen = menu.style.display !== 'none';
+  
+  if (isOpen) {
+    menu.style.display = 'none';
+    btn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+  } else {
+    menu.style.display = 'block';
+    btn.innerHTML = '<i class="fas fa-times"></i>';
+  }
+}
+
+function openMobileSection(section) {
+  toggleMobileMenu();
+  if (section === 'trade') {
+    toggleMobileSidebar();
+  } else if (section === 'indicators') {
+    showMobileIndicators();
+  } else if (section === 'alerts') {
+    openAlertModal();
+  }
+}
+
+function showMobileIndicators() {
+  const toolbar = document.getElementById('toolbar');
+  const chips = document.getElementById('indicatorChips');
+  toolbar.style.display = 'flex';
+  chips.style.display = 'flex';
+  toggleDD('indDD');
+  
+  // Auto-hide after selection
+  setTimeout(() => {
+    const dd = document.getElementById('indDD');
+    const observer = new MutationObserver(() => {
+      if (dd.style.display === 'none') {
+        toolbar.style.display = 'none';
+        chips.style.display = 'none';
+        observer.disconnect();
+      }
+    });
+    observer.observe(dd, { attributes: true, attributeFilter: ['style'] });
+  }, 100);
+}
+
+function showMobileDrawTools() {
+  toggleMobileMenu();
+  const toolbar = document.getElementById('toolbar');
+  toolbar.style.display = 'flex';
+  
+  // Create overlay to close toolbar
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.3)';
+  overlay.onclick = () => {
+    toolbar.style.display = 'none';
+    overlay.remove();
+  };
+  document.body.appendChild(overlay);
 }
 
 function initDraggableButton() {
