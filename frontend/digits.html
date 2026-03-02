@@ -1863,7 +1863,7 @@
             // Add specific parameters
             if (tradeType === 'DIGITMATCH' || tradeType === 'DIGITDIFF') {
                 const digit = document.getElementById('digitPrediction')?.value || '0';
-                tradeRequest.parameters.last_digit_prediction = parseInt(digit);
+                tradeRequest.parameters.barrier = parseInt(digit);
             } else if (tradeType === 'DIGITOVER' || tradeType === 'DIGITUNDER') {
                 const barrier = document.getElementById('overUnderBarrier')?.value || '5';
                 tradeRequest.parameters.barrier = parseInt(barrier);
