@@ -3321,14 +3321,18 @@ async function initializeAccountDisplay() {
                 const balance = data.balance.balance;
                 const isVirtual = data.balance.is_virtual === 1;
                 
-                // Update the correct balance and refresh display immediately
+                console.log('Balance update:', balance, 'isVirtual:', isVirtual);
+                
+                // Update balance directly in UI
+                document.getElementById('accountBalance').textContent = `Balance: $${balance.toFixed(2)}`;
+                document.getElementById('topAccountBalance').textContent = `$${balance.toFixed(2)}`;
+                
+                // Also update the global variables
                 if (isVirtual) {
                     demoBalance = balance;
                 } else {
                     realBalance = balance;
                 }
-                
-                updateAccountDisplay();
             }
             
             if (data.buy) {
