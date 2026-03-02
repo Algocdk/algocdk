@@ -578,6 +578,9 @@
             </div>
             
             <div class="flex items-center space-x-2 sm:space-x-4 flex-wrap">
+                <button onclick="toggleTradeHistory()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg font-semibold transition-all bg-primary text-white">
+                    <i class="fas fa-history"></i> History
+                </button>
                 <button onclick="toggleAccountType()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg font-semibold transition-all bg-success text-white" id="accountTypeBtn">
                     Demo
                 </button>
@@ -802,6 +805,7 @@
         let analysisTickRange = 50;
         let streakData = { current: 0, type: null, history: [], longest: { even: 0, odd: 0, over: 0, under: 0 } };
         let isDemo = true;
+        const DERIV_APP_ID = '63623';
         let derivWS = null;
         let authToken = null;
         let isDerivConnected = false;
@@ -1156,7 +1160,12 @@
 
         function updatePerformanceTracker() {
             const container = document.getElementById('performanceResults');
-            const trackTicks = parseInt(document.getElementById('performanceTicks').value);
+            if (!container) return;
+            
+            const ticksInput = document.getElementById('performanceTicks');
+            if (!ticksInput) return;
+            
+            const trackTicks = parseInt(ticksInput.value);
             const range = Math.min(trackTicks, digitHistory.length);
             const recentDigits = digitHistory.slice(-range);
             
@@ -1298,12 +1307,21 @@
 
         function toggleAccountType() {
             isDemo = !isDemo;
-            localStorage.setItem('accountType', isDemo ? 'demo' : 'real');
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+            const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+            const targetAccount = isDemo ? demoAccount : realAccount;
+            
+            if (targetAccount) {
+                localStorage.setItem('preferredAccountType', isDemo ? 'demo' : 'real');
+                localStorage.setItem('preferredAccountId', targetAccount.account);
+            }
             
             // Reset Deriv connection for new account type
             isDerivConnected = false;
             if (derivWS) {
-                derivWS.close();
+                derivWS.onclose = null;
+                derivWS.close(1000, 'Account switch');
                 derivWS = null;
             }
             
@@ -1312,7 +1330,7 @@
             // Reconnect with new account type
             setTimeout(() => {
                 connectDeriv();
-            }, 500);
+            }, 100);
         }
 
         function updateAccountDisplay() {
@@ -1823,9 +1841,7 @@
             
             // Check if user has Deriv token
             if (!derivWS || derivWS.readyState !== WebSocket.OPEN || !isDerivConnected) {
-                if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
-                    window.location.href = '/settings';
-                }
+                window.location.href = '/settings';
                 return;
             }
             
@@ -1883,73 +1899,109 @@
         }
         
         function connectDeriv() {
-            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
-            if (!token) {
-                console.log('No auth token found');
-                document.getElementById('accountBalance').textContent = 'Not Available';
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            if (accounts.length === 0) {
+                console.log('No Deriv accounts connected');
+                document.getElementById('accountBalance').textContent = 'Connect Deriv';
                 return;
             }
             
-            // Use same endpoint as main app
-            fetch(`/api/deriv/token?account_type=${isDemo ? 'demo' : 'real'}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+            // Get preferred account
+            const preferredAccountId = localStorage.getItem('preferredAccountId');
+            const preferredType = localStorage.getItem('preferredAccountType') || (isDemo ? 'demo' : 'real');
+            
+            let targetAccount = accounts.find(a => a.account === preferredAccountId);
+            if (!targetAccount) {
+                const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+                const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+                targetAccount = (preferredType === 'real' && realAccount) ? realAccount : (demoAccount || realAccount || accounts[0]);
+            }
+            
+            if (!targetAccount) {
+                document.getElementById('accountBalance').textContent = 'No Account';
+                return;
+            }
+            
+            // Connect with the Deriv token
+            derivWS = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+            
+            derivWS.onopen = () => {
+                derivWS.send(JSON.stringify({ authorize: targetAccount.token }));
+            };
+            
+            derivWS.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.error) {
+                    if (data.error.code === 'InvalidToken' || data.error.message.includes('Token is not valid')) {
+                        console.warn('Token validation issue:', data.error.message);
+                        return;
+                    }
+                    if (data.msg_type === 'buy' || data.echo_req?.buy) {
+                        alert('Trade Error: ' + data.error.message);
+                    }
+                    return;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.has_token && data.token) {
-                    // Connect with the Deriv token
-                    derivWS = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
-                    
-                    derivWS.onopen = () => {
-                        derivWS.send(JSON.stringify({ authorize: data.token }));
+                
+                if (data.authorize) {
+                    authToken = data.authorize.token;
+                    isDerivConnected = true;
+                    console.log('Connected to Deriv - Real trades enabled');
+                    // Subscribe to balance updates
+                    derivWS.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+                }
+                
+                if (data.balance) {
+                    const balance = data.balance.balance;
+                    document.getElementById('accountBalance').textContent = `${parseFloat(balance).toFixed(2)} USD`;
+                }
+                
+                if (data.buy) {
+                    const trade = {
+                        type: data.buy.contract_type || data.buy.shortcode || 'Trade',
+                        stake: data.buy.buy_price,
+                        outcome: 'pending',
+                        payout: 0,
+                        profit: 0,
+                        timestamp: Date.now(),
+                        contractId: data.buy.contract_id
                     };
-                    
-                    derivWS.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        
-                        if (data.authorize) {
-                            authToken = data.authorize.token;
-                            isDerivConnected = true;
-                            console.log('Connected to Deriv - Real trades enabled');
-                            // Subscribe to balance updates
-                            derivWS.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-                        }
-                        
-                        if (data.balance) {
-                            const balance = data.balance.balance;
-                            const isVirtual = data.balance.is_virtual === 1;
+                    saveTradeToHistory(trade);
+                    derivWS.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
+                }
+                
+                if (data.proposal_open_contract) {
+                    const contract = data.proposal_open_contract;
+                    if (contract.is_sold || contract.status === 'sold') {
+                        const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+                        const tradeIndex = history.findIndex(t => t.contractId === contract.contract_id);
+                        if (tradeIndex !== -1) {
+                            const isWin = parseFloat(contract.profit) > 0;
+                            history[tradeIndex].outcome = isWin ? 'win' : 'loss';
+                            history[tradeIndex].payout = parseFloat(contract.sell_price || contract.payout || 0);
+                            history[tradeIndex].profit = parseFloat(contract.profit || 0);
+                            localStorage.setItem('tradeHistory', JSON.stringify(history));
                             
-                            // Update balance display
-                            document.getElementById('accountBalance').textContent = `${parseFloat(balance).toFixed(2)} USD`;
-                            
-                            // Save to localStorage
-                            if (isVirtual) {
-                                localStorage.setItem('demoBalance', balance.toFixed(2));
-                            } else {
-                                localStorage.setItem('realBalance', balance.toFixed(2));
+                            // Auto-refresh history if modal is open
+                            const modal = document.getElementById('tradeHistoryModal');
+                            if (modal && !modal.classList.contains('hidden')) {
+                                loadTradeHistory();
                             }
                         }
-                        
-                        if (data.buy) {
-                            alert(`Real trade placed! Contract ID: ${data.buy.contract_id}`);
-                        }
-                        
-                        if (data.error) {
-                            alert('Trade Error: ' + data.error.message);
-                        }
-                    };
-                } else {
-                    console.log('No Deriv token available');
-                    document.getElementById('accountBalance').textContent = 'Not Available';
+                    }
                 }
-            })
-            .catch(error => {
-                console.log('Failed to get Deriv token:', error);
-                document.getElementById('accountBalance').textContent = 'Not Available';
-            });
+            };
+            
+            derivWS.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            derivWS.onclose = (event) => {
+                if (event.code !== 1000) {
+                    console.log('WebSocket closed, reconnecting...');
+                    setTimeout(() => connectDeriv(), 3000);
+                }
+            };
         }
         
         function simulateTradeOutcome(trade) {
@@ -1958,6 +2010,15 @@
             const multiplier = isWin ? 1.85 : 0;
             const payout = trade.stake * multiplier;
             const profit = payout - trade.stake;
+            
+            // Save trade to history
+            saveTradeToHistory({
+                ...trade,
+                outcome: isWin ? 'win' : 'loss',
+                payout: payout,
+                profit: profit,
+                timestamp: Date.now()
+            });
             
             if (isWin && payout > 0) {
                 const currentBalance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.]/g, ''));
@@ -1970,10 +2031,6 @@
                 } else {
                     localStorage.setItem('realBalance', newBalance.toFixed(2));
                 }
-                
-                alert(`Trade Won! Profit: $${profit.toFixed(2)}`);
-            } else {
-                alert(`Trade Lost: -$${trade.stake.toFixed(2)}`);
             }
         }
         
@@ -2183,6 +2240,269 @@
             // Save state before page unload
             window.addEventListener('beforeunload', saveBotState);
         });
+        
+        // Trade History Functions
+        function saveTradeToHistory(trade) {
+            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+            history.unshift(trade);
+            if (history.length > 100) history.pop();
+            localStorage.setItem('tradeHistory', JSON.stringify(history));
+        }
+        
+        function toggleTradeHistory() {
+            const modal = document.getElementById('tradeHistoryModal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                loadTradeHistory();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+        
+        let filteredHistory = [];
+        
+        function loadTradeHistory() {
+            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+            filteredHistory = history;
+            
+            // Subscribe to all pending trades
+            if (derivWS && derivWS.readyState === WebSocket.OPEN) {
+                history.filter(t => t.outcome === 'pending').forEach(trade => {
+                    derivWS.send(JSON.stringify({ proposal_open_contract: 1, contract_id: trade.contractId, subscribe: 1 }));
+                });
+            }
+            
+            if (history.length === 0) {
+                document.getElementById('tradeHistoryList').innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-inbox text-5xl mb-4 opacity-50"></i><p>No trade history yet</p></div>';
+                document.getElementById('performanceSummary').innerHTML = '';
+                return;
+            }
+            
+            renderPerformanceSummary(history);
+            filterTrades();
+        }
+        
+        function renderPerformanceSummary(history) {
+            const totalProfit = history.reduce((sum, t) => sum + (t.profit || 0), 0);
+            const wins = history.filter(t => t.outcome === 'win').length;
+            const losses = history.filter(t => t.outcome === 'loss').length;
+            const pending = history.filter(t => t.outcome === 'pending').length;
+            const totalTrades = wins + losses;
+            const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+            const totalStaked = history.reduce((sum, t) => sum + (t.stake || 0), 0);
+            const roi = totalStaked > 0 ? ((totalProfit / totalStaked) * 100).toFixed(1) : 0;
+            const avgProfit = totalTrades > 0 ? (totalProfit / totalTrades).toFixed(2) : 0;
+            
+            const summary = document.getElementById('performanceSummary');
+            summary.innerHTML = `
+                <div class="bg-gradient-to-br from-${totalProfit >= 0 ? 'green' : 'red'}-500/20 to-transparent p-4 rounded-xl border border-${totalProfit >= 0 ? 'green' : 'red'}-500/30">
+                    <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                        <i class="fas fa-dollar-sign"></i> Total Profit
+                    </div>
+                    <div class="text-2xl font-bold ${totalProfit >= 0 ? 'text-success' : 'text-danger'} flex items-center gap-2">
+                        ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toFixed(2)}
+                        <i class="fas fa-arrow-${totalProfit >= 0 ? 'up' : 'down'} text-sm"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-chart-bar"></i> Total Trades</div>
+                    <div class="text-2xl font-bold text-white">${history.length}</div>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-percentage"></i> Win Rate</div>
+                    <div class="text-2xl font-bold text-primary">${winRate}%</div>
+                </div>
+                <div class="bg-green-500/10 p-4 rounded-xl border border-green-500/30">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-check-circle"></i> Wins</div>
+                    <div class="text-2xl font-bold text-success">${wins}</div>
+                </div>
+                <div class="bg-red-500/10 p-4 rounded-xl border border-red-500/30">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-times-circle"></i> Losses</div>
+                    <div class="text-2xl font-bold text-danger">${losses}</div>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-chart-line"></i> ROI</div>
+                    <div class="text-2xl font-bold ${roi >= 0 ? 'text-success' : 'text-danger'}">${roi}%</div>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-calculator"></i> Avg Profit</div>
+                    <div class="text-2xl font-bold ${avgProfit >= 0 ? 'text-success' : 'text-danger'}">$${avgProfit}</div>
+                </div>
+            `;
+        }
+        
+        function filterTrades() {
+            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+            
+            let filtered = history.filter(trade => {
+                const matchesStatus = statusFilter === 'all' || trade.outcome === statusFilter;
+                const matchesSearch = !searchFilter || trade.contractId.toString().includes(searchFilter);
+                return matchesStatus && matchesSearch;
+            });
+            
+            filtered.sort((a, b) => {
+                if (sortFilter === 'newest') return b.timestamp - a.timestamp;
+                if (sortFilter === 'oldest') return a.timestamp - b.timestamp;
+                if (sortFilter === 'profit_high') return (b.profit || 0) - (a.profit || 0);
+                if (sortFilter === 'profit_low') return (a.profit || 0) - (b.profit || 0);
+                return 0;
+            });
+            
+            filteredHistory = filtered;
+            renderTradeTable(filtered);
+        }
+        
+        function renderTradeTable(trades) {
+            const list = document.getElementById('tradeHistoryList');
+            
+            if (trades.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-filter text-5xl mb-4 opacity-50"></i><p>No trades match your filters</p></div>';
+                return;
+            }
+            
+            list.innerHTML = `
+                <table class="w-full">
+                    <thead class="bg-gray-800/50 sticky top-0">
+                        <tr class="text-left text-xs text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-3 rounded-tl-lg">Status</th>
+                            <th class="px-4 py-3">Direction</th>
+                            <th class="px-4 py-3 text-right">Stake</th>
+                            <th class="px-4 py-3 text-right">Payout</th>
+                            <th class="px-4 py-3 text-right">Profit/Loss</th>
+                            <th class="px-4 py-3">Date & Time</th>
+                            <th class="px-4 py-3 rounded-tr-lg">Trade ID</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800">
+                        ${trades.map(trade => {
+                            const isWin = trade.outcome === 'win';
+                            const isPending = trade.outcome === 'pending';
+                            const isLoss = trade.outcome === 'loss';
+                            const date = new Date(trade.timestamp);
+                            
+                            let contractType = trade.type || 'Trade';
+                            const typeUpper = contractType.toUpperCase();
+                            if (typeUpper.includes('EVEN')) contractType = 'Even';
+                            else if (typeUpper.includes('ODD')) contractType = 'Odd';
+                            else if (typeUpper.includes('MATCH')) contractType = 'Match';
+                            else if (typeUpper.includes('DIFF')) contractType = 'Differ';
+                            else if (typeUpper.includes('OVER')) contractType = 'Over';
+                            else if (typeUpper.includes('UNDER')) contractType = 'Under';
+                            
+                            return `
+                                <tr class="hover:bg-gray-800/30 transition-colors cursor-pointer">
+                                    <td class="px-4 py-4">
+                                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                                            isPending ? 'bg-warning/20 text-warning border border-warning/30' :
+                                            isWin ? 'bg-success/20 text-success border border-success/30' :
+                                            'bg-danger/20 text-danger border border-danger/30'
+                                        }">
+                                            <i class="fas fa-circle text-[6px]"></i>
+                                            ${isPending ? 'Pending' : isWin ? 'Won' : 'Lost'}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium bg-primary/10 text-primary border border-primary/20">
+                                            <i class="fas fa-arrow-${contractType === 'Over' ? 'up' : contractType === 'Under' ? 'down' : 'right'}"></i>
+                                            ${contractType}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 text-right font-mono text-sm text-gray-300">$${trade.stake.toFixed(2)}</td>
+                                    <td class="px-4 py-4 text-right font-mono text-sm text-gray-300">$${(trade.payout || 0).toFixed(2)}</td>
+                                    <td class="px-4 py-4 text-right">
+                                        <span class="font-mono text-sm font-bold ${
+                                            isPending ? 'text-warning' : isWin ? 'text-success' : 'text-danger'
+                                        }">
+                                            ${isPending ? '—' : (isWin ? '+' : '') + '$' + (trade.profit || 0).toFixed(2)}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 text-sm text-gray-400">
+                                        <div>${date.toLocaleDateString()}</div>
+                                        <div class="text-xs text-gray-500">${date.toLocaleTimeString()}</div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="font-mono text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
+                                            #${trade.contractId}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function clearTradeHistory() {
+            if (confirm('Are you sure you want to clear all trade history?')) {
+                localStorage.removeItem('tradeHistory');
+                loadTradeHistory();
+            }
+        }
     </script>
+    <!-- Trade History Modal -->
+    <div id="tradeHistoryModal" class="fixed inset-0 bg-black bg-opacity-75 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-gray-800">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 border-b border-gray-700 flex justify-between items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-chart-line text-primary"></i> Trade History
+                    </h3>
+                    <p class="text-sm text-gray-400 mt-1">Track your trading performance</p>
+                </div>
+                <button onclick="toggleTradeHistory()" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto max-h-[calc(95vh-180px)]">
+                <!-- Performance Summary -->
+                <div class="p-6 bg-gray-900">
+                    <div id="performanceSummary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4"></div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="px-6 py-4 bg-gray-800/50 border-y border-gray-700">
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <select id="statusFilter" onchange="filterTrades()" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary">
+                            <option value="all">All Status</option>
+                            <option value="win">Won</option>
+                            <option value="loss">Lost</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                        <select id="sortFilter" onchange="filterTrades()" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="profit_high">Highest Profit</option>
+                            <option value="profit_low">Lowest Profit</option>
+                        </select>
+                        <input type="text" id="searchFilter" onkeyup="filterTrades()" placeholder="Search by ID..." class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary flex-1 min-w-[200px]">
+                        <button onclick="loadTradeHistory()" class="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors text-sm font-medium">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Trade Table -->
+                <div class="p-6">
+                    <div id="tradeHistoryList" class="overflow-x-auto"></div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-700 bg-gray-800/50 flex justify-between items-center">
+                <button onclick="clearTradeHistory()" class="px-4 py-2 bg-danger/20 text-danger rounded-lg hover:bg-danger/30 transition-colors text-sm font-medium">
+                    <i class="fas fa-trash mr-2"></i>Clear History
+                </button>
+                <button onclick="toggleTradeHistory()" class="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
