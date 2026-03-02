@@ -316,6 +316,11 @@ select option{background:#0f1923}
       <div id="alertsList" style="font-size:11px;color:#475569;margin-bottom:7px">No alerts set</div>
       <button onclick="openAlertModal()" class="tb-btn" style="width:100%;justify-content:center"><i class="fas fa-plus"></i> Add Alert</button>
     </div>
+    <!-- Trade History -->
+    <div class="ss">
+      <h3><i class="fas fa-history" style="color:#3B82F6"></i> Trade History</h3>
+      <button onclick="openTradeHistory()" class="tb-btn" style="width:100%;justify-content:center"><i class="fas fa-list"></i> View Trades</button>
+    </div>
   </div>
 </div>
 </div>
@@ -346,6 +351,15 @@ select option{background:#0f1923}
       <button onclick="addAlert()" class="trade-btn btn-primary" style="flex:1;padding:10px">Set Alert</button>
       <button onclick="closeAlertModal()" class="tb-btn" style="flex:1;justify-content:center">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- TRADE HISTORY MODAL -->
+<div class="modal-overlay" id="tradeHistoryModal">
+  <div class="modal-box" style="max-width:600px;width:90vw">
+    <h3><i class="fas fa-history" style="color:#3B82F6"></i> Trade History</h3>
+    <div id="tradeHistoryList" style="max-height:400px;overflow-y:auto;margin:14px 0"></div>
+    <button onclick="closeTradeHistory()" class="tb-btn" style="width:100%;justify-content:center">Close</button>
   </div>
 </div>
 
@@ -637,6 +651,9 @@ function subscribeToLiveStreams() {
 }
 
 function handleMessage(data) {
+  // Log all messages for debugging
+  if (data.msg_type) console.log('[WS]', data.msg_type, data);
+  
   // Auth
   if (data.msg_type === 'authorize' || data.authorize) {
     ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
@@ -739,8 +756,25 @@ function handleMessage(data) {
     return;
   }
   // Sell confirmation
-  if (data.sell) {
+  if (data.sell && activeMultiplier) {
     console.log('[Multiplier] Contract sold:', data.sell);
+    const pnl = parseFloat(data.sell.sold_for) - activeMultiplier.stake;
+    saveTradeToHistory({
+      contractId: activeMultiplier.contractId,
+      type: 'MULTIPLIER',
+      direction: activeMultiplier.direction,
+      stake: activeMultiplier.stake,
+      multiplier: activeMultiplier.multiplier,
+      entryPrice: activeMultiplier.entryPrice,
+      exitPrice: currentPrice,
+      pnl: pnl,
+      timestamp: Date.now(),
+      market: getMarket()
+    });
+    clearMultiplierUI();
+    setTimeout(() => {
+      alert(`Position closed. P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
+    }, 300);
     return;
   }
   // Error
@@ -1308,6 +1342,15 @@ function initResizeBar() {
   document.addEventListener('mouseup', () => { drag = false; document.body.style.cursor = ''; });
 }
 
+// ─── TRADE HISTORY ────────────────────────────────────────────────────
+function saveTradeToHistory(trade) {
+  const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+  history.unshift(trade);
+  if (history.length > 100) history.pop();
+  localStorage.setItem('tradeHistory', JSON.stringify(history));
+  console.log('[Trade] Saved to history:', trade);
+}
+
 // ─── MULTIPLIER ──────────────────────────────────────────────────────
 function startMultiplier(dir) {
   if (!wsOpen()) { alert('Connecting… please wait.'); return; }
@@ -1399,21 +1442,42 @@ function handleContractUpdate(contract) {
   const currentPrice = parseFloat(contract.current_spot) || 0;
   const pnl = parseFloat(contract.profit) || 0;
   
-  // Update display with real contract data
-  document.getElementById('currentPricePos').textContent = currentPrice.toFixed(3);
+  // Update display with real contract data (check if elements exist for mobile)
+  const priceEl = document.getElementById('currentPricePos');
   const pnlEl = document.getElementById('currentPnL');
-  pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
-  pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+  const barEl = document.getElementById('profitBar');
+  
+  if (priceEl) priceEl.textContent = currentPrice.toFixed(3);
+  if (pnlEl) {
+    pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+    pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+  }
   
   // Update profit bar
-  const barWidth = Math.min(100, Math.max(0, 50 + (pnl / activeMultiplier.stake) * 50));
-  document.getElementById('profitBar').style.width = barWidth + '%';
-  document.getElementById('profitBar').style.background = pnl >= 0
-    ? 'linear-gradient(90deg,#22c55e,#4ade80)'
-    : 'linear-gradient(90deg,#ef4444,#f87171)';
+  if (barEl) {
+    const barWidth = Math.min(100, Math.max(0, 50 + (pnl / activeMultiplier.stake) * 50));
+    barEl.style.width = barWidth + '%';
+    barEl.style.background = pnl >= 0
+      ? 'linear-gradient(90deg,#22c55e,#4ade80)'
+      : 'linear-gradient(90deg,#ef4444,#f87171)';
+  }
   
   // Check if contract is closed
   if (contract.status === 'sold' || contract.is_sold) {
+    // Save trade to history
+    saveTradeToHistory({
+      contractId: activeMultiplier.contractId,
+      type: 'MULTIPLIER',
+      direction: activeMultiplier.direction,
+      stake: activeMultiplier.stake,
+      multiplier: activeMultiplier.multiplier,
+      entryPrice: activeMultiplier.entryPrice,
+      exitPrice: currentPrice,
+      pnl: pnl,
+      timestamp: Date.now(),
+      market: getMarket()
+    });
+    
     setTimeout(() => {
       closeMultiplier();
       alert(`Position closed. P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
@@ -1457,12 +1521,21 @@ function updateMultiplierPosition(price) {
 function closeMultiplier() {
   if (!activeMultiplier) return;
   
+  console.log('[Multiplier] Closing contract:', activeMultiplier.contractId, 'wsOpen:', wsOpen());
+  
   // Send sell request to Deriv if we have a contract ID
   if (activeMultiplier.contractId && wsOpen()) {
     ws.send(JSON.stringify({ sell: activeMultiplier.contractId, price: 0 }));
-    console.log('[Multiplier] Closing contract:', activeMultiplier.contractId);
+    console.log('[Multiplier] Sell request sent for:', activeMultiplier.contractId);
+    // Don't clear activeMultiplier yet - wait for sell response
+    return;
   }
   
+  // If no contract or not connected, just clear the UI
+  clearMultiplierUI();
+}
+
+function clearMultiplierUI() {
   activeMultiplier = null;
   entryPrice = 0;
   stopLossPrice = 0;
@@ -1599,6 +1672,44 @@ function checkAlerts(price) {
       updateAlertsList();
     }
   });
+}
+
+// ─── TRADE HISTORY ────────────────────────────────────────────────────
+function openTradeHistory() {
+  const allHistory = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+  const history = allHistory.filter(t => t.type === 'MULTIPLIER');
+  const el = document.getElementById('tradeHistoryList');
+  
+  if (!history.length) {
+    el.innerHTML = '<div style="text-align:center;color:#475569;padding:20px">No multiplier trades yet</div>';
+  } else {
+    let totalPnL = 0;
+    el.innerHTML = history.map(t => {
+      totalPnL += (t.pnl || 0);
+      const date = new Date(t.timestamp).toLocaleString();
+      const pnlColor = (t.pnl || 0) >= 0 ? '#22c55e' : '#ef4444';
+      return `<div style="background:#1E293B;border-radius:6px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:600;color:#e2e8f0">MULT ${t.direction || ''}</span>
+          <span style="color:${pnlColor};font-weight:700">${(t.pnl || 0) >= 0 ? '+' : ''}${(t.pnl || 0).toFixed(2)} USD</span>
+        </div>
+        <div style="font-size:11px;color:#94a3b8">
+          <div>Stake: $${(t.stake || 0).toFixed(2)} | Multiplier: x${t.multiplier || 0}</div>
+          <div>Entry: ${(t.entryPrice || 0).toFixed(3)} | Exit: ${(t.exitPrice || 0).toFixed(3)}</div>
+          <div>${t.market || 'N/A'} | ${date}</div>
+        </div>
+      </div>`;
+    }).join('') + `<div style="background:#0f1923;border:2px solid ${totalPnL >= 0 ? '#22c55e' : '#ef4444'};border-radius:6px;padding:12px;text-align:center;margin-top:12px">
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Total P&L (Multipliers)</div>
+      <div style="font-size:20px;font-weight:700;color:${totalPnL >= 0 ? '#22c55e' : '#ef4444'}">${totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)} USD</div>
+    </div>`;
+  }
+  
+  document.getElementById('tradeHistoryModal').classList.add('show');
+}
+
+function closeTradeHistory() {
+  document.getElementById('tradeHistoryModal').classList.remove('show');
 }
 
 // ─── ACCOUNT ──────────────────────────────────────────────────────────
