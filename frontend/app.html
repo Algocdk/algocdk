@@ -772,6 +772,50 @@
         
         .price-up { color: #00C851; }
         .price-down { color: #FF4444; }
+        
+        /* Market Watch Collapse */
+        .market-watch-panel {
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+        
+        .market-watch-panel.collapsed {
+            transform: translateX(-100%);
+            width: 0 !important;
+        }
+        
+        .market-toggle-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #FF4500;
+            border: none;
+            color: white;
+            width: 30px;
+            height: 60px;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .market-toggle-btn:hover {
+            background: #FF6347;
+            width: 35px;
+        }
+        
+        .market-toggle-btn i {
+            font-size: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .market-toggle-btn {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-dark text-gray-100">
@@ -804,7 +848,7 @@
             <div class="flex items-center space-x-4">
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Balance</div>
-                    <div class="font-mono font-bold" id="topAccountBalance">$10,000.00</div>
+                    <div class="font-mono font-bold" id="topAccountBalance">Loading...</div>
                 </div>
                 
                 <!-- Notifications -->
@@ -912,7 +956,10 @@
     <!-- Main Interface -->
     <div class="flex h-screen">
         <!-- Left Panel - Market Watch -->
-        <div class="w-80 bg-darker border-r border-gray-700 flex flex-col relative z-10">
+        <div class="w-80 bg-darker border-r border-gray-700 flex flex-col relative z-10 market-watch-panel" id="marketWatchPanel">
+            <button class="market-toggle-btn" id="marketToggleBtn" onclick="toggleMarketWatch()" title="Toggle Market Watch">
+                <i class="fas fa-chevron-left"></i>
+            </button>
             <div class="p-4 border-b border-gray-700">
                 <h3 class="font-semibold mb-3 text-sm">Market Watch</h3>
                 <div class="relative mb-3">
@@ -975,6 +1022,9 @@
                 </button>
                 <button id="screenshotBtn" onclick="takeScreenshot()" style="background: #4a5568; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Screenshot">
                     <i class="fas fa-camera"></i>
+                </button>
+                <button id="crosshairBtn" onclick="toggleCrosshair()" style="background: #4a5568; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Toggle Crosshair">
+                    <i class="fas fa-crosshairs"></i>
                 </button>
                 <select id="symbol">
                     <option value="R_10">Volatility 10</option>
@@ -1126,7 +1176,7 @@
                 <div class="mb-3 p-2 rounded" id="accountStatus">
                     <div class="text-xs text-gray-400">Account Type</div>
                     <div class="font-semibold text-sm" id="accountType">Demo Account</div>
-                    <div class="text-xs" id="accountBalance">Balance: $10,000.00</div>
+                    <div class="text-xs" id="accountBalance">Balance: Loading...</div>
                 </div>
                 
                 <!-- Deriv-style Trading Interface -->
@@ -1481,7 +1531,7 @@
 
         /* ================= BACKGROUND PRICE UPDATES ================= */
         function startBackgroundUpdates() {
-            backgroundWs = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            backgroundWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
             
             backgroundWs.onopen = () => {
                 const symbols = Array.from(marketData.keys());
@@ -1567,7 +1617,7 @@
 
         /* ================= WS ================= */
         function connect() {
-            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
             ws.onopen = () => {
                 ws.send(JSON.stringify({
@@ -1657,6 +1707,138 @@
             checkAlerts(price);
             
             draw();
+        }
+
+        /* ================= CROSSHAIR ================= */
+        let showCrosshair = localStorage.getItem('showCrosshair') !== 'false';
+        let crosshairX = 0;
+        let crosshairY = 0;
+        let crosshairVisible = false;
+        
+        function toggleCrosshair() {
+            showCrosshair = !showCrosshair;
+            localStorage.setItem('showCrosshair', showCrosshair);
+            crosshairVisible = false;
+            draw();
+        }
+        
+        canvas.addEventListener("mousemove", e => {
+            if (!showCrosshair || isDragging || isDrawing || isDraggingDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            crosshairX = e.clientX - rect.left;
+            crosshairY = e.clientY - rect.top;
+            crosshairVisible = true;
+            draw();
+        });
+        
+        canvas.addEventListener("mouseleave", () => {
+            crosshairVisible = false;
+            draw();
+        });
+        
+        function drawCrosshair() {
+            if (!crosshairVisible || !showCrosshair) return;
+            
+            const pad = 70;
+            
+            // Don't draw crosshair outside chart area
+            if (crosshairX < pad || crosshairX > canvas.width - pad) return;
+            if (crosshairY < pad || crosshairY > canvas.height - pad) return;
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(crosshairX, pad);
+            ctx.lineTo(crosshairX, canvas.height - pad);
+            ctx.stroke();
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(pad, crosshairY);
+            ctx.lineTo(canvas.width - pad, crosshairY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            // Get price at crosshair
+            const price = getPriceFromY(crosshairY);
+            
+            // Price label on right
+            const priceText = price.toFixed(5);
+            ctx.font = 'bold 11px Arial';
+            const textWidth = ctx.measureText(priceText).width;
+            
+            ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+            ctx.fillRect(canvas.width - pad + 2, crosshairY - 10, textWidth + 8, 20);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'left';
+            ctx.fillText(priceText, canvas.width - pad + 6, crosshairY + 4);
+            
+            // Get candle at crosshair
+            const candleIndex = getCandleIndexFromX(crosshairX);
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            
+            if (candleIndex >= 0 && candleIndex < data.length) {
+                const candle = data[candleIndex];
+                const date = new Date(candle.time * 1000);
+                const timeStr = TIMEFRAME >= 86400 ? 
+                    `${date.getMonth()+1}/${date.getDate()}/${date.getFullYear()}` : 
+                    `${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
+                
+                // Time label on bottom
+                const timeWidth = ctx.measureText(timeStr).width;
+                ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+                ctx.fillRect(crosshairX - timeWidth/2 - 4, canvas.height - pad + 2, timeWidth + 8, 18);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText(timeStr, crosshairX, canvas.height - pad + 14);
+                
+                // Candle info tooltip
+                const tooltipLines = [
+                    `O: ${candle.open.toFixed(5)}`,
+                    `H: ${candle.high.toFixed(5)}`,
+                    `L: ${candle.low.toFixed(5)}`,
+                    `C: ${candle.close.toFixed(5)}`
+                ];
+                
+                const tooltipWidth = 120;
+                const tooltipHeight = tooltipLines.length * 16 + 10;
+                let tooltipX = crosshairX + 15;
+                let tooltipY = crosshairY - tooltipHeight / 2;
+                
+                // Keep tooltip in bounds
+                if (tooltipX + tooltipWidth > canvas.width - pad) {
+                    tooltipX = crosshairX - tooltipWidth - 15;
+                }
+                if (tooltipY < pad) tooltipY = pad;
+                if (tooltipY + tooltipHeight > canvas.height - pad) {
+                    tooltipY = canvas.height - pad - tooltipHeight;
+                }
+                
+                ctx.fillStyle = 'rgba(22, 27, 34, 0.95)';
+                ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'left';
+                tooltipLines.forEach((line, i) => {
+                    ctx.fillText(line, tooltipX + 8, tooltipY + 16 + i * 16);
+                });
+            }
+            
+            ctx.restore();
         }
 
         /* ================= INTERACTION ================= */
@@ -1762,9 +1944,25 @@
 
         canvas.addEventListener("wheel", e => {
             e.preventDefault();
-            zoom += e.deltaY * -0.001;
-            zoom = Math.max(0.5, Math.min(3, zoom));
+            if (e.shiftKey) {
+                offset += e.deltaY * 0.1;
+            } else {
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.5, Math.min(3, zoom));
+            }
             draw();
+        });
+        
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') {
+                offset -= 5;
+                draw();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                offset += 5;
+                draw();
+                e.preventDefault();
+            }
         });
 
         /* ================= CUSTOM INDICATORS ================= */
@@ -2545,6 +2743,9 @@
             
             // Draw drawings on top
             drawDrawings();
+            
+            // Draw crosshair last (on top of everything)
+            drawCrosshair();
         }
         
         function drawLine(values, pad, spacing, yFunc) {
@@ -2840,50 +3041,53 @@
         
         async function toggleAccount() {
             const wantReal = document.getElementById('accountToggle').checked;
-            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
             
-            // Save user's account preference
-            localStorage.setItem('preferredAccountType', wantReal ? 'real' : 'demo');
-            
-            if (!token) {
-                console.log('No auth token found, using local demo mode');
-                isRealAccount = false;
+            if (accounts.length === 0) {
+                alert('Please connect your Deriv account first');
                 document.getElementById('accountToggle').checked = false;
-                updateAccountDisplay();
                 return;
             }
             
-            try {
-                const accountType = wantReal ? 'real' : 'demo';
-                const response = await fetch(`/api/deriv/token?account_type=${accountType}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.has_token && data.token) {
-                        connectDeriv(data.token, accountType === 'demo');
-                        isRealAccount = wantReal;
-                    } else {
-                        isRealAccount = false;
-                        document.getElementById('accountToggle').checked = false;
-                        alert(`No ${accountType} token found. Please add your Deriv API token in Settings.`);
-                    }
-                } else {
-                    isRealAccount = false;
-                    document.getElementById('accountToggle').checked = false;
-                    console.log('Token fetch failed, using local demo mode');
-                }
-            } catch (error) {
-                isRealAccount = false;
-                document.getElementById('accountToggle').checked = false;
-                console.log('Network error, using local demo mode:', error);
+            // Find real and demo accounts
+            const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+            const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+            
+            const targetAccount = wantReal ? realAccount : demoAccount;
+            
+            if (!targetAccount) {
+                alert(`No ${wantReal ? 'real' : 'demo'} account found`);
+                document.getElementById('accountToggle').checked = !wantReal;
+                return;
             }
             
-            updateAccountDisplay();
+            // Save account preference
+            isRealAccount = wantReal;
+            localStorage.setItem('preferredAccountType', wantReal ? 'real' : 'demo');
+            localStorage.setItem('preferredAccountId', targetAccount.account);
+            
+            // Update UI immediately
+            document.getElementById('accountBalance').textContent = 'Balance: Loading...';
+            document.getElementById('topAccountBalance').textContent = 'Loading...';
+            document.getElementById('accountType').textContent = wantReal ? 'Real Account' : 'Demo Account';
+            
+            // Update account status styling
+            const accountStatus = document.getElementById('accountStatus');
+            if (wantReal) {
+                accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
+            } else {
+                accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
+            }
+            
+            // Reconnect WebSocket with new token
+            if (derivWS) {
+                derivWS.onclose = null; // Prevent auto-reconnect
+                derivWS.close(1000, 'Account switch'); // Clean close
+            }
+            // Small delay to ensure clean disconnect before reconnecting
+            setTimeout(() => {
+                connectDeriv(targetAccount.token, !wantReal);
+            }, 100);
         }
         
         function updateAccountDisplay() {
@@ -2916,63 +3120,145 @@
         }
         
         // Initialize account display on page load
-        async function initializeAccountDisplay() {
-            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
-            const preferredType = localStorage.getItem('preferredAccountType') || 'demo';
+async function initializeAccountDisplay() {
+    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+    
+    const tradeMarket = document.getElementById('tradeMarket');
+    if (tradeMarket) tradeMarket.value = SYMBOL;
+    
+    if (accounts.length === 0) {
+        isRealAccount = false;
+        document.getElementById('accountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Connect Deriv</a>';
+        document.getElementById('topAccountBalance').innerHTML = '<a href="/deriv-connect" style="color:#FF4500">Connect</a>';
+        return;
+    }
+    
+    // Check user's preferred account ID first, then type
+    const preferredAccountId = localStorage.getItem('preferredAccountId');
+    const preferredType = localStorage.getItem('preferredAccountType');
+    
+    let targetAccount;
+    
+    // If we have a preferred account ID, use it
+    if (preferredAccountId) {
+        targetAccount = accounts.find(a => a.account === preferredAccountId);
+    }
+    
+    // If no specific account found, use type preference or default to demo
+    if (!targetAccount) {
+        const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
+        const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
+        
+        // Always prefer demo unless explicitly set to real
+        if (preferredType === 'real' && realAccount) {
+            targetAccount = realAccount;
+        } else {
+            targetAccount = demoAccount || realAccount || accounts[0];
+        }
+    }
+    
+    const derivToken = targetAccount.token;
+    const isDemo = targetAccount.account.startsWith('VRT');
+    
+    // Set initial state
+    isRealAccount = !isDemo;
+    document.getElementById('accountType').textContent = isDemo ? 'Demo Account' : 'Real Account';
+    document.getElementById('accountToggle').checked = !isDemo;
+    
+    // Update account status styling
+    const accountStatus = document.getElementById('accountStatus');
+    if (isDemo) {
+        accountStatus.className = 'mb-3 p-2 rounded bg-blue-900 bg-opacity-30 border border-blue-600';
+    } else {
+        accountStatus.className = 'mb-3 p-2 rounded bg-red-900 bg-opacity-30 border border-red-600';
+    }
+    
+    // Connect WebSocket - balance will update via WebSocket
+    connectDeriv(derivToken, isDemo);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        const DERIV_APP_ID = '63623'; // Your Deriv app ID
+        let tokenRefreshInterval = null;
+        
+        // Refresh tokens every 30 minutes
+        function startTokenRefresh() {
+            if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
             
-            // Sync initial trading market with chart symbol
-            const tradeMarket = document.getElementById('tradeMarket');
-            if (tradeMarket) {
-                tradeMarket.value = SYMBOL;
-            }
-            
-            if (!token) {
-                console.log('No auth token found');
-                isRealAccount = false;
-                document.getElementById('accountBalance').textContent = 'Not Available';
-                document.getElementById('topAccountBalance').textContent = 'Not Available';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/deriv/token?account_type=${preferredType}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.has_token && data.token) {
-                        connectDeriv(data.token, preferredType === 'demo');
-                        isRealAccount = preferredType === 'real';
-                    } else {
-                        isRealAccount = false;
-                        document.getElementById('accountBalance').textContent = 'Not Available';
-                        document.getElementById('topAccountBalance').textContent = 'Not Available';
-                    }
-                } else {
-                    isRealAccount = false;
-                    document.getElementById('accountBalance').textContent = 'Not Available';
-                    document.getElementById('topAccountBalance').textContent = 'Not Available';
+            tokenRefreshInterval = setInterval(() => {
+                const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                if (accounts.length > 0 && derivWS && derivWS.readyState === WebSocket.OPEN) {
+                    // Re-authorize to keep token alive
+                    const currentAccountId = localStorage.getItem('preferredAccountId');
+                    const currentAccount = accounts.find(a => a.account === currentAccountId) || accounts[0];
+                    derivWS.send(JSON.stringify({ authorize: currentAccount.token }));
+                    console.log('Token refresh sent');
                 }
-            } catch (error) {
-                isRealAccount = false;
-                document.getElementById('accountBalance').textContent = 'Not Available';
-                document.getElementById('topAccountBalance').textContent = 'Not Available';
-                console.log('Failed to initialize account:', error);
+            }, 30 * 60 * 1000); // 30 minutes
+        }
+        
+        function stopTokenRefresh() {
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval);
+                tokenRefreshInterval = null;
             }
         }
         
         function connectDeriv(token, isDemo = true) {
-            const endpoint = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
+            const endpoint = `wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`;
                 
             derivWS = new WebSocket(endpoint);
             
             derivWS.onopen = () => {
                 console.log(`Connected to Deriv ${isDemo ? 'Demo' : 'Real'} API`);
                 derivWS.send(JSON.stringify({ authorize: token }));
+                startTokenRefresh(); // Start token refresh on connection
             };
             
             derivWS.onmessage = (event) => {
@@ -2980,15 +3266,33 @@
                 handleDerivResponse(data);
             };
             
-            // Auto-reconnect on close
-            derivWS.onclose = () => {
-                setTimeout(() => connectDeriv(token, isDemo), 3000);
+            derivWS.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            // Auto-reconnect on close (but not during manual account switch)
+            derivWS.onclose = (event) => {
+                stopTokenRefresh(); // Stop refresh on disconnect
+                // Only auto-reconnect if it wasn't a manual close (code 1000)
+                if (event.code !== 1000) {
+                    console.log('WebSocket closed unexpectedly, reconnecting...');
+                    setTimeout(() => connectDeriv(token, isDemo), 3000);
+                }
             };
         }
         
         function handleDerivResponse(data) {
             if (data.error) {
-                alert('Trade Error: ' + data.error.message);
+                // Only show alerts for trade-related errors, not connection/auth errors
+                if (data.error.code === 'InvalidToken' || data.error.message.includes('Token is not valid')) {
+                    console.warn('Token validation issue:', data.error.message);
+                    // Don't clear accounts or show reconnect - just ignore balance subscription errors
+                    return;
+                }
+                // Only show alert for actual trade errors
+                if (data.msg_type === 'buy' || data.echo_req?.buy) {
+                    alert('Trade Error: ' + data.error.message);
+                }
                 return;
             }
             
@@ -3048,10 +3352,16 @@
             const duration = parseInt(document.getElementById('duration').value);
             const durationUnit = document.getElementById('durationUnit').value;
             
-            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            if (accounts.length === 0) {
                 if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
                     window.location.href = '/settings';
                 }
+                return;
+            }
+            
+            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+                alert('Connecting to Deriv...');
                 return;
             }
             
@@ -4309,8 +4619,36 @@
             btn.style.background = isActive ? '#FF4444' : '#FF4500';
         }
         
+        /* ================= MARKET WATCH TOGGLE ================= */
+        function toggleMarketWatch() {
+            const panel = document.getElementById('marketWatchPanel');
+            const btn = document.getElementById('marketToggleBtn');
+            const icon = btn.querySelector('i');
+            
+            panel.classList.toggle('collapsed');
+            
+            if (panel.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+                btn.style.right = '-30px';
+                btn.style.left = 'auto';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+                btn.style.right = '-30px';
+                btn.style.left = 'auto';
+            }
+            
+            // Resize canvas after animation
+            setTimeout(() => {
+                resize();
+                draw();
+            }, 300);
+        }
+        
         /* ================= EXIT APP ================= */
         function exitApp() {
+            // Stop token refresh
+            stopTokenRefresh();
+            
             // Clear all tokens and session data
             localStorage.removeItem('authToken');
             localStorage.removeItem('jwt_token');
@@ -4320,6 +4658,7 @@
             localStorage.removeItem('adminId');
             localStorage.removeItem('superadminId');
             localStorage.removeItem('preferredAccountType');
+            localStorage.removeItem('preferredAccountId');
             localStorage.removeItem('demoBalance');
             localStorage.removeItem('realBalance');
             
@@ -4329,7 +4668,8 @@
                 ws = null;
             }
             if (derivWS) {
-                derivWS.close();
+                derivWS.onclose = null;
+                derivWS.close(1000, 'User logout');
                 derivWS = null;
             }
             if (backgroundWs) {

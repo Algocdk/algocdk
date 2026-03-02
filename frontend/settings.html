@@ -222,6 +222,21 @@
             <div id="derivTab" class="tab-content hidden">
                 <div class="settings-card p-4 sm:p-8 rounded-2xl mb-6">
                     <h2 class="text-xl sm:text-2xl font-bold mb-4">Deriv Account Integration</h2>
+                    <p class="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">Connect your Deriv account securely using OAuth 2.0</p>
+
+                    <div class="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4 mb-6">
+                        <h3 class="text-blue-400 font-semibold mb-2">🔒 Secure OAuth Authentication</h3>
+                        <p class="text-sm text-gray-300">Your tokens are never stored. OAuth sessions expire after 24 hours for maximum security.</p>
+                    </div>
+
+                    <a href="/deriv-oauth" class="btn-primary px-6 py-3 rounded-lg inline-block">
+                        Link Deriv Account via OAuth
+                    </a>
+                </div>
+
+                <!-- Legacy Token Method (Deprecated) -->
+                <div class="settings-card p-4 sm:p-8 rounded-2xl mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-500">Legacy Token Method (Deprecated)</h2>
                     <p class="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">Connect your Deriv account to enable real-time trading with live market data</p>
 
                     <!-- Connection Status -->

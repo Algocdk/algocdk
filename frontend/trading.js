@@ -22,16 +22,23 @@ class TradingInterface {
 
   async checkDerivConnection() {
     try {
-      const accountInfo = await api.deriv.getMyInfo();
-      const balance = await api.deriv.getMyBalance();
+      const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+      if (accounts.length === 0) {
+        throw new Error('No accounts');
+      }
+      
+      // Use first account token to get balance
+      const token = accounts[0].token;
+      const balance = await api.deriv.getBalance({ api_token: token });
       
       this.isConnected = true;
-      this.balance = balance.balance;
+      this.balance = balance.data.balance;
       this.updateConnectionStatus(true);
       this.updateBalanceDisplay();
     } catch (error) {
       this.isConnected = false;
       this.updateConnectionStatus(false);
+      this.showConnectPrompt();
     }
   }
 
@@ -82,14 +89,27 @@ class TradingInterface {
 
     if (connectBtn) {
       connectBtn.style.display = connected ? 'none' : 'block';
+      connectBtn.onclick = () => window.location.href = '/deriv-connect';
     }
 
-    // Enable/disable trading controls
     const tradingControls = document.querySelectorAll('.trading-control');
     tradingControls.forEach(control => {
       control.disabled = !connected;
       control.classList.toggle('opacity-50', !connected);
     });
+  }
+
+  showConnectPrompt() {
+    const msg = document.createElement('div');
+    msg.className = 'fixed top-4 right-4 bg-orange-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
+    msg.innerHTML = `
+      <p class="mb-2">⚠️ No Deriv account connected</p>
+      <button onclick="window.location.href='/deriv-connect'" class="bg-white text-orange-500 px-4 py-2 rounded font-semibold">
+        Connect Now
+      </button>
+    `;
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 10000);
   }
 
   updateBalanceDisplay() {
@@ -167,31 +187,26 @@ class TradingInterface {
     }
 
     try {
-      // In a real implementation, this would call the Deriv API to open a position
-      const position = {
-        id: Date.now().toString(),
+      const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+      const token = accounts[0].token;
+      
+      // Place trade using stored token
+      await api.deriv.placeTrade({
+        api_token: token,
         symbol: this.currentSymbol,
-        direction: direction,
+        trade_type: direction === 'buy' ? 'CALL' : 'PUT',
         amount: amount,
-        leverage: leverage,
-        openPrice: this.currentPrice,
-        openTime: new Date(),
-        pnl: 0
-      };
-
-      this.positions.push(position);
-      this.updatePositionsDisplay();
-      this.balance -= margin;
-      this.updateBalanceDisplay();
+        duration: 5
+      });
 
       utils.notify(`${direction.toUpperCase()} position opened for ${this.currentSymbol}`, 'success');
       
-      // Clear form
       amountInput.value = '';
       this.updateMarginRequirement();
+      await this.checkDerivConnection();
 
     } catch (error) {
-      utils.notify('Failed to open position', 'error');
+      utils.notify('Failed to open position: ' + error.message, 'error');
     }
   }
 

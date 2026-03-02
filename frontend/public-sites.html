@@ -64,7 +64,10 @@
                 grid.innerHTML = sites.map(site => `
                     <div class="bg-gray-800 rounded-xl p-6 hover:bg-gray-700 transition-colors">
                         <div class="flex justify-between items-start mb-4">
-                            <h4 class="font-semibold text-white text-lg">${site.name}</h4>
+                            <div>
+                                <h4 class="font-semibold text-white text-lg">${site.name}</h4>
+                                <p class="text-xs text-gray-500 mt-1">by ${site.owner?.name || site.owner?.email?.split('@')[0] || 'Unknown'}</p>
+                            </div>
                             <span class="px-2 py-1 rounded text-xs bg-success/20 text-success">
                                 Public
                             </span>

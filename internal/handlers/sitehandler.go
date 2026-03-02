@@ -19,7 +19,7 @@ import (
 // GetPublicSitesHandler returns all public sites
 func GetPublicSitesHandler(ctx *gin.Context) {
 	var sites []models.Site
-	if err := database.DB.Where("is_public = ? AND status = ?", true, "active").Order("created_at DESC").Find(&sites).Error; err != nil {
+	if err := database.DB.Preload("Owner").Where("is_public = ? AND status = ?", true, "active").Order("created_at DESC").Find(&sites).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch sites"})
 		return
 	}

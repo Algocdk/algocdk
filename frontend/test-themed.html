@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Algocdk - Trading Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+  content: [],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        },
+        accent: {
+          500: '#8b5cf6',
+          600: '#7c3aed',
+        }
+      },
+      fontFamily: {
+        apple_system: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Trebuchet MS',
+          'Roboto',
+          'Ubuntu',
+          'sans-serif'
+        ],
+        euclidcircularsemibold: [
+          'DM Sans',
+          'sans-serif'
+        ]
+      }
+    }
+  }
+};
+</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,600&display=swap" rel="stylesheet">
+</head>
+<body class="text-stone-950 text-sm not-italic normal-nums font-normal accent-auto bg-white box-border caret-transparent block h-full tracking-[normal] leading-[normal] list-outside list-disc min-w-80 overflow-x-auto overflow-y-scroll pointer-events-auto text-start indent-[0px] normal-case visible border-separate font-apple_system">
+<div class="caret-transparent flex flex-col min-h-full w-full">
+<!-- Header -->
+<div class="sticky text-white caret-transparent shrink-0 z-[101] top-0">
+<div class="absolute bg-[linear-gradient(rgb(3,105,161),rgba(3,105,161,0))] caret-transparent h-[120px] pointer-events-none w-full"></div>
+<div class="relative items-center caret-transparent flex shrink-0 h-16 max-w-full z-[1] px-5 md:px-8">
+<div class="items-center caret-transparent flex grow shrink-0 justify-start md:grow-0">
+<button aria-label="Open menu" class="relative items-center bg-transparent caret-transparent flex h-10 justify-center ml-[-11px] min-h-[auto] min-w-[auto] text-center w-10 mr-2 px-[9px] py-[11px] rounded-[32px] md:hidden md:min-h-0 md:min-w-0 md:ml-0 md:mr-3">
+<svg class="h-3.5 w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+<span class="text-[0px] items-center caret-transparent flex float-left h-16 align-middle">
+<a href="/" aria-label="Algocdk main page" class="relative items-center caret-transparent flex float-left h-7 leading-[64px] align-middle">
+<span class="caret-transparent block">
+<div class="text-white text-2xl font-bold caret-transparent h-7 flex items-center">
+<span class="bg-primary-600 px-3 py-1 rounded-lg">Algocdk</span>
+</div>
+</span>
+</a>
+</span>
+</div>
+<div class="caret-transparent flex grow-0 h-16 md:grow">
+<div class="items-center caret-transparent flex grow justify-center mx-2 md:mx-8">
+<div class="items-center caret-transparent flex grow shrink-0 justify-end mr-0 md:grow-0 md:mr-2">
+<div class="items-center caret-transparent flex grow">
+<button aria-label="Search" class="relative text-neutral-400 items-center bg-primary-900 caret-transparent hidden grow h-10 justify-start min-h-0 min-w-0 text-center w-auto py-1.5 rounded-[40px] md:flex md:min-h-[auto] md:min-w-[auto] md:w-[200px]">
+<svg class="h-7 w-7 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+<span class="text-base caret-transparent flex leading-6 min-h-0 min-w-0 text-nowrap ml-1 md:min-h-[auto] md:min-w-[auto]">Search</span>
+</button>
+</div>
+</div>
+<nav class="items-center caret-transparent hidden shrink-0 justify-center min-h-0 min-w-0 md:flex md:min-h-[auto] md:min-w-[auto]">
+<ul class="text-base font-medium caret-transparent flex leading-6 min-h-0 min-w-0 pl-0 md:min-h-[auto] md:min-w-[auto]">
+<li class="caret-transparent flex min-h-0 min-w-0 md:min-h-[auto] md:min-w-[auto]">
+<a href="/trading.html" class="relative items-center box-border caret-transparent flex h-10 tracking-[0.3px] min-h-0 min-w-0 text-nowrap my-3 px-4 py-2 rounded-[36px] md:min-h-[auto] md:min-w-[auto] hover:bg-primary-800">Trading</a>
+</li>
+<li class="caret-transparent flex min-h-0 min-w-0 md:min-h-[auto] md:min-w-[auto]">
+<a href="/botstore.html" class="relative items-center box-border caret-transparent flex h-10 tracking-[0.3px] min-h-0 min-w-0 text-nowrap my-3 px-4 py-2 rounded-[36px] md:min-h-[auto] md:min-w-[auto] hover:bg-primary-800">Bots</a>
+</li>
+<li class="caret-transparent flex min-h-0 min-w-0 md:min-h-[auto] md:min-w-[auto]">
+<a href="/marketchart.html" class="relative items-center box-border caret-transparent flex h-10 tracking-[0.3px] min-h-0 min-w-0 text-nowrap my-3 px-4 py-2 rounded-[36px] md:min-h-[auto] md:min-w-[auto] hover:bg-primary-800">Markets</a>
+</li>
+<li class="caret-transparent flex min-h-0 min-w-0 md:min-h-[auto] md:min-w-[auto]">
+<a href="/support.html" class="relative items-center box-border caret-transparent flex h-10 tracking-[0.3px] min-h-0 min-w-0 text-nowrap my-3 px-4 py-2 rounded-[36px] md:min-h-[auto] md:min-w-[auto] hover:bg-primary-800">Support</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<div class="items-center caret-transparent flex shrink-0">
+<div class="caret-transparent">
+<div class="caret-transparent flex ml-3">
+<a href="/auth.html" class="relative caret-transparent flex h-10 max-w-full">
+<span class="relative items-center caret-transparent flex flex-col h-full justify-center z-0 overflow-hidden pl-4 pr-[22.6px] rounded-lg after:bg-[linear-gradient(75deg,rgb(14,116,199),rgb(139,92,246)_50.31%,rgb(124,58,237))] after:caret-transparent after:text-white after:block after:shrink-0 after:text-sm after:not-italic after:normal-nums after:font-normal after:tracking-[normal] after:leading-[normal] after:list-outside after:list-disc after:pointer-events-auto after:absolute after:text-start after:indent-[0px] after:normal-case after:-translate-x-1.5 after:visible after:z-[-1] after:rounded-tr-[11.5px] after:rounded-br-[4.5px] after:border-separate after:left-0 after:right-px after:inset-y-0 after:font-apple_system">
+<span class="text-base font-medium caret-transparent block leading-6 max-w-full text-ellipsis text-nowrap overflow-hidden">
+<span class="caret-transparent text-nowrap">Get started</span>
+</span>
+</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Main Content -->
+<main aria-label="Main content" class="caret-transparent grow shrink-0">
+<div class="caret-transparent">
+<div class="relative caret-transparent">
+<div class="relative caret-transparent">
+<div class="relative items-center bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 caret-transparent flex flex-col justify-center min-h-[1000px] overflow-hidden -mb-16 -top-16">
+<div class="[mask-image:linear-gradient(rgba(0,0,0,0)_0px,rgb(255,255,255)_124px,rgb(255,255,255)_calc(100%_-_95px),rgba(0,0,0,0)_100%)] absolute caret-transparent inset-0 md:[mask-image:linear-gradient(rgba(0,0,0,0)_0px,rgb(255,255,255)_184px,rgb(255,255,255)_calc(100%_-_66px),rgba(0,0,0,0)_100%)]">
+<picture role="presentation" class="caret-transparent h-full object-cover object-[50%_100%] w-full md:object-[50%_50%]">
+<img src="images/hero-bg-1.jpg" role="presentation" class="caret-transparent h-full object-cover object-[50%_100%] w-full md:object-[50%_50%] opacity-20" />
+</picture>
+</div>
+<div class="relative items-center caret-transparent flex flex-col grow justify-center w-full">
+<div class="items-center box-border caret-transparent flex flex-col grow justify-end w-full pt-16 px-5 md:justify-start md:pt-32">
+<h1 class="text-[28px] font-bold caret-transparent">
+<div class="text-white items-center caret-transparent flex flex-col h-auto justify-center max-w-[280px] w-full md:items-start md:flex-row md:h-[72px] md:max-w-full">
+<div class="relative caret-transparent h-[62px] w-60 top-auto md:h-[82px] md:w-[315px] md:-top-2.5">
+<span role="img" class="caret-transparent">
+<div class="text-5xl md:text-6xl font-bold text-white">Trade Smarter</div>
+</span>
+</div>
+<div class="relative caret-transparent h-[61px] w-60 top-auto md:h-20 md:w-[315px] md:top-[5px]">
+<span role="img" class="caret-transparent">
+<div class="text-5xl md:text-6xl font-bold text-primary-300">With Algocdk</div>
+</span>
+</div>
+</div>
+<p class="text-white text-base font-normal caret-transparent leading-6 max-w-[280px] text-center w-full mt-0 md:text-xl md:leading-[30px] md:max-w-full md:mt-1.5">Automated trading bots, real-time market data, and powerful analytics.</p>
+</h1>
+<div class="items-center caret-transparent gap-x-3 flex flex-col justify-center max-w-[280px] gap-y-3 w-full mt-6 pb-12 md:max-w-full md:pb-0">
+<a href="/auth.html" class="relative text-white caret-transparent flex h-10 max-w-full">
+<span class="relative text-stone-950 items-center caret-transparent flex flex-col h-full justify-center z-0 overflow-hidden pl-4 pr-[22.6px] rounded-lg after:bg-white after:caret-transparent after:text-stone-950 after:block after:shrink-0 after:text-sm after:not-italic after:normal-nums after:font-normal after:tracking-[normal] after:leading-[normal] after:list-outside after:list-disc after:pointer-events-auto after:absolute after:text-start after:indent-[0px] after:normal-case after:-translate-x-1.5 after:visible after:z-[-1] after:rounded-tr-[11.5px] after:rounded-br-[4.5px] after:border-separate after:left-0 after:right-px after:inset-y-0 after:font-apple_system">
+<span class="text-base font-medium caret-transparent block leading-6 max-w-full text-ellipsis text-nowrap overflow-hidden">Get started for free</span>
+</span>
+</a>
+<span class="text-zinc-300 caret-transparent block leading-[18px] text-center">No credit card needed</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Features Section -->
+<div class="relative items-center bg-gradient-to-b from-primary-700 to-primary-900 box-border caret-transparent flex flex-col justify-center z-[1] py-12">
+<div class="items-center box-border caret-transparent flex flex-col justify-center w-full px-5">
+<h2 class="text-white text-[40px] font-semibold caret-transparent tracking-[-1.6px] leading-10 text-center w-full z-[1] font-euclidcircularsemibold md:text-[64px] md:tracking-[-2.56px] md:leading-[64px]">Where traders automate success</h2>
+<p class="text-zinc-300 text-lg caret-transparent leading-7 text-center w-full z-[1] mt-4 md:text-[28px] md:leading-10">Join thousands of traders using automated bots and real-time market insights.</p>
+</div>
+<div class="relative items-center bg-[linear-gradient(285deg,rgb(14,116,199),rgb(139,92,246))] bg-origin-border shadow-[rgb(14,116,199)_16px_0px_56px_-12px,rgb(139,92,246)_-16px_0px_56px_-12px] caret-transparent flex justify-center z-[1] overflow-clip mt-8 rounded-[10px] border-4 border-solid border-transparent md:mt-12">
+<img src="images/forex-chart-1.jpg" alt="Trading Platform" class="caret-transparent h-[164.871px] w-[293px] md:h-[492.925px] md:w-[876px] object-cover rounded-lg" />
+</div>
+<div class="items-center box-border caret-transparent flex flex-col justify-center w-full px-5">
+<a href="/botstore.html" class="relative items-center bg-white box-border caret-transparent flex h-10 justify-center max-w-full z-[2] border-gray-200 mt-8 px-3.5 rounded-[20px] border-2 border-solid hover:bg-gray-50">
+<span class="text-base font-medium caret-transparent block leading-6 text-ellipsis text-nowrap overflow-hidden">Explore Bot Marketplace</span>
+</a>
+</div>
+</div>
+
+<div class="absolute bg-gradient-to-b from-primary-900 to-white caret-transparent w-full">
+<div class="bg-white caret-transparent w-full pb-10 rounded-t-[32px]"></div>
+</div>
+</div>
+</div>
+
+<!-- Market Data Section -->
+<div class="caret-transparent mt-12 mb-14 px-5 md:mt-16 md:mb-[100px] md:px-8">
+<section class="caret-transparent mb-20 md:mb-[88px]">
+<div class="relative caret-transparent grid auto-rows-min grid-rows-[min-content] h-full">
+<div class="caret-transparent flex flex-col gap-y-2 mb-6">
+<div class="items-center caret-transparent gap-x-3 flex flex-wrap justify-between gap-y-3">
+<span class="caret-transparent block max-w-none md:max-w-[592px]">
+<div class="caret-transparent max-w-full w-max md:max-w-[592px]">
+<h2 class="text-2xl font-semibold caret-transparent fill-stone-950 leading-8 scroll-mt-[129px] md:text-[28px] md:leading-9">Real-Time Market Data</h2>
+</div>
+</span>
+</div>
+</div>
+<div class="caret-transparent">
+<p class="text-lg text-gray-600 mb-8">Access live market data, trading signals, and automated bot execution powered by Deriv API integration.</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
+<div class="text-primary-600 text-4xl mb-4">📊</div>
+<h3 class="text-xl font-semibold mb-2">Live Charts</h3>
+<p class="text-gray-600">Real-time candlestick charts with technical indicators</p>
+</div>
+<div class="border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
+<div class="text-accent-600 text-4xl mb-4">🤖</div>
+<h3 class="text-xl font-semibold mb-2">Trading Bots</h3>
+<p class="text-gray-600">Automated strategies for Digits, Options, and Multipliers</p>
+</div>
+<div class="border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow">
+<div class="text-primary-600 text-4xl mb-4">📈</div>
+<h3 class="text-xl font-semibold mb-2">Analytics</h3>
+<p class="text-gray-600">Track performance and optimize your trading strategy</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-primary-900 text-white py-12 px-5 md:px-8">
+<div class="max-w-7xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+<div>
+<h3 class="text-xl font-bold mb-4">Algocdk</h3>
+<p class="text-gray-300">Automated trading platform with bot management and real-time market data.</p>
+</div>
+<div>
+<h4 class="font-semibold mb-4">Platform</h4>
+<ul class="space-y-2 text-gray-300">
+<li><a href="/trading.html" class="hover:text-white">Trading</a></li>
+<li><a href="/botstore.html" class="hover:text-white">Bot Marketplace</a></li>
+<li><a href="/marketchart.html" class="hover:text-white">Market Charts</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-semibold mb-4">Resources</h4>
+<ul class="space-y-2 text-gray-300">
+<li><a href="/support.html" class="hover:text-white">Support</a></li>
+<li><a href="/terms.html" class="hover:text-white">Terms</a></li>
+<li><a href="/privacy.html" class="hover:text-white">Privacy</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-semibold mb-4">Contact</h4>
+<ul class="space-y-2 text-gray-300">
+<li>support@algocdk.com</li>
+<li><a href="https://github.com/keyadaniel56/algocdk" class="hover:text-white">GitHub</a></li>
+</ul>
+</div>
+</div>
+<div class="border-t border-primary-700 pt-8 text-center text-gray-400">
+<p>&copy; 2026 Algocdk. All rights reserved.</p>
+</div>
+</div>
+</footer>
+</div>
+</body>
+</html>

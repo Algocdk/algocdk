@@ -34,12 +34,18 @@ class Dashboard {
       const favorites = await api.user.getFavorites();
       this.updateFavoritesDisplay(favorites);
 
-      // Load Deriv account info if available
-      try {
-        this.derivAccount = await api.deriv.getMyInfo();
+      // Load Deriv account from localStorage
+      const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+      if (accounts.length > 0) {
+        const token = accounts[0].token;
+        const balance = await api.deriv.getBalance({ api_token: token });
+        this.derivAccount = {
+          email: accounts[0].account,
+          balance: balance.data.balance,
+          currency: balance.data.currency,
+          loginid: balance.data.loginid
+        };
         this.updateDerivDisplay();
-      } catch (error) {
-        console.log('No Deriv account connected');
       }
 
       // Load marketplace data
@@ -103,7 +109,7 @@ class Dashboard {
           <i class="fas fa-link text-4xl text-gray-400 mb-4"></i>
           <h3 class="font-semibold mb-2">Connect Deriv Account</h3>
           <p class="text-gray-400 mb-4">Link your Deriv account to start automated trading</p>
-          <button onclick="dashboard.connectDeriv()" class="bg-primary-500 px-4 py-2 rounded">
+          <button onclick="window.location.href='/deriv-connect'" class="bg-primary-500 px-4 py-2 rounded">
             Connect Account
           </button>
         </div>
@@ -116,7 +122,7 @@ class Dashboard {
         <div class="flex justify-between items-start mb-4">
           <div>
             <h3 class="font-semibold">Deriv Account</h3>
-            <p class="text-gray-400">${this.derivAccount.email}</p>
+            <p class="text-gray-400">${this.derivAccount.loginid}</p>
           </div>
           <span class="bg-success-500/20 text-success-500 px-2 py-1 rounded text-sm">Connected</span>
         </div>
@@ -249,12 +255,14 @@ class Dashboard {
   }
 
   startRealTimeUpdates() {
-    // Update market data every 30 seconds
+    // Update balance every 30 seconds from localStorage token
     setInterval(async () => {
       try {
-        if (this.derivAccount) {
-          const balance = await api.deriv.getMyBalance();
-          this.derivAccount.balance = balance.balance;
+        const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+        if (accounts.length > 0) {
+          const token = accounts[0].token;
+          const balance = await api.deriv.getBalance({ api_token: token });
+          this.derivAccount.balance = balance.data.balance;
           this.updateDerivDisplay();
         }
       } catch (error) {

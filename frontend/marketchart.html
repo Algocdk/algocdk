@@ -463,6 +463,14 @@
                 display: none;
             }
             
+            #controls #crosshairBtn {
+                display: block;
+                position: fixed;
+                top: 50px;
+                right: 10px;
+                z-index: 100;
+            }
+            
             .brand-header {
                 display: none;
             }
@@ -613,6 +621,63 @@
                 height: 44px;
                 font-size: 18px;
             }
+        }
+        
+        /* Quick Timeframe Buttons */
+        .tf-btn {
+            background: #2b2f3a;
+            border: 1px solid #444;
+            color: #d1d4dc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .tf-btn:hover {
+            background: #FF4500;
+            border-color: #FF4500;
+            color: white;
+        }
+        .tf-btn.active {
+            background: #FF4500;
+            border-color: #FF6347;
+            color: white;
+        }
+        
+        /* Timeframe Collapse */
+        .tf-collapse-header {
+            background: #2b2f3a;
+            border: 1px solid #444;
+            color: #d1d4dc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .tf-collapse-header:hover {
+            background: #3b3f4a;
+        }
+        .tf-collapse-header .arrow {
+            transition: transform 0.2s;
+        }
+        .tf-collapse-header.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+        .tf-buttons-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            transition: all 0.3s;
+        }
+        .tf-buttons-container.collapsed {
+            display: none;
         }
     </style>
 </head>
@@ -832,18 +897,20 @@
             </optgroup>
         </select>
 
-        <select id="timeframe">
-            <option value="10">10s</option>
-            <option value="30">30s</option>
-            <option value="60" selected>1m</option>
-            <option value="180">3m</option>
-            <option value="300">5m</option>
-            <option value="900">15m</option>
-            <option value="1800">30m</option>
-            <option value="3600">1h</option>
-            <option value="14400">4h</option>
-            <option value="86400">1D</option>
-        </select>
+        <div style="display: flex; flex-direction: column;">
+            <div class="tf-collapse-header" onclick="toggleTimeframeCollapse()">
+                <span class="arrow">▼</span>
+                <span id="tfCurrentLabel">1m</span>
+            </div>
+            <div class="tf-buttons-container" id="tfButtonsContainer">
+                <button onclick="quickTimeframe(60)" class="tf-btn" data-tf="60">1m</button>
+                <button onclick="quickTimeframe(300)" class="tf-btn" data-tf="300">5m</button>
+                <button onclick="quickTimeframe(900)" class="tf-btn" data-tf="900">15m</button>
+                <button onclick="quickTimeframe(3600)" class="tf-btn" data-tf="3600">1h</button>
+                <button onclick="quickTimeframe(14400)" class="tf-btn" data-tf="14400">4h</button>
+                <button onclick="quickTimeframe(86400)" class="tf-btn" data-tf="86400">1D</button>
+            </div>
+        </div>
         
         <select id="indicators">
             <option value="">Add Indicator</option>
@@ -889,6 +956,10 @@
             <option value="area">Area</option>
             <option value="bars">Bars</option>
         </select>
+        
+        <button id="crosshairBtn" onclick="toggleCrosshair()" style="background: #FF4500; border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;" title="Toggle Crosshair (Currently ON)">
+            <i class="fas fa-crosshairs"></i> Crosshair
+        </button>
         
         <div id="activeIndicators"></div>
     </div>
@@ -991,6 +1062,7 @@
         let zoom = 1;              // candle width multiplier
         let offset = 0;            // scroll offset (candles)
         let isDragging = false;
+        let isDrawing = false;
         let lastX = 0;
         
         /* ================= MODAL ================= */
@@ -1067,11 +1139,14 @@
             restart();
         };
 
-        document.getElementById("timeframe").onchange = e => {
-            TIMEFRAME = +e.target.value;
-            localStorage.setItem('chart_timeframe', TIMEFRAME);
-            restart();
-        };
+        const timeframeEl = document.getElementById("timeframe");
+        if (timeframeEl) {
+            timeframeEl.onchange = e => {
+                TIMEFRAME = +e.target.value;
+                localStorage.setItem('chart_timeframe', TIMEFRAME);
+                restart();
+            };
+        }
         
         document.getElementById("chartType").onchange = e => {
             chartType = e.target.value;
@@ -1205,6 +1280,38 @@
             };
         }
 
+        function quickTimeframe(tf) {
+            TIMEFRAME = tf;
+            localStorage.setItem('currentTimeframe', tf);
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tf == tf);
+            });
+            
+            // Update label
+            const labels = { 60: '1m', 300: '5m', 900: '15m', 3600: '1h', 14400: '4h', 86400: '1D' };
+            const label = document.getElementById('tfCurrentLabel');
+            if (label) label.textContent = labels[tf] || tf + 's';
+            
+            // Collapse after selection
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+            
+            restart();
+        }
+        
+        function toggleTimeframeCollapse() {
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.toggle('collapsed');
+                header.classList.toggle('collapsed');
+            }
+        }
+        
         function restart() {
             if (ws) ws.close();
             candles = [];
@@ -1306,6 +1413,151 @@
             }
         }
 
+        /* ================= CROSSHAIR ================= */
+        let showCrosshair = localStorage.getItem('showCrosshair') !== 'false';
+        let crosshairX = 0;
+        let crosshairY = 0;
+        let crosshairVisible = false;
+        
+        function toggleCrosshair() {
+            showCrosshair = !showCrosshair;
+            localStorage.setItem('showCrosshair', showCrosshair);
+            crosshairVisible = false;
+            
+            const btn = document.getElementById('crosshairBtn');
+            if (btn) {
+                if (showCrosshair) {
+                    btn.style.background = '#FF4500';
+                    btn.title = 'Toggle Crosshair (Currently ON)';
+                } else {
+                    btn.style.background = '#4a5568';
+                    btn.title = 'Toggle Crosshair (Currently OFF)';
+                }
+            }
+            
+            draw();
+        }
+        
+        canvas.addEventListener("mousemove", e => {
+            if (!showCrosshair || isDragging || isDrawing || isResizingMainChart || isResizingWindow2) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            crosshairX = e.clientX - rect.left;
+            crosshairY = e.clientY - rect.top;
+            crosshairVisible = true;
+            draw();
+        });
+        
+        canvas.addEventListener("mouseleave", () => {
+            crosshairVisible = false;
+            draw();
+        });
+        
+        function drawCrosshair() {
+            if (!crosshairVisible || !showCrosshair) return;
+            
+            const isMobile = window.innerWidth <= 768;
+            const pad = isMobile ? 40 : 70;
+            
+            // Don't draw crosshair outside chart area
+            if (crosshairX < pad || crosshairX > canvas.width - pad) return;
+            if (crosshairY < pad || crosshairY > canvas.height - pad) return;
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(crosshairX, pad);
+            ctx.lineTo(crosshairX, canvas.height - pad);
+            ctx.stroke();
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(pad, crosshairY);
+            ctx.lineTo(canvas.width - pad, crosshairY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            // Get price at crosshair
+            const price = getPriceFromY(crosshairY);
+            
+            // Price label on right
+            const priceText = price.toFixed(5);
+            ctx.font = 'bold 11px Arial';
+            const textWidth = ctx.measureText(priceText).width;
+            
+            ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+            ctx.fillRect(canvas.width - pad + 2, crosshairY - 10, textWidth + 8, 20);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'left';
+            ctx.fillText(priceText, canvas.width - pad + 6, crosshairY + 4);
+            
+            // Get candle at crosshair
+            const candleIndex = getCandleIndexFromX(crosshairX);
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            
+            if (candleIndex >= 0 && candleIndex < data.length) {
+                const candle = data[candleIndex];
+                const date = new Date(candle.time * 1000);
+                const timeStr = TIMEFRAME >= 86400 ? 
+                    `${date.getMonth()+1}/${date.getDate()}/${date.getFullYear()}` : 
+                    `${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}`;
+                
+                // Time label on bottom
+                const timeWidth = ctx.measureText(timeStr).width;
+                ctx.fillStyle = 'rgba(255, 69, 0, 0.9)';
+                ctx.fillRect(crosshairX - timeWidth/2 - 4, canvas.height - pad + 2, timeWidth + 8, 18);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText(timeStr, crosshairX, canvas.height - pad + 14);
+                
+                // Candle info tooltip
+                const tooltipLines = [
+                    `O: ${candle.open.toFixed(5)}`,
+                    `H: ${candle.high.toFixed(5)}`,
+                    `L: ${candle.low.toFixed(5)}`,
+                    `C: ${candle.close.toFixed(5)}`
+                ];
+                
+                const tooltipWidth = 120;
+                const tooltipHeight = tooltipLines.length * 16 + 10;
+                let tooltipX = crosshairX + 15;
+                let tooltipY = crosshairY - tooltipHeight / 2;
+                
+                // Keep tooltip in bounds
+                if (tooltipX + tooltipWidth > canvas.width - pad) {
+                    tooltipX = crosshairX - tooltipWidth - 15;
+                }
+                if (tooltipY < pad) tooltipY = pad;
+                if (tooltipY + tooltipHeight > canvas.height - pad) {
+                    tooltipY = canvas.height - pad - tooltipHeight;
+                }
+                
+                ctx.fillStyle = 'rgba(22, 27, 34, 0.95)';
+                ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'left';
+                tooltipLines.forEach((line, i) => {
+                    ctx.fillText(line, tooltipX + 8, tooltipY + 16 + i * 16);
+                });
+            }
+            
+            ctx.restore();
+        }
+
         /* ================= INTERACTION ================= */
         // Mouse interaction
         canvas.addEventListener("mousedown", e => {
@@ -1401,7 +1653,7 @@
                 const hasWindow2 = indicators.some(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
                 if (hasWindow2) {
                     const pad = isMobile ? 40 : 70;
-                    const bottomOffset = isMobile ? 80 : 250;
+                    const bottomOffset = isMobile ? 60 : 80;
                     const availableSpace = canvas.height - mainChartHeight - pad * 2 - bottomOffset;
                     window2Height = Math.max(80, Math.min(400, availableSpace));
                 }
@@ -1536,17 +1788,29 @@
             window.lastTouchDistance = null;
         });
 
-        // Zoom (wheel)
+        // Zoom and horizontal scroll (wheel)
         canvas.addEventListener("wheel", e => {
             e.preventDefault();
-            zoom += e.deltaY * -0.001;
-            zoom = Math.max(0.5, Math.min(3, zoom));
+            if (e.shiftKey) {
+                offset += e.deltaY * 0.1;
+            } else {
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.5, Math.min(3, zoom));
+            }
             draw();
         });
         
-        // Delete selected object
+        // Arrow keys for scrolling
         window.addEventListener("keydown", e => {
-            if ((e.key === "Delete" || e.key === "Backspace") && selectedObject) {
+            if (e.key === 'ArrowLeft') {
+                offset -= 5;
+                draw();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                offset += 5;
+                draw();
+                e.preventDefault();
+            } else if ((e.key === "Delete" || e.key === "Backspace") && selectedObject) {
                 drawingObjects = drawingObjects.filter(obj => obj !== selectedObject);
                 selectedObject = null;
                 saveDrawings();
@@ -2594,8 +2858,8 @@
             if (hasWindow2Indicators) {
                 const defaultHeight = isMobile ? 100 : 180;
                 const actualWindow2Height = window2Height || defaultHeight;
-                const bottomOffset = isMobile ? 80 : 250;
-                indicatorPanelHeight = actualWindow2Height + bottomOffset; // Removed +20 spacing
+                const bottomOffset = isMobile ? 60 : 80; // Reduced gap
+                indicatorPanelHeight = actualWindow2Height + bottomOffset;
             }
             
             // Use custom main chart height if set, otherwise calculate automatically
@@ -2607,10 +2871,14 @@
             }
             console.log('Main chart height:', h, 'Indicator panel height:', indicatorPanelHeight, 'Total canvas:', canvas.height);
             
-            // Draw main chart resize handle
+            // Draw main chart resize handle with gradient
             const handleY = pad + h;
             const handleHeight = 8;
-            ctx.fillStyle = "#FF4500";
+            const handleGradient = ctx.createLinearGradient(0, handleY - handleHeight / 2, 0, handleY + handleHeight / 2);
+            handleGradient.addColorStop(0, "#FF4500");
+            handleGradient.addColorStop(0.5, "#FF6347");
+            handleGradient.addColorStop(1, "#FF4500");
+            ctx.fillStyle = handleGradient;
             ctx.fillRect(pad, handleY - handleHeight / 2, w, handleHeight);
             
             // Store handle bounds for interaction
@@ -2618,9 +2886,9 @@
             
             // Draw resize icon
             ctx.fillStyle = "#ffffff";
-            ctx.font = "12px Arial";
+            ctx.font = "bold 10px Arial";
             ctx.textAlign = "center";
-            ctx.fillText("⋮⋮⋮", canvas.width / 2, handleY + 2);
+            ctx.fillText("⋮⋮⋮", canvas.width / 2, handleY + 1);
 
             // Responsive candle spacing
             const baseCandleSpacing = isMobile ? 4 : 6;
@@ -2832,6 +3100,9 @@
             
             // Draw drawing objects
             drawObjects();
+            
+            // Draw crosshair last (on top of everything)
+            drawCrosshair();
         }
         
         function drawLine(values, spacing, yFunc, pad) {
@@ -2886,35 +3157,56 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const oscH = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 80 : 250;
+            const bottomOffset = isMobile ? 60 : 80; // Reduced gap
             const oscY = canvas.height - oscH - bottomOffset;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
             const isFirstOscillator = window2Indicators[0]?.id === indicator.id;
             
             if (isFirstOscillator) {
-                ctx.fillStyle = "#161b22";
+                // Window 2 background with gradient
+                const gradient = ctx.createLinearGradient(0, oscY, 0, oscY + oscH);
+                gradient.addColorStop(0, "#0e1117");
+                gradient.addColorStop(1, "#161b22");
+                ctx.fillStyle = gradient;
                 ctx.fillRect(pad, oscY, canvas.width - pad * 2, oscH);
-                ctx.strokeStyle = "#2b2f3a";
+                
+                // Window 2 border
+                ctx.strokeStyle = "#30363d";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(pad, oscY, canvas.width - pad * 2, oscH);
-                ctx.fillStyle = "#FF4500";
-                ctx.fillRect(pad, oscY - 2, canvas.width - pad * 2, 4);
+                
+                // Separator bar with gradient
+                const sepGradient = ctx.createLinearGradient(0, oscY - 4, 0, oscY + 4);
+                sepGradient.addColorStop(0, "#FF4500");
+                sepGradient.addColorStop(0.5, "#FF6347");
+                sepGradient.addColorStop(1, "#FF4500");
+                ctx.fillStyle = sepGradient;
+                ctx.fillRect(pad, oscY - 4, canvas.width - pad * 2, 8);
+                
+                // Resize handle icon
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 10px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("⋮⋮⋮", canvas.width / 2, oscY + 1);
+                
                 window.window2Bounds = { x: pad, y: oscY, width: canvas.width - pad * 2, height: oscH };
                 
-                ctx.strokeStyle = "#1f2430";
+                // Grid lines
+                ctx.strokeStyle = "#21262d";
                 ctx.lineWidth = 1;
-                [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].forEach(level => {
+                [0, 25, 50, 75, 100].forEach(level => {
                     const y = oscY + oscH - (level / 100) * oscH;
                     ctx.beginPath();
                     ctx.moveTo(pad, y);
                     ctx.lineTo(canvas.width - pad, y);
                     ctx.stroke();
                     
+                    // Scale labels
                     ctx.fillStyle = "#8b949e";
-                    ctx.font = "9px Arial";
-                    ctx.textAlign = "left";
-                    ctx.fillText(level, canvas.width - pad + 5, y + 3);
+                    ctx.font = "10px Arial";
+                    ctx.textAlign = "right";
+                    ctx.fillText(level, canvas.width - pad - 5, y + 3);
                 });
             }
             
@@ -3016,7 +3308,7 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 80 : 250;
+            const bottomOffset = isMobile ? 60 : 80;
             const y = canvas.height - h - bottomOffset;
             
             // Background
@@ -3174,7 +3466,7 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 80 : 250;
+            const bottomOffset = isMobile ? 60 : 80;
             const y = canvas.height - h - bottomOffset;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
@@ -3637,6 +3929,18 @@
         // Wait for DOM to be ready
         window.addEventListener('DOMContentLoaded', () => {
             initializeEventHandlers();
+            
+            // Initialize crosshair button state
+            const btn = document.getElementById('crosshairBtn');
+            if (btn) {
+                if (showCrosshair) {
+                    btn.style.background = '#FF4500';
+                    btn.title = 'Toggle Crosshair (Currently ON)';
+                } else {
+                    btn.style.background = '#4a5568';
+                    btn.title = 'Toggle Crosshair (Currently OFF)';
+                }
+            }
         });
         
         // If already loaded, initialize immediately
@@ -3663,8 +3967,28 @@
         
         async function initializeEventHandlers() {
             // Set saved values in dropdowns
-            document.getElementById('symbol').value = SYMBOL;
-            document.getElementById('timeframe').value = TIMEFRAME;
+            const symbolEl = document.getElementById('symbol');
+            if (symbolEl) symbolEl.value = SYMBOL;
+            
+            const timeframeEl = document.getElementById('timeframe');
+            if (timeframeEl) timeframeEl.value = TIMEFRAME;
+            
+            // Set active timeframe button and label
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tf == TIMEFRAME);
+            });
+            
+            const labels = { 60: '1m', 300: '5m', 900: '15m', 3600: '1h', 14400: '4h', 86400: '1D' };
+            const label = document.getElementById('tfCurrentLabel');
+            if (label) label.textContent = labels[TIMEFRAME] || TIMEFRAME + 's';
+            
+            // Start collapsed
+            const container = document.getElementById('tfButtonsContainer');
+            const header = document.querySelector('.tf-collapse-header');
+            if (container && header) {
+                container.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
             
             // Load saved chart type
             const savedChartType = localStorage.getItem('chart_type');

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,125 @@ import (
 )
 
 var derivService = services.NewDerivService()
+
+// ============================================
+// OAUTH HANDLERS
+// ============================================
+
+// InitiateDerivOAuth generates OAuth URL for user
+func InitiateDerivOAuth(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	appID := os.Getenv("DERIV_APP_ID")
+	fmt.Printf("DEBUG: DERIV_APP_ID from env: '%s'\n", appID)
+	if appID == "" {
+		appID = "1089"
+		fmt.Println("DEBUG: Using default app_id 1089")
+	}
+
+	oauthURL := fmt.Sprintf("https://oauth.deriv.com/oauth2/authorize?app_id=%s&l=EN&brand=deriv", appID)
+	fmt.Printf("DEBUG: Generated OAuth URL: %s\n", oauthURL)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"oauth_url": oauthURL,
+		"user_id": userID,
+	})
+}
+
+// HandleDerivOAuthCallback processes OAuth callback
+func HandleDerivOAuthCallback(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req struct {
+		Accounts []struct {
+			Token    string `json:"token"`
+			Currency string `json:"currency"`
+			Account  string `json:"account"`
+		} `json:"accounts"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		return
+	}
+
+	if len(req.Accounts) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No accounts provided"})
+		return
+	}
+
+	// Deactivate old sessions
+	database.DB.Model(&models.DerivOAuthSession{}).Where("user_id = ?", userID).Update("is_active", false)
+
+	// Store new sessions without validation (tokens are already validated by Deriv OAuth)
+	for _, acc := range req.Accounts {
+		// Determine if virtual based on account prefix
+		isVirtual := len(acc.Account) > 0 && (acc.Account[0] == 'V' || acc.Account[:3] == "VRT")
+
+		session := models.DerivOAuthSession{
+			UserID:    userID.(uint),
+			AccountID: acc.Account,
+			Token1:    acc.Token,
+			Currency:  acc.Currency,
+			IsVirtual: isVirtual,
+			ExpiresAt: time.Now().Add(60 * 24 * time.Hour), // 60 days
+			IsActive:  true,
+		}
+		if err := database.DB.Create(&session).Error; err != nil {
+			fmt.Printf("Failed to save session: %v\n", err)
+			continue
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Deriv accounts linked successfully"})
+}
+
+// GetLinkedDerivAccounts returns user's linked accounts
+func GetLinkedDerivAccounts(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var sessions []models.DerivOAuthSession
+	database.DB.Where("user_id = ? AND is_active = ?", userID, true).Find(&sessions)
+
+	accounts := []gin.H{}
+	for _, s := range sessions {
+		accounts = append(accounts, gin.H{
+			"account_id": s.AccountID,
+			"currency":   s.Currency,
+			"is_virtual": s.IsVirtual,
+			"expires_at": s.ExpiresAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "accounts": accounts})
+}
+
+// UnlinkDerivAccount removes OAuth session
+func UnlinkDerivAccount(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	accountID := c.Param("account_id")
+	database.DB.Where("user_id = ? AND account_id = ?", userID, accountID).Delete(&models.DerivOAuthSession{})
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Account unlinked"})
+}
 
 // ============================================
 // PUBLIC DERIV HANDLERS (No Auth Required)
@@ -439,107 +560,75 @@ func UpdateDerivAccountPreference(c *gin.Context) {
 	})
 }
 
-// GetDerivUserInfoWithStoredToken fetches user info using stored token
+// GetDerivUserInfoWithStoredToken fetches user info using OAuth session
 func GetDerivUserInfoWithStoredToken(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not authenticated",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	var credentials models.DerivCredentials
-	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
-		First(&credentials).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "No Deriv token found. Please add your API token first.",
-		})
+	var session models.DerivOAuthSession
+	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No Deriv account linked"})
 		return
 	}
 
-	userInfo, err := derivService.AuthenticateAndGetUserInfo(credentials.APIToken)
+	userInfo, err := derivService.AuthenticateAndGetUserInfo(session.Token1)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Failed to fetch user info",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to fetch user info", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    userInfo,
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": userInfo})
 }
 
-// GetDerivBalanceWithStoredToken fetches balance using stored token
+// GetDerivBalanceWithStoredToken fetches balance using OAuth session
 func GetDerivBalanceWithStoredToken(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not authenticated",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	var credentials models.DerivCredentials
-	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
-		First(&credentials).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "No Deriv token found",
-		})
+	var session models.DerivOAuthSession
+	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No Deriv account linked"})
 		return
 	}
 
-	balance, err := derivService.GetBalance(credentials.APIToken)
+	balance, err := derivService.GetBalance(session.Token1)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Failed to fetch balance",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to fetch balance", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    balance,
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": balance})
 }
 
-// GetDerivAccountListWithStoredToken fetches account list using stored token
+// GetDerivAccountListWithStoredToken fetches account list using OAuth session
 func GetDerivAccountListWithStoredToken(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not authenticated",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	var credentials models.DerivCredentials
-	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
-		First(&credentials).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "No Deriv token found",
-		})
+	var session models.DerivOAuthSession
+	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No Deriv account linked"})
 		return
 	}
 
-	accountList, err := derivService.GetAccountList(credentials.APIToken)
+	accountList, err := derivService.GetAccountList(session.Token1)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Failed to fetch account list",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to fetch account list", "details": err.Error()})
 		return
 	}
 
-	// Get balance for each account by switching to it
 	accounts := []map[string]interface{}{}
 	for _, account := range accountList.Accounts {
-		// Switch to this account to get its balance
-		userInfo, err := derivService.SwitchAccount(credentials.APIToken, account.LoginID)
+		userInfo, err := derivService.SwitchAccount(session.Token1, account.LoginID)
 		balance := 0.0
 		if err == nil {
 			balance = userInfo.Balance
@@ -558,10 +647,7 @@ func GetDerivAccountListWithStoredToken(c *gin.Context) {
 		accounts = append(accounts, accountMap)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":  true,
-		"accounts": accounts,
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "accounts": accounts})
 }
 
 // SwitchDerivAccountWithStoredToken switches account using stored token
@@ -586,44 +672,32 @@ func SwitchDerivAccountWithStoredToken(c *gin.Context) {
 		return
 	}
 
-	var credentials models.DerivCredentials
-	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
-		First(&credentials).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "No Deriv token found",
-		})
+	var session models.DerivOAuthSession
+	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No Deriv account linked"})
 		return
 	}
 
-	// Switch to the requested account
-	_, err := derivService.SwitchAccount(credentials.APIToken, req.LoginID)
+	_, err := derivService.SwitchAccount(session.Token1, req.LoginID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Failed to switch account",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to switch account", "details": err.Error()})
 		return
 	}
 
-	// Get fresh balance after switching
-	balanceInfo, err := derivService.GetBalance(credentials.APIToken)
+	balanceInfo, err := derivService.GetBalance(session.Token1)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Failed to get balance after switch",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to get balance after switch", "details": err.Error()})
 		return
 	}
 
-	// Update stored credentials
 	accountType := "real"
 	if balanceInfo.IsVirtual {
 		accountType = "demo"
 	}
 
-	database.DB.Model(&credentials).Updates(map[string]interface{}{
-		"loginid":      req.LoginID,
-		"account_type": accountType,
+	database.DB.Model(&session).Updates(map[string]interface{}{
+		"account_id": req.LoginID,
+		"is_virtual": balanceInfo.IsVirtual,
 	})
 
 	c.JSON(http.StatusOK, gin.H{
@@ -637,13 +711,11 @@ func SwitchDerivAccountWithStoredToken(c *gin.Context) {
 	})
 }
 
-// PlaceDerivTrade places a trade using stored token
+// PlaceDerivTrade places a trade using OAuth session
 func PlaceDerivTrade(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not authenticated",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -653,38 +725,33 @@ func PlaceDerivTrade(c *gin.Context) {
 		Stake     float64 `json:"amount" binding:"required"`
 		Duration  int     `json:"duration" binding:"required"`
 		BotID     uint    `json:"bot_id,omitempty"`
+		AccountID string  `json:"account_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
 		return
 	}
 
-	var credentials models.DerivCredentials
-	if err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
-		First(&credentials).Error; err != nil {
+	var session models.DerivOAuthSession
+	query := database.DB.Where("user_id = ? AND is_active = ?", userID, true)
+	if req.AccountID != "" {
+		query = query.Where("account_id = ?", req.AccountID)
+	}
+	if err := query.First(&session).Error; err != nil {
 		c.JSON(http.StatusForbidden, gin.H{
-			"error":          "No Deriv API token found",
-			"message":        "Please connect your Deriv account to place trades",
-			"requires_token": true,
+			"error":   "No Deriv account linked",
+			"message": "Please link your Deriv account via OAuth",
 		})
 		return
 	}
 
-	// Place trade using Deriv service
-	tradeResult, err := derivService.PlaceTrade(credentials.APIToken, req.Symbol, req.TradeType, req.Stake, req.Duration)
+	tradeResult, err := derivService.PlaceTrade(session.Token1, req.Symbol, req.TradeType, req.Stake, req.Duration)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to place trade",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to place trade", "details": err.Error()})
 		return
 	}
 
-	// Record real trade in database
 	trade := models.Trade{
 		UserID:       userID.(uint),
 		BotID:        req.BotID,

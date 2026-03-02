@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Deriv Account</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-3xl mx-auto">
+            <h1 class="text-4xl font-bold mb-8 text-center">Connect Your Deriv Account</h1>
+            
+            <div class="bg-gray-800 rounded-lg p-8 mb-6">
+                <h2 class="text-2xl font-semibold mb-4 text-center">OAuth Connection</h2>
+                <p class="text-gray-300 mb-6 text-center">
+                    Connect via OAuth for secure access without manual tokens.
+                </p>
+                
+                <button onclick="initiateOAuth()" class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-lg mb-4">
+                    Connect via OAuth
+                </button>
+                
+                <div class="text-center text-gray-400 my-4">OR</div>
+                
+                <h2 class="text-2xl font-semibold mb-4 text-center">Manual Token Entry</h2>
+                <p class="text-gray-300 mb-6 text-center">
+                    OAuth tokens are read-only. For trading and balance access, enter full API tokens from <a href="https://app.deriv.com/account/api-token" target="_blank" class="text-orange-500">Deriv API Token page</a>.
+                </p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm mb-2">Demo Token (optional)</label>
+                        <input type="text" id="demoToken" placeholder="a1-xxxxx" class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-2">Real Token (optional)</label>
+                        <input type="text" id="realToken" placeholder="a1-xxxxx" class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3">
+                    </div>
+                    <button onclick="saveTokens()" class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-4 px-6 rounded-lg">
+                        Save & Connect
+                    </button>
+                    <p class="text-xs text-gray-400 text-center">Get tokens from <a href="https://app.deriv.com/account/api-token" target="_blank" class="text-orange-500">Deriv API Token page</a></p>
+                </div>
+            </div>
+
+            <div id="accountsList" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Connected Accounts</h3>
+                <div id="accounts" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/auth';
+
+        window.addEventListener('load', () => {
+            handleOAuthCallback();
+            loadLinkedAccounts();
+        });
+
+        function initiateOAuth() {
+            const redirectUri = window.location.origin + '/deriv/callback';
+            const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=63623&l=EN&brand=deriv&redirect_uri=${encodeURIComponent(redirectUri)}`;
+            window.location.href = oauthUrl;
+        }
+
+        function handleOAuthCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const acct1 = params.get('acct1');
+            const token1 = params.get('token1');
+            const cur1 = params.get('cur1');
+            const acct2 = params.get('acct2');
+            const token2 = params.get('token2');
+            const cur2 = params.get('cur2');
+
+            if (!acct1 && !acct2) return;
+
+            const accounts = [];
+            if (acct1 && token1) accounts.push({ account: acct1, token: token1, currency: cur1 || 'USD' });
+            if (acct2 && token2) accounts.push({ account: acct2, token: token2, currency: cur2 || 'USD' });
+
+            if (accounts.length > 0) {
+                localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
+                setTimeout(() => {
+                    window.location.href = '/app';
+                }, 500);
+            }
+        }
+
+        async function saveTokens() {
+            const demo = document.getElementById('demoToken').value.trim();
+            const real = document.getElementById('realToken').value.trim();
+            
+            if (!demo && !real) {
+                alert('Please enter at least one token');
+                return;
+            }
+            
+            const accounts = [];
+            if (demo) accounts.push({ account: 'DEMO', token: demo, currency: 'USD' });
+            if (real) accounts.push({ account: 'REAL', token: real, currency: 'USD' });
+            
+            localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
+            window.location.href = '/app';
+        }
+
+        function loadLinkedAccounts() {
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            
+            if (accounts.length > 0) {
+                document.getElementById('accountsList').classList.remove('hidden');
+                document.getElementById('accounts').innerHTML = accounts.map(acc => `
+                    <div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+                        <div>
+                            <span class="font-semibold text-lg">${acc.account}</span>
+                            <span class="text-gray-400 ml-3">${acc.currency}</span>
+                        </div>
+                        <button onclick="unlinkAccount('${acc.account}')" class="text-red-400 hover:text-red-300 px-4 py-2 rounded">
+                            Unlink
+                        </button>
+                    </div>
+                `).join('');
+                
+                document.getElementById('demoToken').value = accounts.find(a => a.account === 'DEMO')?.token || '';
+                document.getElementById('realToken').value = accounts.find(a => a.account === 'REAL')?.token || '';
+            }
+        }
+
+        function unlinkAccount(accountId) {
+            if (!confirm('Unlink this account?')) return;
+            
+            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            const filtered = accounts.filter(acc => acc.account !== accountId);
+            
+            if (filtered.length === 0) {
+                localStorage.removeItem('deriv_accounts');
+            } else {
+                localStorage.setItem('deriv_accounts', JSON.stringify(filtered));
+            }
+            
+            loadLinkedAccounts();
+        }
+    </script>
+</body>
+</html>

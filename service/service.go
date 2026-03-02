@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,8 +16,12 @@ type DerivService struct {
 }
 
 func NewDerivService() *DerivService {
+	appID := os.Getenv("DERIV_APP_ID")
+	if appID == "" {
+		appID = "63623"
+	}
 	return &DerivService{
-		wsURL: "wss://ws.derivws.com/websockets/v3?app_id=1089",
+		wsURL: fmt.Sprintf("wss://ws.derivws.com/websockets/v3?app_id=%s", appID),
 	}
 }
 
