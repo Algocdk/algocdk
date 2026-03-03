@@ -3,1849 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Algocdk | Digits Trading</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Digits Trading - Simple</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#FF4500',
-                        secondary: '#FF6347',
-                        success: '#00C851',
-                        danger: '#FF4444',
-                        warning: '#FFBB33',
-                        dark: '#0D1421',
-                        darker: '#0A0E1A',
-                        accent: '#1E293B'
-                    }
-                }
-            }
-        }
-    </script>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #0D1421;
-            color: #E2E8F0;
             min-height: 100vh;
+            padding: 20px;
         }
         
-        .panel {
-            background: #0A0E1A;
-            border: 1px solid #374151;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        .card {
+            background: #1a1f2e;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 1px solid #2d3748;
         }
         
-        .trade-button {
-            background: #FF4500;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            font-weight: 600;
-            padding: 20px 24px;
-            transition: all 0.3s ease;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .back-btn {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            color: #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.3);
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
         
-        .trade-button:hover {
-            background: #E63900;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(255, 69, 0, 0.4);
+        .back-btn:hover {
+            background: #2d3748;
+            border-color: #FF4500;
         }
         
-        .trade-button.even {
-            background: #00C851;
-            box-shadow: 0 4px 20px rgba(0, 200, 81, 0.3);
+        .balance {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            color: #10b981;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
         }
         
-        .trade-button.even:hover {
-            background: #00A843;
-            box-shadow: 0 8px 30px rgba(0, 200, 81, 0.4);
+        .price-box {
+            background: linear-gradient(135deg, #FF4500 0%, #E63900 100%);
+            color: white;
+            text-align: center;
+            padding: 32px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 30px rgba(255,69,0,0.3);
         }
         
-        .trade-button.odd {
-            background: #FF4444;
-            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+        .price { font-size: 48px; font-weight: 700; margin: 8px 0; }
+        
+        .last-digit {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 8px;
+            border: 2px solid rgba(255,255,255,0.2);
         }
         
-        .trade-button.odd:hover {
-            background: #CC3333;
-            box-shadow: 0 8px 30px rgba(255, 68, 68, 0.4);
+        .trade-btn {
+            width: 100%;
+            border: none;
+            padding: 20px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
         }
         
-        .trade-button.over {
-            background: #00C851;
-            box-shadow: 0 4px 20px rgba(0, 200, 81, 0.3);
-        }
+        .trade-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .trade-btn:active { transform: scale(0.98); }
         
-        .trade-button.over:hover {
-            background: #00A843;
-            box-shadow: 0 8px 30px rgba(0, 200, 81, 0.4);
-        }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
+        .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
+        .btn-blue { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
+        .btn-purple { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
         
-        .trade-button.under {
-            background: #FF4444;
-            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
-        }
+        .input-group { margin-bottom: 16px; }
         
-        .trade-button.under:hover {
-            background: #CC3333;
-            box-shadow: 0 8px 30px rgba(255, 68, 68, 0.4);
-        }
-        
-        .trade-button.matches {
-            background: #00C851;
-            box-shadow: 0 4px 20px rgba(0, 200, 81, 0.3);
-        }
-        
-        .trade-button.matches:hover {
-            background: #00A843;
-            box-shadow: 0 8px 30px rgba(0, 200, 81, 0.4);
-        }
-        
-        .trade-button.differs {
-            background: #9C27B0;
-            box-shadow: 0 4px 20px rgba(156, 39, 176, 0.3);
-        }
-        
-        .trade-button.differs:hover {
-            background: #7B1FA2;
-            box-shadow: 0 8px 30px rgba(156, 39, 176, 0.4);
+        .input-group label {
+            display: block;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
         
         .input-field {
-            background: #1E293B;
-            border: 2px solid #475569;
-            border-radius: 6px;
-            padding: 16px 20px;
-            font-size: 14px;
-            transition: all 0.3s ease;
             width: 100%;
-            color: #E2E8F0;
+            padding: 14px;
+            border: 2px solid #2d3748;
+            background: #0D1421;
+            color: #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border 0.2s;
         }
         
         .input-field:focus {
             outline: none;
             border-color: #FF4500;
-            background: #1E293B;
         }
         
-        .price-display {
-            background: #1E293B;
-            color: #E2E8F0;
-            font-family: 'Courier New', monospace;
-            font-size: clamp(28px, 6vw, 42px);
-            font-weight: bold;
-            text-align: center;
-            padding: 24px;
-            border-radius: 8px;
-            border: 1px solid #374151;
-            transition: all 0.3s ease;
-        }
+        .tab-group { display: flex; gap: 8px; margin-bottom: 16px; }
         
-        .price-display-compact {
-            background: #1E293B;
-            color: #E2E8F0;
-            font-family: 'Courier New', monospace;
-            font-size: clamp(18px, 4vw, 24px);
-            font-weight: bold;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #374151;
-            transition: all 0.3s ease;
-        }
-        
-        .price-update {
-            border-color: #FF4500;
-            box-shadow: 0 0 30px rgba(255, 69, 0, 0.3);
-            transform: scale(1.02);
-        }
-        
-        .price-display-compact.price-update {
-            border-color: #FF4500;
-            box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-            transform: scale(1.05);
-        }
-        
-        .digit-box {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            border: 1px solid #374151;
-        }
-        
-        .digit-even { 
-            background: #00C851;
-            color: white;
-        }
-        
-        .digit-odd { 
-            background: #FF4444;
-            color: white;
-        }
-        
-        .digit-new { 
-            transform: scale(1.15);
-            border-color: #FF4500;
-            box-shadow: 0 0 25px rgba(255, 69, 0, 0.6);
-            z-index: 10;
-        }
-        
-        .stat-card {
-            background: #1E293B;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            border-color: #FF4500;
-            transform: translateY(-2px);
-        }
-        
-        .tab-button {
-            background: #1E293B;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            padding: 12px 20px;
-            font-size: 13px;
-            font-weight: 500;
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #2d3748;
+            background: #0D1421;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            color: #E2E8F0;
-        }
-        
-        .tab-button:hover {
-            border-color: #FF4500;
-            transform: translateY(-1px);
-        }
-        
-        .tab-button.active {
-            background: #FF4500;
-            color: white;
-            border-color: #FF4500;
-        }
-        
-        .prediction-card {
-            background: #1E293B;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 12px 0;
-        }
-        
-        .confidence-bar {
-            width: 100%;
-            height: 8px;
-            background: #374151;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 12px 0;
-        }
-        
-        .confidence-fill {
-            height: 100%;
-            background: #FF4500;
-            transition: width 0.5s ease;
-            border-radius: 4px;
-        }
-        
-        .heat-cell {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            font-weight: bold;
             font-size: 14px;
-            color: white;
-            margin: 3px;
-            transition: all 0.3s ease;
-            border: 1px solid #374151;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: all 0.2s;
         }
         
-        .digit-pad {
+        .tab:hover { border-color: #FF4500; color: #FF4500; }
+        .tab.active { background: #FF4500; color: white; border-color: #FF4500; box-shadow: 0 4px 12px rgba(255,69,0,0.4); }
+        
+        .hidden { display: none; }
+        
+        h2 { color: #e2e8f0; font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+        
+        .digit-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
         
-        .digit-pad-cell {
-            position: relative;
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #1E293B;
-            border: 2px solid #374151;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .digit-pad-cell.active {
-            border-color: #FF4500;
-            background: linear-gradient(135deg, #FF4500 0%, #FF6347 100%);
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(255, 69, 0, 0.6);
-            z-index: 10;
-        }
-        
-        .digit-pad-cell .digit-num {
+        .digit-btn {
+            padding: 16px;
+            border: 2px solid #2d3748;
+            background: #0D1421;
+            color: #e2e8f0;
+            border-radius: 12px;
             font-size: 18px;
-            font-weight: bold;
-            color: #E2E8F0;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
         }
         
-        .digit-pad-cell.active .digit-num {
-            color: white;
-        }
-        
-        .digit-pad-cell .digit-percent {
-            font-size: 10px;
-            color: #94A3B8;
-            margin-top: 2px;
-        }
-        
-        .digit-pad-cell.active .digit-percent {
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
-        @media (max-width: 480px) {
-            .digit-pad {
-                gap: 6px;
-            }
-            
-            .digit-pad-cell .digit-num {
-                font-size: 16px;
-            }
-            
-            .digit-pad-cell .digit-percent {
-                font-size: 9px;
-            }
-        }
-        
-        .mobile-grid {
-            display: grid;
-            gap: 20px;
-        }
+        .digit-btn:hover { border-color: #FF4500; color: #FF4500; }
+        .digit-btn.active { background: #FF4500; color: white; border-color: #FF4500; box-shadow: 0 4px 12px rgba(255,69,0,0.4); }
         
         @media (max-width: 768px) {
-            .mobile-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .desktop-grid {
-                grid-template-columns: 1fr !important;
-            }
-            
-            .digit-box {
-                width: 40px;
-                height: 40px;
-                font-size: 15px;
-            }
-            
-            .trade-button {
-                padding: 14px 16px;
-                font-size: 13px;
-            }
-            
-            .analysis-tabs {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-            
-            .analysis-tabs .tab-button {
-                width: 100%;
-                text-align: center;
-                padding: 10px 8px;
-                font-size: 11px;
-            }
-            
-            .stat-card {
-                padding: 12px;
-            }
-            
-            header .flex {
-                gap: 8px;
-            }
-            
-            header .text-xl {
-                font-size: 16px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            body {
-                font-size: 14px;
-            }
-            
-            .price-display {
-                padding: 16px;
-                font-size: 28px;
-            }
-            
-            .price-display-compact {
-                padding: 6px 10px;
-                font-size: 16px;
-            }
-            
-            .digit-box {
-                width: 36px;
-                height: 36px;
-                font-size: 13px;
-            }
-            
-            .trade-button {
-                padding: 12px 14px;
-                font-size: 12px;
-            }
-            
-            .input-field {
-                padding: 12px 14px;
-                font-size: 13px;
-            }
-            
-            .tab-button {
-                padding: 8px 12px;
-                font-size: 11px;
-            }
-            
-            .panel {
-                padding: 12px !important;
-            }
-            
-            .max-w-7xl {
-                padding-left: 8px;
-                padding-right: 8px;
-            }
-            
-            header {
-                margin: 8px;
-                padding: 12px !important;
-            }
-            
-            .grid.gap-6 {
-                gap: 12px;
-            }
-            
-            .heat-cell {
-                width: 36px;
-                height: 36px;
-                font-size: 12px;
-                margin: 2px;
-            }
-            
-            .prediction-card {
-                padding: 12px;
-            }
-        }
-        
-        .analysis-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        
-        .bot-overlay {
-            position: fixed;
-            background: rgba(10, 14, 26, 0.95);
-            border: 2px solid #FF4500;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            min-width: 300px;
-            min-height: 200px;
-            max-width: 90vw;
-            max-height: 90vh;
-            display: none;
-            flex-direction: column;
-        }
-        
-        .bot-overlay.active { display: flex; }
-        
-        .bot-header {
-            background: #FF4500;
-            padding: 12px;
-            cursor: move;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 10px 10px 0 0;
-            user-select: none;
-        }
-        
-        .bot-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .bot-size-input {
-            width: 60px;
-            padding: 4px 6px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 4px;
-            color: white;
-            font-size: 11px;
-            text-align: center;
-        }
-        
-        .bot-size-input:focus {
-            outline: none;
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .bot-content {
-            flex: 1;
-            overflow: auto;
-            padding: 16px;
-        }
-        
-        .bot-loader-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #FF4500, #E63900);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.4);
-            z-index: 999;
-            transition: all 0.3s ease;
-        }
-        
-        .bot-loader-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 30px rgba(255, 69, 0, 0.6);
-        }
-        
-        .resize-handle {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 20px;
-            height: 20px;
-            cursor: nwse-resize;
-            background: linear-gradient(135deg, transparent 50%, #FF4500 50%);
-            border-radius: 0 0 10px 0;
+            body { padding: 12px; }
+            .container { padding: 0; }
+            .price { font-size: 36px; }
+            .last-digit { font-size: 24px; padding: 8px 16px; }
+            .card { padding: 16px; }
+            .tab { font-size: 12px; padding: 10px; }
+            .trade-btn { padding: 16px; font-size: 16px; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="panel mx-2 sm:mx-4 mt-2 sm:mt-4 px-3 sm:px-6 py-3 sm:py-4 sticky top-2 sm:top-4 z-50">
-        <div class="flex items-center justify-between flex-wrap gap-2 sm:gap-4">
-            <div class="flex items-center space-x-2 sm:space-x-4">
-                <button onclick="window.location.href='/trading'" class="text-gray-400 hover:text-white transition-colors p-1 sm:p-2 rounded-lg hover:bg-accent text-sm sm:text-base">
-                    <i class="fas fa-arrow-left mr-1 sm:mr-2"></i><span class="hidden sm:inline">Back</span>
-                </button>
-                <a id="adminDashboardLink" href="/admin" class="text-gray-400 hover:text-white transition-colors p-1 sm:p-2 rounded-lg hover:bg-accent text-sm sm:text-base" style="display:none" title="Admin Dashboard">
-                    <i class="fas fa-user-shield"></i>
-                </a>
-                <a id="superadminDashboardLink" href="/superadmin" class="text-gray-400 hover:text-white transition-colors p-1 sm:p-2 rounded-lg hover:bg-accent text-sm sm:text-base" style="display:none" title="SuperAdmin Dashboard">
-                    <i class="fas fa-crown"></i>
-                </a>
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center">
-                        <i class="fas fa-hashtag text-white text-sm sm:text-base"></i>
+    <div class="container">
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='/trading'">← Back</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="back-btn" onclick="toggleAccountType()" id="accountTypeBtn" style="padding: 8px 16px;">Demo</button>
+                <div class="balance" id="accountBalance">$10,000</div>
+            </div>
+        </div>
+        
+        <div class="price-box">
+            <div style="font-size: 14px; opacity: 0.9;">Current Price</div>
+            <div class="price" id="currentPrice">1234.567</div>
+            <div style="font-size: 14px; opacity: 0.9; margin-top: 8px;">Last Digit</div>
+            <div class="last-digit" id="lastDigit">7</div>
+        </div>
+        
+        <div class="card">
+            <div class="tab-group">
+                <button class="tab active" onclick="selectMode('evenodd')" id="tab-evenodd">Even/Odd</button>
+                <button class="tab" onclick="selectMode('matches')" id="tab-matches">Match</button>
+                <button class="tab" onclick="selectMode('overunder')" id="tab-overunder">Over/Under</button>
+            </div>
+            
+            <div class="input-group">
+                <label>Stake Amount</label>
+                <input type="number" class="input-field" id="stakeAmount" value="10" min="1" step="1">
+            </div>
+            
+            <div class="input-group">
+                <label>Duration (Ticks)</label>
+                <input type="number" class="input-field" id="duration" value="5" min="1" max="10">
+            </div>
+            
+            <div id="tradeInterface"></div>
+        </div>
+        
+        <div class="card">
+            <h2 style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <i class="fas fa-chart-bar" style="color: #FF4500;"></i> Market Digit Analysis
+            </h2>
+            
+            <div id="digitFrequencyGrid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;"></div>
+            
+            <div id="ratioDisplay" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;"></div>
+            
+            <div style="background: #0D1421; padding: 16px; border-radius: 8px; border: 1px solid #2d3748; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="color: #94a3b8; font-size: 12px;">Current Streak</div>
+                        <div id="streakInfo" style="color: #FF4500; font-size: 18px; font-weight: 700; margin-top: 4px;">-</div>
                     </div>
-                    <span class="text-base sm:text-xl font-bold text-white">Digits</span>
+                    <div style="text-align: right;">
+                        <div style="color: #94a3b8; font-size: 12px;">Sample Size</div>
+                        <div id="sampleSize" style="color: #e2e8f0; font-size: 18px; font-weight: 700; margin-top: 4px;">0</div>
+                    </div>
                 </div>
             </div>
             
-            <div class="flex items-center space-x-2 sm:space-x-4 flex-wrap">
-                <button onclick="toggleTradeHistory()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg font-semibold transition-all bg-primary text-white">
-                    <i class="fas fa-history"></i> History
-                </button>
-                <button onclick="toggleAccountType()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-lg font-semibold transition-all bg-success text-white" id="accountTypeBtn">
-                    Demo
-                </button>
-                <div class="text-right">
-                    <div class="text-xs text-gray-400" id="balanceLabel">Demo</div>
-                    <div class="font-bold text-sm sm:text-lg text-white" id="accountBalance">10,000 USD</div>
-                </div>
-                <div class="hidden sm:flex items-center space-x-2 text-sm">
-                    <div class="w-3 h-3 rounded-full bg-success" id="connectionStatus"></div>
-                    <span class="text-gray-400" id="connectionText">Live</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Bot Loader Button -->
-    <div class="bot-loader-btn" onclick="toggleBotLoader()" title="Load Trading Bot">
-        <i class="fas fa-robot text-white text-2xl"></i>
-    </div>
-
-    <!-- Bot Overlay -->
-    <div id="botOverlay" class="bot-overlay">
-        <div class="bot-header" id="botHeader">
-            <span class="font-bold text-white"><i class="fas fa-robot mr-2"></i>Trading Bot</span>
-            <div class="bot-controls">
-                <div class="flex items-center gap-1 text-xs text-white">
-                    <span>W:</span>
-                    <input type="number" id="botWidth" class="bot-size-input" min="300" max="2000" value="600" onchange="updateBotSize()">
-                    <span>H:</span>
-                    <input type="number" id="botHeight" class="bot-size-input" min="200" max="1200" value="400" onchange="updateBotSize()">
-                </div>
-                <button onclick="minimizeBot()" class="text-white hover:text-gray-300 px-2">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <button onclick="closeBot()" class="text-white hover:text-gray-300 px-2">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        <div class="bot-content" id="botContent">
-            <div id="botUploader">
-                <div class="text-center py-8">
-                    <i class="fas fa-upload text-6xl text-gray-500 mb-4"></i>
-                    <h3 class="text-xl font-bold text-white mb-2">Load Your Trading Bot</h3>
-                    <p class="text-gray-400 mb-6">Upload an HTML file with your custom bot</p>
-                    <input type="file" id="botFileInput" accept=".html" class="hidden" onchange="loadBotFile(event)">
-                    <button onclick="document.getElementById('botFileInput').click()" class="trade-button">
-                        <i class="fas fa-file-upload mr-2"></i>Choose File
-                    </button>
-                    <div class="mt-4 text-xs text-gray-500">
-                        <p>Supports: HTML with embedded CSS/JS</p>
-                    </div>
-                </div>
-            </div>
-            <iframe id="botFrame" style="display:none; width:100%; height:100%; border:none; background:transparent;"></iframe>
-        </div>
-        <div class="resize-handle" id="resizeHandle"></div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-            <!-- Trading Controls -->
-            <div class="panel p-3 sm:p-6">
-                <h3 class="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Choose Trade Type</h3>
-                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-8">
-                    <button onclick="selectTradeType('evenodd')" class="tab-button text-base py-3 active" id="btn-evenodd">
-                        <i class="fas fa-balance-scale mb-2"></i><br>
-                        Even / Odd
-                    </button>
-                    <button onclick="selectTradeType('matches')" class="tab-button text-base py-3" id="btn-matches">
-                        <i class="fas fa-bullseye mb-2"></i><br>
-                        Matches / Differs
-                    </button>
-                    <button onclick="selectTradeType('overunder')" class="tab-button text-base py-3" id="btn-overunder">
-                        <i class="fas fa-arrows-alt-v mb-2"></i><br>
-                        Over / Under
-                    </button>
-                </div>
-                <div id="tradingInterface">
-                    <!-- Content will be dynamically loaded -->
-                </div>
-            </div>
-
-            <!-- Market Panel -->
-            <div class="panel p-3 sm:p-6">
-                <div class="flex items-center justify-between mb-3 sm:mb-4">
-                    <h3 class="text-base sm:text-lg font-bold text-white">Market</h3>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-2 h-2 rounded-full bg-success" id="connectionStatus"></div>
-                        <span class="text-xs text-gray-400 hidden sm:inline" id="connectionText">Live</span>
-                    </div>
-                </div>
-                <select id="marketSelect" class="input-field mb-3 sm:mb-4 text-xs sm:text-sm" onchange="changeMarket()">
-                    <option value="R_10">Vol 10</option>
-                    <option value="R_25">Vol 25</option>
-                    <option value="R_50">Vol 50</option>
-                    <option value="R_75">Vol 75</option>
-                    <option value="R_100" selected>Vol 100</option>
-                </select>
-                <div class="flex items-center justify-between gap-3">
-                    <div class="flex-1">
-                        <div class="text-xs text-gray-400 mb-1">Price</div>
-                        <div class="price-display-compact" id="currentPrice">1234.567</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-xs text-gray-400 mb-1">Last</div>
-                        <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white text-lg sm:text-xl font-bold" id="lastDigit">7</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analytics Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 mt-3 sm:mt-6">
-            <div class="panel p-3 sm:p-6">
-                <h3 class="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Live Analytics</h3>
-                <div id="analyticsContent">
-                    <!-- Dynamic analytics content -->
-                </div>
-            </div>
-            
-            <div class="panel p-3 sm:p-6">
-                <h3 class="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Streak Detector</h3>
-                <div id="streakDetector">
-                    <!-- Streak content -->
-                </div>
-            </div>
-            
-            <div class="panel p-3 sm:p-6">
-                <h3 class="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Quick Stats</h3>
-                <div id="quickStats">
-                    <!-- Quick stats content -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Analysis Tools -->
-        <div class="panel p-3 sm:p-6 mt-3 sm:mt-6">
-            <h3 class="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Analysis Tools</h3>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-3">Analysis Range</label>
-                    <div class="flex flex-wrap gap-1.5 sm:gap-2">
-                        <button onclick="setTickRange(20)" class="tab-button text-xs" id="tick-20">20</button>
-                        <button onclick="setTickRange(50)" class="tab-button active text-xs" id="tick-50">50</button>
-                        <button onclick="setTickRange(100)" class="tab-button text-xs" id="tick-100">100</button>
-                        <input type="number" id="customTicks" placeholder="Custom" min="10" max="500" class="input-field w-16 sm:w-20 text-xs sm:text-sm" onchange="setTickRange(this.value)">
-                    </div>
-                </div>
-                <div>
-                    <div class="analysis-tabs">
-                        <button class="tab-button active" onclick="selectAlgorithm('frequency')" id="btn-frequency">
-                            <i class="fas fa-chart-bar mr-1"></i>Frequency
-                        </button>
-                        <button class="tab-button" onclick="selectAlgorithm('markov')" id="btn-markov">
-                            <i class="fas fa-project-diagram mr-1"></i>Markov
-                        </button>
-                        <button class="tab-button" onclick="selectAlgorithm('pattern')" id="btn-pattern">
-                            <i class="fas fa-puzzle-piece mr-1"></i>Pattern
-                        </button>
-                        <button class="tab-button" onclick="selectAlgorithm('trend')" id="btn-trend">
-                            <i class="fas fa-trending-up mr-1"></i>Trend
-                        </button>
-                        <button class="tab-button" onclick="selectAlgorithm('streak')" id="btn-streak">
-                            <i class="fas fa-fire mr-1"></i>Streaks
-                        </button>
-                        <button class="tab-button" onclick="selectAlgorithm('heatmap')" id="btn-heatmap">
-                            <i class="fas fa-th mr-1"></i>Heat Map
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="analysisResults" class="mt-3 sm:mt-6">
-                <!-- Analysis results -->
-            </div>
+            <div id="insights" style="background: rgba(255,69,0,0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,69,0,0.2);"></div>
         </div>
     </div>
 
     <script>
-        // Show role-based links
-        (function showRoleLinks() {
-            const admin = document.getElementById('adminDashboardLink');
-            const superadmin = document.getElementById('superadminDashboardLink');
-            if (!admin || !superadmin) return;
-            
-            const token = localStorage.getItem('token') || localStorage.getItem('jwt_token') || localStorage.getItem('authToken');
-            if (!token) return;
-            
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const role = (payload.role || payload.user_role || '').toString().toLowerCase();
-                if (role.includes('superadmin')) {
-                    superadmin.style.display = 'inline-flex';
-                } else if (role.includes('admin')) {
-                    admin.style.display = 'inline-flex';
-                }
-            } catch(e) {
-                fetch('/api/user/profile', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).then(r => r.json()).then(data => {
-                    const role = (data.role || data.user?.role || '').toString().toLowerCase();
-                    if (role.includes('superadmin')) {
-                        superadmin.style.display = 'inline-flex';
-                    } else if (role.includes('admin')) {
-                        admin.style.display = 'inline-flex';
-                    }
-                }).catch(() => {});
-            }
-        })();
-
-        let currentPrice = 1234.567;
-        let digitHistory = [];
-        let digitCounts = Array(10).fill(0);
         let ws = null;
+        let derivWS = null;
         let currentSymbol = 'R_100';
-        let currentTradeType = 'evenodd';
-        let currentAlgorithm = 'frequency';
-        let markovChain = {};
-        let patternHistory = [];
-        let lastUpdateTime = 0;
-        let analysisTickRange = 50;
-        let streakData = { current: 0, type: null, history: [], longest: { even: 0, odd: 0, over: 0, under: 0 } };
+        let currentMode = 'evenodd';
+        let selectedDigit = 0;
+        let selectedBarrier = 5;
         let isDemo = true;
         const DERIV_APP_ID = '63623';
-        let derivWS = null;
-        let authToken = null;
-        let isDerivConnected = false;
+        let digitHistory = [];
+        let digitCounts = Array(10).fill(0);
+        let streakCount = 0;
+        let streakType = null;
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeData();
-            connectWebSocket();
-            connectDeriv();
-            // Check account type from localStorage
-            const savedAccountType = localStorage.getItem('accountType');
-            if (savedAccountType === 'real') {
-                isDemo = false;
-            }
-            updateAccountDisplay();
-            // Initialize streak detector on first load
-            updateStreakDetector();
-            selectTradeType('evenodd');
-            selectAlgorithm('frequency');
-            setTickRange(50);
-        });
-
-        function initializeData() {
-            // Generate initial digit history
-            for (let i = 0; i < 20; i++) {
-                const digit = Math.floor(Math.random() * 10);
-                digitHistory.push(digit);
-                digitCounts[digit]++;
-            }
-            updateDigitDisplay();
+        function selectMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + mode).classList.add('active');
+            renderInterface();
+            updateAnalysisDisplay();
         }
 
-        function connectWebSocket() {
-            const statusEl = document.getElementById('connectionStatus');
-            const textEl = document.getElementById('connectionText');
+        function renderInterface() {
+            const container = document.getElementById('tradeInterface');
             
-            statusEl.className = 'w-3 h-3 rounded-full bg-warning';
-            textEl.textContent = 'Connecting...';
-            
-            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
-            
-            ws.onopen = () => {
-                statusEl.className = 'w-3 h-3 rounded-full bg-success';
-                textEl.textContent = 'Live';
-                ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.tick && data.tick.epoch > lastUpdateTime) {
-                    lastUpdateTime = data.tick.epoch;
-                    updatePrice(parseFloat(data.tick.quote));
-                }
-            };
-            
-            ws.onclose = () => {
-                statusEl.className = 'w-3 h-3 rounded-full bg-danger';
-                textEl.textContent = 'Disconnected';
-                setTimeout(connectWebSocket, 2000);
-            };
-            
-            ws.onerror = () => {
-                statusEl.className = 'w-3 h-3 rounded-full bg-danger';
-                textEl.textContent = 'Error';
-            };
-        }
-
-        function updatePrice(price) {
-            currentPrice = price;
-            const lastDigit = parseInt(price.toString().slice(-1));
-            
-            // Animate price update
-            const priceEl = document.getElementById('currentPrice');
-            priceEl.classList.add('price-update');
-            priceEl.textContent = price.toFixed(3);
-            setTimeout(() => priceEl.classList.remove('price-update'), 300);
-            
-            document.getElementById('lastDigit').textContent = lastDigit;
-            
-            // Update history with animation
-            digitHistory.push(lastDigit);
-            if (digitHistory.length > 500) {
-                const removedDigit = digitHistory.shift();
-                digitCounts[removedDigit]--;
-            }
-            digitCounts[lastDigit]++;
-            
-            // Update streak data
-            updateStreakData(lastDigit);
-            
-            // Update Markov chain
-            updateMarkovChain(lastDigit);
-            
-            // Update pattern history
-            if (digitHistory.length >= 3) {
-                const pattern = digitHistory.slice(-3).join('');
-                patternHistory.push(pattern);
-                if (patternHistory.length > 100) patternHistory.shift();
-            }
-            
-            updateDigitDisplay();
-            updateAnalytics();
-            updateQuickStats();
-            updateStreakDetector();
-            updatePerformanceTracker();
-            runAnalysis();
-            
-            // Add slide-in animation to new elements
-            setTimeout(() => {
-                const newElements = document.querySelectorAll('.slide-in');
-                newElements.forEach(el => el.classList.remove('slide-in'));
-            }, 500);
-        }
-
-        function updateDigitDisplay() {
-            const evenCount = digitHistory.filter(d => d % 2 === 0).length;
-            const oddCount = digitHistory.length - evenCount;
-            
-            // Animate new digits
-            setTimeout(() => {
-                const digitBoxes = document.querySelectorAll('.digit-box');
-                digitBoxes.forEach(box => box.classList.remove('digit-new'));
-                if (digitBoxes.length > 0) {
-                    digitBoxes[digitBoxes.length - 1].classList.add('digit-new');
-                    setTimeout(() => digitBoxes[digitBoxes.length - 1].classList.remove('digit-new'), 1000);
-                }
-            }, 100);
-        }
-
-        function updateMarkovChain(digit) {
-            if (digitHistory.length >= 2) {
-                const prevDigit = digitHistory[digitHistory.length - 2];
-                if (!markovChain[prevDigit]) markovChain[prevDigit] = {};
-                if (!markovChain[prevDigit][digit]) markovChain[prevDigit][digit] = 0;
-                markovChain[prevDigit][digit]++;
-            }
-        }
-
-        function selectAlgorithm(algorithm) {
-            currentAlgorithm = algorithm;
-            
-            document.querySelectorAll('.algorithm-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`btn-${algorithm}`).classList.add('active');
-            
-            runAnalysis();
-        }
-
-        function runAnalysis() {
-            const container = document.getElementById('analysisResults');
-            if (digitHistory.length < 5) {
-                container.innerHTML = '<div class="text-gray-400 text-sm">Collecting data...</div>';
-                return;
-            }
-            
-            let analysisContent = '';
-            
-            switch(currentAlgorithm) {
-                case 'frequency':
-                    analysisContent = generateFrequencyAnalysis();
-                    break;
-                case 'markov':
-                    analysisContent = generateMarkovAnalysis();
-                    break;
-                case 'pattern':
-                    analysisContent = generatePatternAnalysis();
-                    break;
-                case 'trend':
-                    analysisContent = generateTrendAnalysis();
-                    break;
-                case 'streak':
-                    analysisContent = generateStreakAnalysis();
-                    break;
-                case 'heatmap':
-                    analysisContent = generateHeatmapAnalysis();
-                    break;
-            }
-            
-            container.innerHTML = analysisContent;
-        }
-
-        function setTickRange(ticks) {
-            analysisTickRange = parseInt(ticks);
-            
-            document.querySelectorAll('.tick-range-btn').forEach(btn => btn.classList.remove('active'));
-            const btnId = `tick-${ticks}`;
-            const btn = document.getElementById(btnId);
-            if (btn) btn.classList.add('active');
-            
-            runAnalysis();
-            updateQuickStats();
-        }
-
-        function updateStreakData(digit) {
-            const isEven = digit % 2 === 0;
-            const currentType = isEven ? 'even' : 'odd';
-            const isOver5 = digit > 5;
-            const overUnderType = isOver5 ? 'over' : 'under';
-            
-            // Update even/odd streak
-            if (streakData.type === currentType) {
-                streakData.current++;
+            if (currentMode === 'evenodd') {
+                container.innerHTML = `
+                    <h2>Choose Prediction</h2>
+                    <button class="trade-btn btn-green" onclick="placeTrade('DIGITEVEN')">
+                        <i class="fas fa-equals"></i> EVEN (0,2,4,6,8)
+                    </button>
+                    <button class="trade-btn btn-red" onclick="placeTrade('DIGITODD')">
+                        <i class="fas fa-not-equal"></i> ODD (1,3,5,7,9)
+                    </button>
+                `;
+            } else if (currentMode === 'matches') {
+                container.innerHTML = `
+                    <h2>Select Digit</h2>
+                    <div class="digit-grid">
+                        ${[0,1,2,3,4,5,6,7,8,9].map(d => 
+                            `<button class="digit-btn ${d === selectedDigit ? 'active' : ''}" onclick="selectDigit(${d})">${d}</button>`
+                        ).join('')}
+                    </div>
+                    <button class="trade-btn btn-blue" onclick="placeTrade('DIGITMATCH')">
+                        <i class="fas fa-bullseye"></i> MATCHES
+                    </button>
+                    <button class="trade-btn btn-purple" onclick="placeTrade('DIGITDIFF')">
+                        <i class="fas fa-times"></i> DIFFERS
+                    </button>
+                `;
             } else {
-                if (streakData.type !== null) {
-                    streakData.history.push({ type: streakData.type, length: streakData.current });
-                    if (streakData.history.length > 50) streakData.history.shift();
-                    
-                    // Update longest streaks
-                    if (streakData.current > streakData.longest[streakData.type]) {
-                        streakData.longest[streakData.type] = streakData.current;
-                    }
-                }
-                streakData.type = currentType;
-                streakData.current = 1;
-            }
-            
-            // Track over/under streaks separately
-            if (!streakData.overUnder) {
-                streakData.overUnder = { current: 1, type: overUnderType };
-            } else if (streakData.overUnder.type === overUnderType) {
-                streakData.overUnder.current++;
-            } else {
-                if (streakData.overUnder.current > streakData.longest[streakData.overUnder.type]) {
-                    streakData.longest[streakData.overUnder.type] = streakData.overUnder.current;
-                }
-                streakData.overUnder = { current: 1, type: overUnderType };
+                container.innerHTML = `
+                    <div class="input-group">
+                        <label>Barrier</label>
+                        <input type="number" class="input-field" id="barrierInput" value="${selectedBarrier}" min="1" max="8" onchange="selectedBarrier = parseInt(this.value); updateAnalysisDisplay();">
+                    </div>
+                    <button class="trade-btn btn-green" onclick="placeTrade('DIGITOVER')">
+                        <i class="fas fa-arrow-up"></i> OVER
+                    </button>
+                    <button class="trade-btn btn-red" onclick="placeTrade('DIGITUNDER')">
+                        <i class="fas fa-arrow-down"></i> UNDER
+                    </button>
+                `;
             }
         }
 
-        function updateStreakDetector() {
-            const container = document.getElementById('streakDetector');
-            if (!streakData.type) {
-                container.innerHTML = '<div class="text-gray-400 text-sm">Building streak data...</div>';
-                return;
-            }
-            
-            // Calculate break probability (simple heuristic based on streak length)
-            const breakProb = Math.min(95, 50 + (streakData.current * 5));
-            const continueProb = 100 - breakProb;
-            
-            // Get longest streaks for context
-            const longestEven = streakData.longest.even || 0;
-            const longestOdd = streakData.longest.odd || 0;
-            const longestOver = streakData.longest.over || 0;
-            const longestUnder = streakData.longest.under || 0;
-            
-            const overUnderCurrent = streakData.overUnder ? streakData.overUnder.current : 0;
-            const overUnderType = streakData.overUnder ? streakData.overUnder.type : 'unknown';
-            
-            container.innerHTML = `
-                <div class="space-y-4">
-                    <!-- Current Streaks -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="stat-card bg-gradient-to-r from-${streakData.type === 'even' ? 'green' : 'red'}-500/20 to-transparent border-${streakData.type === 'even' ? 'green' : 'red'}-500/30">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-${streakData.type === 'even' ? 'success' : 'danger'}">${streakData.current}</div>
-                                <div class="text-xs text-gray-400 uppercase tracking-wide">${streakData.type} streak</div>
-                                <div class="text-xs text-gray-500 mt-1">Record: ${streakData.type === 'even' ? longestEven : longestOdd}</div>
-                            </div>
-                        </div>
-                        <div class="stat-card bg-gradient-to-r from-${overUnderType === 'over' ? 'blue' : 'purple'}-500/20 to-transparent border-${overUnderType === 'over' ? 'blue' : 'purple'}-500/30">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-${overUnderType === 'over' ? 'primary' : 'warning'}">${overUnderCurrent}</div>
-                                <div class="text-xs text-gray-400 uppercase tracking-wide">${overUnderType} 5 streak</div>
-                                <div class="text-xs text-gray-500 mt-1">Record: ${overUnderType === 'over' ? longestOver : longestUnder}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Break Probability Indicator -->
-                    <div class="stat-card">
-                        <div class="text-sm font-medium text-gray-300 mb-2">Streak Analysis</div>
-                        <div class="flex justify-between text-xs mb-2">
-                            <span class="text-danger">Break: ${breakProb.toFixed(0)}%</span>
-                            <span class="text-success">Continue: ${continueProb.toFixed(0)}%</span>
-                        </div>
-                        <div class="w-full bg-gray-700 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-red-500 to-green-500 h-2 rounded-full" style="width: 100%"></div>
-                            <div class="bg-red-500 h-2 rounded-full -mt-2 transition-all duration-500" style="width: ${breakProb}%"></div>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-2 text-center">
-                            ${streakData.current >= 5 ? '⚠️ Extended streak' : streakData.current >= 3 ? '📊 Notable streak' : '📈 Building'}
-                        </div>
-                    </div>
-                    
-                    <!-- Recent Streak History -->
-                    <div class="stat-card">
-                        <div class="text-sm font-medium text-gray-300 mb-2">Recent History</div>
-                        <div class="flex flex-wrap gap-1">
-                            ${streakData.history.slice(-8).map(s => `
-                                <div class="px-2 py-1 rounded text-xs font-medium ${
-                                    s.type === 'even' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'
-                                }">
-                                    ${s.type.charAt(0).toUpperCase()}${s.length}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateQuickStats() {
-            const container = document.getElementById('quickStats');
-            const range = Math.min(analysisTickRange, digitHistory.length);
-            const recentDigits = digitHistory.slice(-range);
-            
-            if (recentDigits.length === 0) {
-                container.innerHTML = '<div class="text-gray-400 text-sm">No data available</div>';
-                return;
-            }
-            
-            const evenCount = recentDigits.filter(d => d % 2 === 0).length;
-            const oddCount = recentDigits.length - evenCount;
-            const highCount = recentDigits.filter(d => d >= 5).length;
-            const lowCount = recentDigits.length - highCount;
-            const avgDigit = (recentDigits.reduce((sum, d) => sum + d, 0) / recentDigits.length).toFixed(1);
-            const mostFrequent = recentDigits.reduce((a, b, i, arr) => 
-                arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-            );
-            
-            container.innerHTML = `
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-success">${evenCount}</div>
-                        <div class="text-xs text-gray-400 mt-1">Even</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-danger">${oddCount}</div>
-                        <div class="text-xs text-gray-400 mt-1">Odd</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-primary">${highCount}</div>
-                        <div class="text-xs text-gray-400 mt-1">High (5-9)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-success">${lowCount}</div>
-                        <div class="text-xs text-gray-400 mt-1">Low (0-4)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-warning">${avgDigit}</div>
-                        <div class="text-xs text-gray-400 mt-1">Average</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="text-xl font-bold text-primary">${mostFrequent}</div>
-                        <div class="text-xs text-gray-400 mt-1">Most Frequent</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updatePerformanceTracker() {
-            const container = document.getElementById('performanceResults');
-            if (!container) return;
-            
-            const ticksInput = document.getElementById('performanceTicks');
-            if (!ticksInput) return;
-            
-            const trackTicks = parseInt(ticksInput.value);
-            const range = Math.min(trackTicks, digitHistory.length);
-            const recentDigits = digitHistory.slice(-range);
-            
-            if (recentDigits.length < 5) {
-                container.innerHTML = '<div class="text-gray-500 text-sm">Need at least 5 ticks</div>';
-                return;
-            }
-            
-            let performanceContent = '';
-            
-            switch(currentTradeType) {
-                case 'evenodd':
-                    const evenWinRate = (recentDigits.filter(d => d % 2 === 0).length / recentDigits.length * 100).toFixed(1);
-                    const oddWinRate = (100 - evenWinRate).toFixed(1);
-                    
-                    performanceContent = `
-                        <div class="space-y-2">
-                            <div class="performance-item">
-                                <span>Even Win Rate:</span>
-                                <span class="font-bold ${evenWinRate > 50 ? 'text-green-600' : 'text-red-600'}">${evenWinRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Odd Win Rate:</span>
-                                <span class="font-bold ${oddWinRate > 50 ? 'text-green-600' : 'text-red-600'}">${oddWinRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Current Streak:</span>
-                                <span class="font-bold text-purple-600">${streakData.current} ${streakData.type || 'N/A'}</span>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'matches':
-                    const digitFreq = {};
-                    recentDigits.forEach(d => digitFreq[d] = (digitFreq[d] || 0) + 1);
-                    const bestDigit = Object.entries(digitFreq).sort((a, b) => b[1] - a[1])[0];
-                    const worstDigit = Object.entries(digitFreq).sort((a, b) => a[1] - b[1])[0];
-                    const matchRate = (10 / recentDigits.length * 100).toFixed(1); // Expected 10% match rate
-                    const differRate = (100 - matchRate).toFixed(1);
-                    
-                    performanceContent = `
-                        <div class="space-y-2">
-                            <div class="performance-item">
-                                <span>Match Rate (Expected):</span>
-                                <span class="font-bold text-blue-600">${matchRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Differ Rate:</span>
-                                <span class="font-bold text-green-600">${differRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Hot Digit:</span>
-                                <span class="font-bold text-orange-600">${bestDigit[0]} (${bestDigit[1]}x)</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Cold Digit:</span>
-                                <span class="font-bold text-blue-600">${worstDigit[0]} (${worstDigit[1]}x)</span>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'overunder':
-                    const barrier5Over = recentDigits.filter(d => d > 5).length;
-                    const barrier5Under = recentDigits.filter(d => d < 5).length;
-                    const overRate = (barrier5Over / recentDigits.length * 100).toFixed(1);
-                    const underRate = (barrier5Under / recentDigits.length * 100).toFixed(1);
-                    const avgDigit = (recentDigits.reduce((sum, d) => sum + d, 0) / recentDigits.length).toFixed(1);
-                    
-                    // Calculate performance for different barriers
-                    const barrier3Over = recentDigits.filter(d => d > 3).length;
-                    const barrier3Under = recentDigits.filter(d => d < 3).length;
-                    const barrier7Over = recentDigits.filter(d => d > 7).length;
-                    const barrier7Under = recentDigits.filter(d => d < 7).length;
-                    
-                    performanceContent = `
-                        <div class="space-y-2">
-                            <div class="performance-item">
-                                <span>Over 5 Rate:</span>
-                                <span class="font-bold ${overRate > 50 ? 'text-green-600' : 'text-red-600'}">${overRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Under 5 Rate:</span>
-                                <span class="font-bold ${underRate > 50 ? 'text-green-600' : 'text-red-600'}">${underRate}%</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Average Digit:</span>
-                                <span class="font-bold text-blue-600">${avgDigit}</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Over 3: ${barrier3Over} | Under 3: ${barrier3Under}</span>
-                            </div>
-                            <div class="performance-item">
-                                <span>Over 7: ${barrier7Over} | Under 7: ${barrier7Under}</span>
-                            </div>
-                        </div>
-                    `;
-                    break;
-            }
-            
-            container.innerHTML = performanceContent;
-        }
-
-        function generateStreakAnalysis() {
-            if (streakData.history.length === 0) {
-                return '<div class="text-gray-400 text-sm">Building streak history...</div>';
-            }
-            
-            const avgStreakLength = (streakData.history.reduce((sum, s) => sum + s.length, 0) / streakData.history.length).toFixed(1);
-            const longestStreak = Math.max(...streakData.history.map(s => s.length));
-            const evenStreaks = streakData.history.filter(s => s.type === 'even');
-            const oddStreaks = streakData.history.filter(s => s.type === 'odd');
-            
-            return `
-                <div class="space-y-3">
-                    <div class="prediction-card">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-purple-600">${streakData.current}</div>
-                            <div class="text-sm text-gray-600">Current ${streakData.type} streak</div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="stat-card">
-                            <div class="text-lg font-bold">${avgStreakLength}</div>
-                            <div class="text-xs text-gray-600">Avg Length</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="text-lg font-bold">${longestStreak}</div>
-                            <div class="text-xs text-gray-600">Longest</div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        Even streaks: ${evenStreaks.length} | Odd streaks: ${oddStreaks.length}
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleAccountType() {
-            isDemo = !isDemo;
-            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
-            const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
-            const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
-            const targetAccount = isDemo ? demoAccount : realAccount;
-            
-            if (targetAccount) {
-                localStorage.setItem('preferredAccountType', isDemo ? 'demo' : 'real');
-                localStorage.setItem('preferredAccountId', targetAccount.account);
-            }
-            
-            // Reset Deriv connection for new account type
-            isDerivConnected = false;
-            if (derivWS) {
-                derivWS.onclose = null;
-                derivWS.close(1000, 'Account switch');
-                derivWS = null;
-            }
-            
-            updateAccountDisplay();
-            
-            // Reconnect with new account type
-            setTimeout(() => {
-                connectDeriv();
-            }, 100);
-        }
-
-        function updateAccountDisplay() {
-            const btn = document.getElementById('accountTypeBtn');
-            const label = document.getElementById('balanceLabel');
-            const balance = document.getElementById('accountBalance');
-            
-            if (isDemo) {
-                btn.textContent = 'Demo';
-                btn.className = 'px-4 py-2 text-sm rounded-lg font-semibold transition-all bg-success text-white';
-                label.textContent = 'Demo Balance';
-                balance.textContent = 'Loading...';
-                balance.className = 'font-bold text-lg text-white';
-            } else {
-                btn.textContent = 'Real';
-                btn.className = 'px-4 py-2 text-sm rounded-lg font-semibold transition-all bg-danger text-white';
-                label.textContent = 'Real Balance';
-                balance.textContent = 'Loading...';
-                balance.className = 'font-bold text-lg text-white';
-            }
-        }
-
-        function generateFrequencyAnalysis() {
-            const range = Math.min(analysisTickRange, digitHistory.length);
-            const recentDigits = digitHistory.slice(-range);
-            const recentCounts = Array(10).fill(0);
-            recentDigits.forEach(d => recentCounts[d]++);
-            
-            const predictions = [];
-            
-            for (let i = 0; i < 10; i++) {
-                const frequency = recentCounts[i] / recentDigits.length;
-                const expected = 0.1;
-                const deviation = Math.abs(frequency - expected);
-                const confidence = Math.max(0, (1 - deviation * 5) * 100);
-                
-                if (confidence > 60) {
-                    predictions.push({
-                        digit: i,
-                        confidence: confidence,
-                        reason: frequency > expected ? 'Hot digit' : 'Due digit'
-                    });
-                }
-            }
-            
-            predictions.sort((a, b) => b.confidence - a.confidence);
-            
-            return predictions.slice(0, 3).map(p => `
-                <div class="prediction-card">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold">Digit ${p.digit}</span>
-                        <span class="text-sm text-gray-600">${p.reason}</span>
-                    </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${p.confidence}%"></div>
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">${p.confidence.toFixed(1)}% confidence</div>
-                </div>
-            `).join('');
-        }
-
-        function generateMarkovAnalysis() {
-            if (digitHistory.length < 3) return '<div class="text-gray-400 text-sm">Need more data for Markov analysis</div>';
-            
-            const lastDigit = digitHistory[digitHistory.length - 1];
-            const transitions = markovChain[lastDigit] || {};
-            const total = Object.values(transitions).reduce((sum, count) => sum + count, 0);
-            
-            if (total === 0) return '<div class="text-gray-400 text-sm">No transition data available</div>';
-            
-            const predictions = Object.entries(transitions)
-                .map(([digit, count]) => ({
-                    digit: parseInt(digit),
-                    probability: count / total,
-                    confidence: (count / total) * 100
-                }))
-                .sort((a, b) => b.probability - a.probability)
-                .slice(0, 3);
-            
-            return predictions.map(p => `
-                <div class="prediction-card">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold">Digit ${p.digit}</span>
-                        <span class="text-sm text-gray-600">After ${lastDigit}</span>
-                    </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${p.confidence}%"></div>
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">${p.confidence.toFixed(1)}% probability</div>
-                </div>
-            `).join('');
-        }
-
-        function generatePatternAnalysis() {
-            if (patternHistory.length < 5) return '<div class="text-gray-400 text-sm">Collecting pattern data...</div>';
-            
-            const patternCounts = {};
-            patternHistory.forEach(pattern => {
-                patternCounts[pattern] = (patternCounts[pattern] || 0) + 1;
-            });
-            
-            const recentPattern = digitHistory.slice(-2).join('');
-            const matchingPatterns = Object.entries(patternCounts)
-                .filter(([pattern]) => pattern.startsWith(recentPattern))
-                .map(([pattern, count]) => ({
-                    nextDigit: parseInt(pattern[2]),
-                    count: count,
-                    confidence: (count / patternHistory.length) * 100
-                }))
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 3);
-            
-            if (matchingPatterns.length === 0) {
-                return '<div class="text-gray-400 text-sm">No matching patterns found</div>';
-            }
-            
-            return matchingPatterns.map(p => `
-                <div class="prediction-card">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold">Digit ${p.nextDigit}</span>
-                        <span class="text-sm text-gray-600">Pattern match</span>
-                    </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${p.confidence * 2}%"></div>
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">${p.count} occurrences</div>
-                </div>
-            `).join('');
-        }
-
-        function generateTrendAnalysis() {
-            if (digitHistory.length < 10) return '<div class="text-gray-400 text-sm">Need more data for trend analysis</div>';
-            
-            const recent = digitHistory.slice(-10);
-            const evenTrend = recent.filter(d => d % 2 === 0).length / recent.length;
-            const highTrend = recent.filter(d => d >= 5).length / recent.length;
-            const avgDigit = recent.reduce((sum, d) => sum + d, 0) / recent.length;
-            
-            const trends = [];
-            
-            if (evenTrend > 0.7) trends.push({ type: 'Even digits trending', confidence: evenTrend * 100 });
-            if (evenTrend < 0.3) trends.push({ type: 'Odd digits trending', confidence: (1 - evenTrend) * 100 });
-            if (highTrend > 0.7) trends.push({ type: 'High digits (5-9) trending', confidence: highTrend * 100 });
-            if (highTrend < 0.3) trends.push({ type: 'Low digits (0-4) trending', confidence: (1 - highTrend) * 100 });
-            
-            if (trends.length === 0) {
-                return '<div class="text-gray-400 text-sm">No clear trends detected</div>';
-            }
-            
-            return trends.map(t => `
-                <div class="prediction-card">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold text-sm">${t.type}</span>
-                    </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${t.confidence}%"></div>
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">${t.confidence.toFixed(1)}% strength</div>
-                </div>
-            `).join('');
-        }
-
-        function selectTradeType(tradeType) {
-            currentTradeType = tradeType;
-            
-            // Update button states
-            document.querySelectorAll('#btn-evenodd, #btn-matches, #btn-overunder').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            const activeBtn = document.getElementById(`btn-${tradeType}`);
-            activeBtn.classList.add('active');
-            
-            // Load trade type interface
-            loadTradeInterface(tradeType);
-            updateAnalytics();
-        }
-
-        function loadTradeInterface(tradeType) {
-            const container = document.getElementById('tradingInterface');
-            
-            const baseControls = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-3">Stake Amount</label>
-                        <input type="number" id="stakeAmount" value="1" min="0.35" step="0.01" 
-                               class="input-field" onchange="updatePayouts()" placeholder="Enter stake amount">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-3">Duration (Ticks)</label>
-                        <input type="number" id="duration" value="5" min="1" max="10" class="input-field" placeholder="5">
-                    </div>
-                </div>
-            `;
-            
-            let specificInterface = '';
-            
-            switch(tradeType) {
-                case 'evenodd':
-                    specificInterface = `
-                        <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-white mb-6">Choose Your Prediction</h4>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <button class="trade-button even" style="padding: 12px 16px;" onclick="placeTrade('DIGITEVEN')">
-                                    <div class="text-center">
-                                        <i class="fas fa-equals text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Even</div>
-                                        <div class="text-xs opacity-80">0, 2, 4, 6, 8</div>
-                                    </div>
-                                </button>
-                                <button class="trade-button odd" style="padding: 12px 16px;" onclick="placeTrade('DIGITODD')">
-                                    <div class="text-center">
-                                        <i class="fas fa-not-equal text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Odd</div>
-                                        <div class="text-xs opacity-80">1, 3, 5, 7, 9</div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'matches':
-                    specificInterface = `
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-300 mb-3">Predict Digit</label>
-                            <select id="digitPrediction" class="input-field mb-6" onchange="updatePayouts()">
-                                ${Array.from({length: 10}, (_, i) => `<option value="${i}">${i}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-white mb-6">Choose Your Prediction</h4>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <button class="trade-button matches" style="padding: 12px 16px;" onclick="placeTrade('DIGITMATCH')">
-                                    <div class="text-center">
-                                        <i class="fas fa-bullseye text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Matches</div>
-                                        <div class="text-xs opacity-80">Exact digit match</div>
-                                    </div>
-                                </button>
-                                <button class="trade-button differs" style="padding: 12px 16px;" onclick="placeTrade('DIGITDIFF')">
-                                    <div class="text-center">
-                                        <i class="fas fa-times text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Differs</div>
-                                        <div class="text-xs opacity-80">Any other digit</div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'overunder':
-                    specificInterface = `
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-300 mb-3">Barrier</label>
-                            <select id="overUnderBarrier" class="input-field mb-6" onchange="updatePayouts()">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5" selected>5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                            </select>
-                        </div>
-                        <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-white mb-4">Choose Your Prediction</h4>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button class="trade-button over" style="padding: 12px 16px;" onclick="placeTrade('DIGITOVER')">
-                                    <div class="text-center">
-                                        <i class="fas fa-arrow-up text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Over</div>
-                                        <div class="text-xs opacity-80">Higher than barrier</div>
-                                    </div>
-                                </button>
-                                <button class="trade-button under" style="padding: 12px 16px;" onclick="placeTrade('DIGITUNDER')">
-                                    <div class="text-center">
-                                        <i class="fas fa-arrow-down text-base mb-1"></i>
-                                        <div class="text-sm font-bold">Under</div>
-                                        <div class="text-xs opacity-80">Lower than barrier</div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    break;
-            }
-            
-            container.innerHTML = baseControls + specificInterface;
-            updatePayouts();
-        }
-
-        function updateAnalytics() {
-            const container = document.getElementById('analyticsContent');
-            const evenCount = digitHistory.filter(d => d % 2 === 0).length;
-            const oddCount = digitHistory.length - evenCount;
-            
-            let analyticsContent = '';
-            
-            switch(currentTradeType) {
-                case 'evenodd':
-                    const range = Math.min(50, digitHistory.length);
-                    const recentDigits = digitHistory.slice(-range);
-                    const digitFreq = Array(10).fill(0);
-                    recentDigits.forEach(d => digitFreq[d]++);
-                    
-                    const lastDigit = digitHistory[digitHistory.length - 1];
-                    
-                    analyticsContent = `
-                        <div class="mb-3">
-                            <div class="text-xs sm:text-sm text-gray-400 mb-3">Digit Pad (Last ${range} ticks)</div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const percent = ((digitFreq[i] / range) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${lastDigit === i ? 'active' : ''}" id="pad-${i}">
-                                            <div class="digit-num">${i}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const digit = i + 5;
-                                    const percent = ((digitFreq[digit] / range) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${lastDigit === digit ? 'active' : ''}" id="pad-${digit}">
-                                            <div class="digit-num">${digit}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="stat-card">
-                                <div class="text-xl sm:text-2xl font-bold text-success">${((evenCount / digitHistory.length) * 100).toFixed(1)}%</div>
-                                <div class="text-xs sm:text-sm text-gray-400 mt-1">Even (${evenCount})</div>
-                                <div class="w-full bg-gray-700 rounded-full h-1.5 sm:h-2 mt-2">
-                                    <div class="bg-success h-1.5 sm:h-2 rounded-full transition-all duration-500" style="width: ${(evenCount / digitHistory.length) * 100}%"></div>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="text-xl sm:text-2xl font-bold text-danger">${((oddCount / digitHistory.length) * 100).toFixed(1)}%</div>
-                                <div class="text-xs sm:text-sm text-gray-400 mt-1">Odd (${oddCount})</div>
-                                <div class="w-full bg-gray-700 rounded-full h-1.5 sm:h-2 mt-2">
-                                    <div class="bg-danger h-1.5 sm:h-2 rounded-full transition-all duration-500" style="width: ${(oddCount / digitHistory.length) * 100}%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'matches':
-                    const matchRange = Math.min(50, digitHistory.length);
-                    const matchRecentDigits = digitHistory.slice(-matchRange);
-                    const matchDigitFreq = Array(10).fill(0);
-                    matchRecentDigits.forEach(d => matchDigitFreq[d]++);
-                    const matchLastDigit = digitHistory[digitHistory.length - 1];
-                    
-                    analyticsContent = `
-                        <div class="mb-3">
-                            <div class="text-xs sm:text-sm text-gray-400 mb-3">Digit Frequency (Last ${matchRange})</div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const percent = ((matchDigitFreq[i] / matchRange) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${matchLastDigit === i ? 'active' : ''}">
-                                            <div class="digit-num">${i}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const digit = i + 5;
-                                    const percent = ((matchDigitFreq[digit] / matchRange) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${matchLastDigit === digit ? 'active' : ''}">
-                                            <div class="digit-num">${digit}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'overunder':
-                    const ouRange = Math.min(50, digitHistory.length);
-                    const ouRecentDigits = digitHistory.slice(-ouRange);
-                    const ouDigitFreq = Array(10).fill(0);
-                    ouRecentDigits.forEach(d => ouDigitFreq[d]++);
-                    const ouLastDigit = digitHistory[digitHistory.length - 1];
-                    
-                    const overCounts = Array(9).fill(0);
-                    const underCounts = Array(9).fill(0);
-                    
-                    for (let barrier = 1; barrier <= 8; barrier++) {
-                        digitHistory.forEach(digit => {
-                            if (digit > barrier) overCounts[barrier]++;
-                            if (digit < barrier) underCounts[barrier]++;
-                        });
-                    }
-                    
-                    analyticsContent = `
-                        <div class="mb-3">
-                            <div class="text-xs sm:text-sm text-gray-400 mb-3">Digit Pad (Last ${ouRange})</div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const percent = ((ouDigitFreq[i] / ouRange) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${ouLastDigit === i ? 'active' : ''}">
-                                            <div class="digit-num">${i}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                            <div class="digit-pad">
-                                ${Array.from({length: 5}, (_, i) => {
-                                    const digit = i + 5;
-                                    const percent = ((ouDigitFreq[digit] / ouRange) * 100).toFixed(1);
-                                    return `
-                                        <div class="digit-pad-cell ${ouLastDigit === digit ? 'active' : ''}">
-                                            <div class="digit-num">${digit}</div>
-                                            <div class="digit-percent">${percent}%</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="text-xs sm:text-sm text-gray-400 mb-2">Barrier Stats</div>
-                            <div class="space-y-2">
-                                ${Array.from({length: 8}, (_, i) => {
-                                    const barrier = i + 1;
-                                    const overCount = overCounts[barrier];
-                                    const underCount = underCounts[barrier];
-                                    return `
-                                        <div class="stat-card p-2">
-                                            <div class="flex items-center justify-between text-xs sm:text-sm">
-                                                <span class="font-medium">B${barrier}</span>
-                                                <div class="flex space-x-2 sm:space-x-4">
-                                                    <span class="text-success">↑${overCount}</span>
-                                                    <span class="text-warning">↓${underCount}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                    break;
-            }
-            
-            container.innerHTML = analyticsContent;
-        }
-
-        function changeMarket() {
-            currentSymbol = document.getElementById('marketSelect').value;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ forget_all: "ticks" }));
-                ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
-            }
-        }
-
-        function updatePayouts() {
-            // Function kept for compatibility but no longer updates payout displays
-        }
-
-        function generateHeatmapAnalysis() {
-            const range = Math.min(analysisTickRange, digitHistory.length);
-            const recentDigits = digitHistory.slice(-range);
-            const digitFreq = Array(10).fill(0);
-            
-            recentDigits.forEach(d => digitFreq[d]++);
-            const maxFreq = Math.max(...digitFreq);
-            
-            const heatmapHtml = digitFreq.map((freq, digit) => {
-                const intensity = maxFreq > 0 ? freq / maxFreq : 0;
-                const color = intensity > 0.7 ? '#ef4444' : intensity > 0.4 ? '#f59e0b' : intensity > 0.1 ? '#10b981' : '#6b7280';
-                return `<div class="heat-cell" style="background: ${color}">${digit}<br><span style="font-size:10px">${freq}</span></div>`;
-            }).join('');
-            
-            return `
-                <div class="text-center">
-                    <div class="text-sm text-gray-400 mb-3">Digit Frequency Heat Map (Last ${range} ticks)</div>
-                    <div class="flex flex-wrap justify-center">${heatmapHtml}</div>
-                    <div class="text-xs text-gray-400 mt-2">
-                        <span class="inline-block w-3 h-3 bg-red-500 mr-1"></span>Hot
-                        <span class="inline-block w-3 h-3 bg-yellow-500 mx-2"></span>Warm
-                        <span class="inline-block w-3 h-3 bg-green-500 mx-1"></span>Cool
-                        <span class="inline-block w-3 h-3 bg-gray-500 ml-2"></span>Cold
-                    </div>
-            `;
+        function selectDigit(digit) {
+            selectedDigit = digit;
+            renderInterface();
         }
 
         function placeTrade(tradeType) {
-            const stake = parseFloat(document.getElementById('stakeAmount')?.value) || 1;
-            const duration = parseInt(document.getElementById('duration')?.value) || 5;
+            const stake = parseFloat(document.getElementById('stakeAmount').value);
+            const duration = parseInt(document.getElementById('duration').value);
             
-            // Check if user has Deriv token
-            if (!derivWS || derivWS.readyState !== WebSocket.OPEN || !isDerivConnected) {
-                window.location.href = '/settings';
+            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+                alert('Connecting to Deriv... Please wait.');
                 return;
             }
             
-            // Real Deriv trade
             const tradeRequest = {
                 buy: 1,
                 price: stake,
@@ -1860,649 +343,372 @@
                 }
             };
             
-            // Add specific parameters
             if (tradeType === 'DIGITMATCH' || tradeType === 'DIGITDIFF') {
-                const digit = document.getElementById('digitPrediction')?.value || '0';
-                tradeRequest.parameters.last_digit_prediction = parseInt(digit);
+                tradeRequest.parameters.barrier = selectedDigit;
             } else if (tradeType === 'DIGITOVER' || tradeType === 'DIGITUNDER') {
-                const barrier = document.getElementById('overUnderBarrier')?.value || '5';
-                tradeRequest.parameters.barrier = parseInt(barrier);
+                tradeRequest.parameters.barrier = selectedBarrier;
             }
             
             derivWS.send(JSON.stringify(tradeRequest));
         }
-        
-        function simulateTrade(tradeType, stake, duration) {
-            let tradeDetails = `${tradeType} trade placed for ${stake} USD`;
+
+        function connectWebSocket() {
+            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
             
-            if (tradeType === 'DIGITMATCH' || tradeType === 'DIGITDIFF') {
-                const digit = document.getElementById('digitPrediction')?.value || '0';
-                tradeDetails += ` (Digit: ${digit})`;
-            } else if (tradeType === 'DIGITOVER' || tradeType === 'DIGITUNDER') {
-                const barrier = document.getElementById('overUnderBarrier')?.value || '5';
-                tradeDetails += ` (Barrier: ${barrier})`;
-            }
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ ticks_history: currentSymbol, count: 1000, end: 'latest', style: 'ticks' }));
+            };
             
-            tradeDetails += ` for ${duration} ticks`;
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.history) {
+                    data.history.prices.forEach(price => {
+                        const lastDigit = parseInt(price.toString().slice(-1));
+                        digitHistory.push(lastDigit);
+                        digitCounts[lastDigit]++;
+                    });
+                    updateAnalysisDisplay();
+                    ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
+                }
+                
+                if (data.tick) {
+                    const price = parseFloat(data.tick.quote);
+                    const lastDigit = parseInt(price.toString().slice(-1));
+                    const priceEl = document.getElementById('currentPrice');
+                    const digitEl = document.getElementById('lastDigit');
+                    if (priceEl) priceEl.textContent = price.toFixed(3);
+                    if (digitEl) digitEl.textContent = lastDigit;
+                    
+                    updateDigitAnalysis(lastDigit);
+                }
+            };
             
-            alert(`Trade placed: ${tradeDetails}`);
-            
-            // Simulate trade outcome
-            setTimeout(() => {
-                simulateTradeOutcome({
-                    id: Date.now(),
-                    type: tradeType,
-                    stake: stake,
-                    duration: duration
-                });
-            }, Math.min(duration * 1000, 10000));
+            ws.onclose = () => setTimeout(connectWebSocket, 2000);
         }
-        
+
         function connectDeriv() {
             const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
             if (accounts.length === 0) {
-                console.log('No Deriv accounts connected');
-                document.getElementById('accountBalance').textContent = 'Connect Deriv';
+                const balanceEl = document.getElementById('accountBalance');
+                if (balanceEl) balanceEl.textContent = 'Connect Deriv';
                 return;
             }
             
-            // Get preferred account
-            const preferredAccountId = localStorage.getItem('preferredAccountId');
-            const preferredType = localStorage.getItem('preferredAccountType') || (isDemo ? 'demo' : 'real');
-            
-            let targetAccount = accounts.find(a => a.account === preferredAccountId);
-            if (!targetAccount) {
-                const realAccount = accounts.find(a => !a.account.startsWith('VRT'));
-                const demoAccount = accounts.find(a => a.account.startsWith('VRT'));
-                targetAccount = (preferredType === 'real' && realAccount) ? realAccount : (demoAccount || realAccount || accounts[0]);
-            }
-            
-            if (!targetAccount) {
-                document.getElementById('accountBalance').textContent = 'No Account';
+            const account = isDemo ? accounts.find(a => a.account.startsWith('VRT')) : accounts.find(a => !a.account.startsWith('VRT'));
+            if (!account) {
+                const balanceEl = document.getElementById('accountBalance');
+                if (balanceEl) balanceEl.textContent = 'No Account';
                 return;
             }
             
-            // Connect with the Deriv token
+            if (derivWS && derivWS.readyState === WebSocket.OPEN) {
+                derivWS.close();
+            }
+            
             derivWS = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
             
             derivWS.onopen = () => {
-                derivWS.send(JSON.stringify({ authorize: targetAccount.token }));
+                if (derivWS && derivWS.readyState === WebSocket.OPEN) {
+                    derivWS.send(JSON.stringify({ authorize: account.token }));
+                }
             };
             
             derivWS.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 
                 if (data.error) {
-                    if (data.error.code === 'InvalidToken' || data.error.message.includes('Token is not valid')) {
-                        console.warn('Token validation issue:', data.error.message);
-                        return;
-                    }
-                    if (data.msg_type === 'buy' || data.echo_req?.buy) {
-                        alert('Trade Error: ' + data.error.message);
-                    }
+                    if (data.msg_type === 'buy') alert('Trade Error: ' + data.error.message);
                     return;
                 }
                 
                 if (data.authorize) {
-                    authToken = data.authorize.token;
-                    isDerivConnected = true;
-                    console.log('Connected to Deriv - Real trades enabled');
-                    // Subscribe to balance updates
-                    derivWS.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+                    if (derivWS && derivWS.readyState === WebSocket.OPEN) {
+                        derivWS.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+                    }
                 }
                 
                 if (data.balance) {
-                    const balance = data.balance.balance;
-                    document.getElementById('accountBalance').textContent = `${parseFloat(balance).toFixed(2)} USD`;
+                    const balanceEl = document.getElementById('accountBalance');
+                    if (balanceEl) {
+                        balanceEl.textContent = `$${parseFloat(data.balance.balance).toFixed(2)}`;
+                    }
                 }
                 
                 if (data.buy) {
-                    const trade = {
-                        type: data.buy.contract_type || data.buy.shortcode || 'Trade',
-                        stake: data.buy.buy_price,
-                        outcome: 'pending',
-                        payout: 0,
-                        profit: 0,
-                        timestamp: Date.now(),
-                        contractId: data.buy.contract_id
-                    };
-                    saveTradeToHistory(trade);
-                    derivWS.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
-                }
-                
-                if (data.proposal_open_contract) {
-                    const contract = data.proposal_open_contract;
-                    if (contract.is_sold || contract.status === 'sold') {
-                        const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-                        const tradeIndex = history.findIndex(t => t.contractId === contract.contract_id);
-                        if (tradeIndex !== -1) {
-                            const isWin = parseFloat(contract.profit) > 0;
-                            history[tradeIndex].outcome = isWin ? 'win' : 'loss';
-                            history[tradeIndex].payout = parseFloat(contract.sell_price || contract.payout || 0);
-                            history[tradeIndex].profit = parseFloat(contract.profit || 0);
-                            localStorage.setItem('tradeHistory', JSON.stringify(history));
-                            
-                            // Auto-refresh history if modal is open
-                            const modal = document.getElementById('tradeHistoryModal');
-                            if (modal && !modal.classList.contains('hidden')) {
-                                loadTradeHistory();
-                            }
-                        }
-                    }
+                    console.log('Trade placed:', data.buy.contract_id);
                 }
             };
             
-            derivWS.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
+            derivWS.onerror = () => {};
             
-            derivWS.onclose = (event) => {
-                if (event.code !== 1000) {
-                    console.log('WebSocket closed, reconnecting...');
-                    setTimeout(() => connectDeriv(), 3000);
+            derivWS.onclose = () => {
+                if (derivWS) {
+                    setTimeout(connectDeriv, 3000);
                 }
             };
         }
-        
-        function simulateTradeOutcome(trade) {
-            // Random outcome for normal trades (60% win rate)
-            const isWin = Math.random() > 0.4;
-            const multiplier = isWin ? 1.85 : 0;
-            const payout = trade.stake * multiplier;
-            const profit = payout - trade.stake;
+
+        function toggleAccountType() {
+            isDemo = !isDemo;
+            const btn = document.getElementById('accountTypeBtn');
+            btn.textContent = isDemo ? 'Demo' : 'Real';
+            btn.style.background = isDemo ? 'rgba(255,255,255,0.2)' : 'rgba(239,68,68,0.3)';
             
-            // Save trade to history
-            saveTradeToHistory({
-                ...trade,
-                outcome: isWin ? 'win' : 'loss',
-                payout: payout,
-                profit: profit,
-                timestamp: Date.now()
-            });
-            
-            if (isWin && payout > 0) {
-                const currentBalance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.]/g, ''));
-                const newBalance = currentBalance + payout;
-                document.getElementById('accountBalance').textContent = `${newBalance.toFixed(2)} USD`;
-                
-                // Save updated balance to localStorage
-                if (isDemo) {
-                    localStorage.setItem('demoBalance', newBalance.toFixed(2));
-                } else {
-                    localStorage.setItem('realBalance', newBalance.toFixed(2));
-                }
+            if (derivWS && derivWS.readyState === WebSocket.OPEN) {
+                derivWS.close();
             }
+            derivWS = null;
+            setTimeout(connectDeriv, 500);
         }
-        
-        // Bot Loader Functions
-        let isDragging = false;
-        let isResizing = false;
-        let currentX, currentY, initialX, initialY;
-        let botOverlay = null;
-        let isMinimized = false;
-        let savedSize = { width: 600, height: 400 };
-        let botState = null;
-        
-        function loadBotState() {
-            const saved = localStorage.getItem('tradingBotState');
-            if (saved) {
-                try {
-                    botState = JSON.parse(saved);
-                    savedSize = { width: botState.width || 600, height: botState.height || 400 };
-                    
-                    if (botState.isActive && botState.botContent) {
-                        setTimeout(() => {
-                            botOverlay.classList.add('active');
-                            
-                            const iframe = document.getElementById('botFrame');
-                            const uploader = document.getElementById('botUploader');
-                            uploader.style.display = 'none';
-                            iframe.style.display = 'block';
-                            iframe.srcdoc = botState.botContent;
-                            
-                            botOverlay.style.width = botState.width + 'px';
-                            botOverlay.style.height = botState.height + 'px';
-                            botOverlay.style.left = botState.left + 'px';
-                            botOverlay.style.top = botState.top + 'px';
-                            
-                            updateSizeInputs();
-                        }, 100);
-                    }
-                } catch (e) {
-                    console.error('Failed to load bot state:', e);
-                    localStorage.removeItem('tradingBotState');
-                }
-            }
-        }
-        
-        function saveBotState() {
-            if (!botOverlay) return;
-            
-            const iframe = document.getElementById('botFrame');
-            const state = {
-                isActive: botOverlay.classList.contains('active'),
-                width: botOverlay.offsetWidth,
-                height: botOverlay.offsetHeight,
-                left: botOverlay.offsetLeft,
-                top: botOverlay.offsetTop,
-                botContent: iframe.style.display === 'block' ? iframe.srcdoc : null
-            };
-            
-            localStorage.setItem('tradingBotState', JSON.stringify(state));
-        }
-        
-        function toggleBotLoader() {
-            botOverlay = document.getElementById('botOverlay');
-            if (botOverlay.classList.contains('active')) {
-                closeBot();
-            } else {
-                botOverlay.classList.add('active');
-                if (!botState || !botState.left) {
-                    centerBot();
-                }
-                updateSizeInputs();
-                saveBotState();
-            }
-        }
-        
-        function centerBot() {
-            botOverlay.style.width = savedSize.width + 'px';
-            botOverlay.style.height = savedSize.height + 'px';
-            botOverlay.style.left = (window.innerWidth - savedSize.width) / 2 + 'px';
-            botOverlay.style.top = (window.innerHeight - savedSize.height) / 2 + 'px';
-            updateSizeInputs();
-        }
-        
-        function closeBot() {
-            botOverlay.classList.remove('active');
-            saveBotState();
-        }
-        
-        function minimizeBot() {
-            const content = document.getElementById('botContent');
-            if (isMinimized) {
-                content.style.display = 'block';
-                botOverlay.style.height = savedSize.height + 'px';
-                isMinimized = false;
-            } else {
-                savedSize.height = botOverlay.offsetHeight;
-                content.style.display = 'none';
-                botOverlay.style.height = '50px';
-                isMinimized = true;
-            }
-            updateSizeInputs();
-            saveBotState();
-        }
-        
-        function updateBotSize() {
-            const width = parseInt(document.getElementById('botWidth').value);
-            const height = parseInt(document.getElementById('botHeight').value);
-            
-            if (width >= 300 && width <= 2000) {
-                botOverlay.style.width = width + 'px';
-                savedSize.width = width;
-            }
-            
-            if (height >= 200 && height <= 1200 && !isMinimized) {
-                botOverlay.style.height = height + 'px';
-                savedSize.height = height;
-            }
-            
-            saveBotState();
-        }
-        
-        function updateSizeInputs() {
-            document.getElementById('botWidth').value = botOverlay.offsetWidth;
-            document.getElementById('botHeight').value = isMinimized ? savedSize.height : botOverlay.offsetHeight;
-        }
-        
-        function loadBotFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                const iframe = document.getElementById('botFrame');
-                const uploader = document.getElementById('botUploader');
-                
-                uploader.style.display = 'none';
-                iframe.style.display = 'block';
-                iframe.srcdoc = content;
-                
-                savedSize = { width: 800, height: 600 };
-                centerBot();
-                saveBotState();
-            };
-            reader.readAsText(file);
-        }
-        
-        // Dragging functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const header = document.getElementById('botHeader');
-            const overlay = document.getElementById('botOverlay');
-            const resizeHandle = document.getElementById('resizeHandle');
-            
-            botOverlay = overlay;
-            loadBotState();
-            
-            header.addEventListener('mousedown', dragStart);
-            resizeHandle.addEventListener('mousedown', resizeStart);
-            
-            function dragStart(e) {
-                if (e.target.closest('button') || e.target.closest('input')) return;
-                isDragging = true;
-                initialX = e.clientX - overlay.offsetLeft;
-                initialY = e.clientY - overlay.offsetTop;
-            }
-            
-            function resizeStart(e) {
-                e.stopPropagation();
-                isResizing = true;
-                initialX = e.clientX;
-                initialY = e.clientY;
-                savedSize.width = overlay.offsetWidth;
-                savedSize.height = overlay.offsetHeight;
-            }
-            
-            document.addEventListener('mousemove', function(e) {
-                if (isDragging) {
-                    e.preventDefault();
-                    currentX = e.clientX - initialX;
-                    currentY = e.clientY - initialY;
-                    overlay.style.left = currentX + 'px';
-                    overlay.style.top = currentY + 'px';
-                } else if (isResizing) {
-                    e.preventDefault();
-                    const width = savedSize.width + (e.clientX - initialX);
-                    const height = savedSize.height + (e.clientY - initialY);
-                    const newWidth = Math.max(300, Math.min(2000, width));
-                    const newHeight = Math.max(200, Math.min(1200, height));
-                    overlay.style.width = newWidth + 'px';
-                    overlay.style.height = newHeight + 'px';
-                    updateSizeInputs();
-                }
-            });
-            
-            document.addEventListener('mouseup', function() {
-                if (isResizing) {
-                    savedSize.width = overlay.offsetWidth;
-                    savedSize.height = overlay.offsetHeight;
-                    saveBotState();
-                }
-                if (isDragging) {
-                    saveBotState();
-                }
-                isDragging = false;
-                isResizing = false;
-            });
-            
-            // Save state before page unload
-            window.addEventListener('beforeunload', saveBotState);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderInterface();
+            connectWebSocket();
+            connectDeriv();
+            initAnalysisDisplay();
         });
         
-        // Trade History Functions
-        function saveTradeToHistory(trade) {
-            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-            history.unshift(trade);
-            if (history.length > 100) history.pop();
-            localStorage.setItem('tradeHistory', JSON.stringify(history));
+        function initAnalysisDisplay() {
+            const grid = document.getElementById('digitFrequencyGrid');
+            for (let i = 0; i < 10; i++) {
+                const cell = document.createElement('div');
+                cell.id = `digit-${i}`;
+                cell.style.cssText = 'background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748; text-align: center; transition: all 0.3s;';
+                cell.innerHTML = `
+                    <div style="font-size: 18px; font-weight: 700; color: #e2e8f0;">${i}</div>
+                    <div id="count-${i}" style="font-size: 12px; color: #94a3b8; margin-top: 4px;">0</div>
+                    <div id="bar-${i}" style="height: 4px; background: #2d3748; border-radius: 2px; margin-top: 6px; overflow: hidden;">
+                        <div style="height: 100%; width: 0%; background: #FF4500; transition: width 0.3s;"></div>
+                    </div>
+                `;
+                grid.appendChild(cell);
+            }
         }
         
-        function toggleTradeHistory() {
-            const modal = document.getElementById('tradeHistoryModal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                loadTradeHistory();
+        function updateDigitAnalysis(digit) {
+            digitHistory.push(digit);
+            if (digitHistory.length > 1000) digitHistory.shift();
+            digitCounts[digit]++;
+            
+            const isEven = digit % 2 === 0;
+            if (streakType === null) {
+                streakType = isEven ? 'even' : 'odd';
+                streakCount = 1;
+            } else if ((streakType === 'even' && isEven) || (streakType === 'odd' && !isEven)) {
+                streakCount++;
             } else {
-                modal.classList.add('hidden');
+                streakType = isEven ? 'even' : 'odd';
+                streakCount = 1;
             }
+            
+            updateAnalysisDisplay();
         }
         
-        let filteredHistory = [];
-        
-        function loadTradeHistory() {
-            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-            filteredHistory = history;
+        function updateAnalysisDisplay() {
+            const total = digitHistory.length;
+            const ratioDisplay = document.getElementById('ratioDisplay');
             
-            // Subscribe to all pending trades
-            if (derivWS && derivWS.readyState === WebSocket.OPEN) {
-                history.filter(t => t.outcome === 'pending').forEach(trade => {
-                    derivWS.send(JSON.stringify({ proposal_open_contract: 1, contract_id: trade.contractId, subscribe: 1 }));
-                });
-            }
-            
-            if (history.length === 0) {
-                document.getElementById('tradeHistoryList').innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-inbox text-5xl mb-4 opacity-50"></i><p>No trade history yet</p></div>';
-                document.getElementById('performanceSummary').innerHTML = '';
+            if (total === 0) {
+                if (ratioDisplay) ratioDisplay.innerHTML = '';
                 return;
             }
             
-            renderPerformanceSummary(history);
-            filterTrades();
+            const maxCount = Math.max(...digitCounts);
+            const evenCount = digitHistory.filter(d => d % 2 === 0).length;
+            const oddCount = total - evenCount;
+            const overCount = digitHistory.filter(d => d > 5).length;
+            const underCount = digitHistory.filter(d => d < 5).length;
+            
+            // Update digit frequency grid
+            for (let i = 0; i < 10; i++) {
+                const count = digitHistory.filter(d => d === i).length;
+                const percent = ((count / total) * 100).toFixed(1);
+                const countEl = document.getElementById(`count-${i}`);
+                const barEl = document.getElementById(`bar-${i}`);
+                const cellEl = document.getElementById(`digit-${i}`);
+                
+                if (countEl) countEl.textContent = `${count} (${percent}%)`;
+                if (barEl) barEl.firstElementChild.style.width = `${(count / maxCount) * 100}%`;
+                
+                if (count === maxCount && maxCount > 0) {
+                    cellEl.style.borderColor = '#FF4500';
+                    cellEl.style.background = 'rgba(255,69,0,0.1)';
+                } else {
+                    cellEl.style.borderColor = '#2d3748';
+                    cellEl.style.background = '#0D1421';
+                }
+            }
+            
+            // Update ratio display based on mode
+            if (ratioDisplay) {
+                if (currentMode === 'evenodd') {
+                    ratioDisplay.innerHTML = `
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Even</div>
+                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">${((evenCount / total) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Odd</div>
+                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">${((oddCount / total) * 100).toFixed(1)}%</div>
+                        </div>
+                    `;
+                } else if (currentMode === 'matches') {
+                    const mostFrequent = digitCounts.indexOf(Math.max(...digitCounts));
+                    const mostFreqCount = digitHistory.filter(d => d === mostFrequent).length;
+                    const leastFrequent = digitCounts.indexOf(Math.min(...digitCounts.filter(c => c > 0)));
+                    const leastCount = digitHistory.filter(d => d === leastFrequent).length;
+                    ratioDisplay.innerHTML = `
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Most Frequent</div>
+                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">Digit ${mostFrequent} (${mostFreqCount})</div>
+                        </div>
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Least Frequent</div>
+                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">Digit ${leastFrequent} (${leastCount})</div>
+                        </div>
+                    `;
+                } else if (currentMode === 'overunder') {
+                    ratioDisplay.innerHTML = `
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Over (5-9)</div>
+                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">${((overCount / total) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
+                            <div style="color: #94a3b8; font-size: 12px;">Under (0-4)</div>
+                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">${((underCount / total) * 100).toFixed(1)}%</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            const streakEl = document.getElementById('streakInfo');
+            const sampleEl = document.getElementById('sampleSize');
+            
+            // Calculate mode-specific streak
+            let streakText = '-';
+            if (digitHistory.length > 0) {
+                if (currentMode === 'evenodd') {
+                    let count = 1;
+                    const lastDigit = digitHistory[digitHistory.length - 1];
+                    const isEven = lastDigit % 2 === 0;
+                    for (let i = digitHistory.length - 2; i >= 0; i--) {
+                        if ((digitHistory[i] % 2 === 0) === isEven) count++;
+                        else break;
+                    }
+                    streakText = `${count} ${isEven ? 'EVEN' : 'ODD'} in a row`;
+                } else if (currentMode === 'matches') {
+                    let count = 1;
+                    const lastDigit = digitHistory[digitHistory.length - 1];
+                    for (let i = digitHistory.length - 2; i >= 0; i--) {
+                        if (digitHistory[i] === lastDigit) count++;
+                        else break;
+                    }
+                    streakText = `${count} consecutive Digit ${lastDigit}`;
+                } else if (currentMode === 'overunder') {
+                    let count = 1;
+                    const lastDigit = digitHistory[digitHistory.length - 1];
+                    const isOver = lastDigit > 5;
+                    for (let i = digitHistory.length - 2; i >= 0; i--) {
+                        if ((digitHistory[i] > 5) === isOver) count++;
+                        else break;
+                    }
+                    streakText = `${count} ${isOver ? 'OVER' : 'UNDER'} in a row`;
+                }
+            }
+            
+            if (streakEl) streakEl.textContent = streakText;
+            if (sampleEl) sampleEl.textContent = `${total} ticks`;
+            
+            updateInsights(evenCount, oddCount, overCount, underCount, total);
         }
         
-        function renderPerformanceSummary(history) {
-            const totalProfit = history.reduce((sum, t) => sum + (t.profit || 0), 0);
-            const wins = history.filter(t => t.outcome === 'win').length;
-            const losses = history.filter(t => t.outcome === 'loss').length;
-            const pending = history.filter(t => t.outcome === 'pending').length;
-            const totalTrades = wins + losses;
-            const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : 0;
-            const totalStaked = history.reduce((sum, t) => sum + (t.stake || 0), 0);
-            const roi = totalStaked > 0 ? ((totalProfit / totalStaked) * 100).toFixed(1) : 0;
-            const avgProfit = totalTrades > 0 ? (totalProfit / totalTrades).toFixed(2) : 0;
-            
-            const summary = document.getElementById('performanceSummary');
-            summary.innerHTML = `
-                <div class="bg-gradient-to-br from-${totalProfit >= 0 ? 'green' : 'red'}-500/20 to-transparent p-4 rounded-xl border border-${totalProfit >= 0 ? 'green' : 'red'}-500/30">
-                    <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-                        <i class="fas fa-dollar-sign"></i> Total Profit
-                    </div>
-                    <div class="text-2xl font-bold ${totalProfit >= 0 ? 'text-success' : 'text-danger'} flex items-center gap-2">
-                        ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toFixed(2)}
-                        <i class="fas fa-arrow-${totalProfit >= 0 ? 'up' : 'down'} text-sm"></i>
-                    </div>
-                </div>
-                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-chart-bar"></i> Total Trades</div>
-                    <div class="text-2xl font-bold text-white">${history.length}</div>
-                </div>
-                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-percentage"></i> Win Rate</div>
-                    <div class="text-2xl font-bold text-primary">${winRate}%</div>
-                </div>
-                <div class="bg-green-500/10 p-4 rounded-xl border border-green-500/30">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-check-circle"></i> Wins</div>
-                    <div class="text-2xl font-bold text-success">${wins}</div>
-                </div>
-                <div class="bg-red-500/10 p-4 rounded-xl border border-red-500/30">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-times-circle"></i> Losses</div>
-                    <div class="text-2xl font-bold text-danger">${losses}</div>
-                </div>
-                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-chart-line"></i> ROI</div>
-                    <div class="text-2xl font-bold ${roi >= 0 ? 'text-success' : 'text-danger'}">${roi}%</div>
-                </div>
-                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                    <div class="text-xs text-gray-400 mb-1"><i class="fas fa-calculator"></i> Avg Profit</div>
-                    <div class="text-2xl font-bold ${avgProfit >= 0 ? 'text-success' : 'text-danger'}">$${avgProfit}</div>
-                </div>
-            `;
-        }
-        
-        function filterTrades() {
-            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-            const statusFilter = document.getElementById('statusFilter').value;
-            const sortFilter = document.getElementById('sortFilter').value;
-            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-            
-            let filtered = history.filter(trade => {
-                const matchesStatus = statusFilter === 'all' || trade.outcome === statusFilter;
-                const matchesSearch = !searchFilter || trade.contractId.toString().includes(searchFilter);
-                return matchesStatus && matchesSearch;
-            });
-            
-            filtered.sort((a, b) => {
-                if (sortFilter === 'newest') return b.timestamp - a.timestamp;
-                if (sortFilter === 'oldest') return a.timestamp - b.timestamp;
-                if (sortFilter === 'profit_high') return (b.profit || 0) - (a.profit || 0);
-                if (sortFilter === 'profit_low') return (a.profit || 0) - (b.profit || 0);
-                return 0;
-            });
-            
-            filteredHistory = filtered;
-            renderTradeTable(filtered);
-        }
-        
-        function renderTradeTable(trades) {
-            const list = document.getElementById('tradeHistoryList');
-            
-            if (trades.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-filter text-5xl mb-4 opacity-50"></i><p>No trades match your filters</p></div>';
+        function updateInsights(evenCount, oddCount, overCount, underCount, total) {
+            const insightsEl = document.getElementById('insights');
+            if (!insightsEl || total < 10) {
+                if (insightsEl) insightsEl.innerHTML = '<div style="color: #FF4500; font-size: 12px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Collecting data...</div>';
                 return;
             }
             
-            list.innerHTML = `
-                <table class="w-full">
-                    <thead class="bg-gray-800/50 sticky top-0">
-                        <tr class="text-left text-xs text-gray-400 uppercase tracking-wider">
-                            <th class="px-4 py-3 rounded-tl-lg">Status</th>
-                            <th class="px-4 py-3">Direction</th>
-                            <th class="px-4 py-3 text-right">Stake</th>
-                            <th class="px-4 py-3 text-right">Payout</th>
-                            <th class="px-4 py-3 text-right">Profit/Loss</th>
-                            <th class="px-4 py-3">Date & Time</th>
-                            <th class="px-4 py-3 rounded-tr-lg">Trade ID</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800">
-                        ${trades.map(trade => {
-                            const isWin = trade.outcome === 'win';
-                            const isPending = trade.outcome === 'pending';
-                            const isLoss = trade.outcome === 'loss';
-                            const date = new Date(trade.timestamp);
-                            
-                            let contractType = trade.type || 'Trade';
-                            const typeUpper = contractType.toUpperCase();
-                            if (typeUpper.includes('EVEN')) contractType = 'Even';
-                            else if (typeUpper.includes('ODD')) contractType = 'Odd';
-                            else if (typeUpper.includes('MATCH')) contractType = 'Match';
-                            else if (typeUpper.includes('DIFF')) contractType = 'Differ';
-                            else if (typeUpper.includes('OVER')) contractType = 'Over';
-                            else if (typeUpper.includes('UNDER')) contractType = 'Under';
-                            
-                            return `
-                                <tr class="hover:bg-gray-800/30 transition-colors cursor-pointer">
-                                    <td class="px-4 py-4">
-                                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
-                                            isPending ? 'bg-warning/20 text-warning border border-warning/30' :
-                                            isWin ? 'bg-success/20 text-success border border-success/30' :
-                                            'bg-danger/20 text-danger border border-danger/30'
-                                        }">
-                                            <i class="fas fa-circle text-[6px]"></i>
-                                            ${isPending ? 'Pending' : isWin ? 'Won' : 'Lost'}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium bg-primary/10 text-primary border border-primary/20">
-                                            <i class="fas fa-arrow-${contractType === 'Over' ? 'up' : contractType === 'Under' ? 'down' : 'right'}"></i>
-                                            ${contractType}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-4 text-right font-mono text-sm text-gray-300">$${trade.stake.toFixed(2)}</td>
-                                    <td class="px-4 py-4 text-right font-mono text-sm text-gray-300">$${(trade.payout || 0).toFixed(2)}</td>
-                                    <td class="px-4 py-4 text-right">
-                                        <span class="font-mono text-sm font-bold ${
-                                            isPending ? 'text-warning' : isWin ? 'text-success' : 'text-danger'
-                                        }">
-                                            ${isPending ? '—' : (isWin ? '+' : '') + '$' + (trade.profit || 0).toFixed(2)}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-4 text-sm text-gray-400">
-                                        <div>${date.toLocaleDateString()}</div>
-                                        <div class="text-xs text-gray-500">${date.toLocaleTimeString()}</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <span class="font-mono text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
-                                            #${trade.contractId}
-                                        </span>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-        
-        function clearTradeHistory() {
-            if (confirm('Are you sure you want to clear all trade history?')) {
-                localStorage.removeItem('tradeHistory');
-                loadTradeHistory();
+            const mostFrequent = digitCounts.indexOf(Math.max(...digitCounts));
+            const mostFreqCount = digitHistory.filter(d => d === mostFrequent).length;
+            const mostFreqPercent = ((mostFreqCount / total) * 100).toFixed(1);
+            
+            const evenPercent = ((evenCount / total) * 100).toFixed(1);
+            const overPercent = ((overCount / total) * 100).toFixed(1);
+            
+            let insights = [];
+            
+            // Mode-specific insights
+            if (currentMode === 'evenodd') {
+                if (evenPercent > 60) {
+                    insights.push(`<i class="fas fa-chart-line"></i> Even digits dominating (${evenPercent}% of last ${total} ticks)`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Consider EVEN trade`);
+                } else if (evenPercent < 40) {
+                    insights.push(`<i class="fas fa-chart-line"></i> Odd digits dominating (${(100 - evenPercent).toFixed(1)}% of last ${total} ticks)`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Consider ODD trade`);
+                } else {
+                    insights.push(`<i class="fas fa-balance-scale"></i> Even/Odd balanced (${evenPercent}% vs ${(100 - evenPercent).toFixed(1)}%)`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Wait for clearer trend`);
+                }
+                
+                if (streakCount >= 5) {
+                    const opposite = streakType === 'even' ? 'ODD' : 'EVEN';
+                    insights.push(`<i class="fas fa-exclamation-triangle"></i> ${streakCount} ${streakType.toUpperCase()} streak - ${opposite} reversal likely`);
+                } else if (streakCount >= 3) {
+                    insights.push(`<i class="fas fa-fire"></i> ${streakCount} ${streakType.toUpperCase()} streak building`);
+                }
+            } else if (currentMode === 'matches') {
+                if (mostFreqPercent > 15) {
+                    insights.push(`<i class="fas fa-fire"></i> Digit ${mostFrequent} hot - appearing ${mostFreqPercent}% (${mostFreqCount}/${total})`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Select digit ${mostFrequent} and trade MATCHES`);
+                }
+                
+                const lastDigit = digitHistory[digitHistory.length - 1];
+                const lastDigitCount = digitHistory.filter(d => d === lastDigit).length;
+                const lastDigitPercent = ((lastDigitCount / total) * 100).toFixed(1);
+                insights.push(`<i class="fas fa-bullseye"></i> Current digit ${lastDigit} appeared ${lastDigitCount} times (${lastDigitPercent}%)`);
+                
+                const leastFrequent = digitCounts.indexOf(Math.min(...digitCounts.filter(c => c > 0)));
+                const leastCount = digitHistory.filter(d => d === leastFrequent).length;
+                if (leastCount > 0 && leastCount < mostFreqCount * 0.5) {
+                    insights.push(`<i class="fas fa-snowflake"></i> Digit ${leastFrequent} cold (${leastCount} times) - avoid MATCHES on this`);
+                }
+            } else if (currentMode === 'overunder') {
+                const barrier = selectedBarrier;
+                const aboveBarrier = digitHistory.filter(d => d > barrier).length;
+                const belowBarrier = digitHistory.filter(d => d < barrier).length;
+                const abovePercent = ((aboveBarrier / total) * 100).toFixed(1);
+                const belowPercent = ((belowBarrier / total) * 100).toFixed(1);
+                
+                insights.push(`<i class="fas fa-info-circle"></i> With barrier ${barrier}: Over=${abovePercent}%, Under=${belowPercent}%`);
+                
+                if (abovePercent > 55) {
+                    insights.push(`<i class="fas fa-arrow-up"></i> Digits above ${barrier} dominating`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Trade OVER with barrier ${barrier}`);
+                } else if (belowPercent > 55) {
+                    insights.push(`<i class="fas fa-arrow-down"></i> Digits below ${barrier} dominating`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Trade UNDER with barrier ${barrier}`);
+                } else {
+                    insights.push(`<i class="fas fa-balance-scale"></i> Balanced around barrier ${barrier}`);
+                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Try different barrier or wait for trend`);
+                }
+                
+                const recentTrend = digitHistory.slice(-10);
+                const recentAbove = recentTrend.filter(d => d > barrier).length;
+                if (recentAbove >= 7) {
+                    insights.push(`<i class="fas fa-fire"></i> Strong OVER trend in last 10 ticks (${recentAbove}/10)`);
+                } else if (recentAbove <= 3) {
+                    insights.push(`<i class="fas fa-fire"></i> Strong UNDER trend in last 10 ticks (${10 - recentAbove}/10)`);
+                }
             }
+            
+            if (insights.length === 0) {
+                insights.push(`<i class="fas fa-info-circle"></i> Collecting more data for analysis...`);
+            }
+            
+            insightsEl.innerHTML = insights.map(i => `<div style="color: #FF4500; font-size: 12px; margin-bottom: 6px;">${i}</div>`).join('');
         }
     </script>
-    <!-- Trade History Modal -->
-    <div id="tradeHistoryModal" class="fixed inset-0 bg-black bg-opacity-75 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-900 rounded-xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-gray-800">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 border-b border-gray-700 flex justify-between items-center">
-                <div>
-                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
-                        <i class="fas fa-chart-line text-primary"></i> Trade History
-                    </h3>
-                    <p class="text-sm text-gray-400 mt-1">Track your trading performance</p>
-                </div>
-                <button onclick="toggleTradeHistory()" class="text-gray-400 hover:text-white transition-colors">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-            </div>
-            
-            <div class="overflow-y-auto max-h-[calc(95vh-180px)]">
-                <!-- Performance Summary -->
-                <div class="p-6 bg-gray-900">
-                    <div id="performanceSummary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4"></div>
-                </div>
-                
-                <!-- Filters -->
-                <div class="px-6 py-4 bg-gray-800/50 border-y border-gray-700">
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <select id="statusFilter" onchange="filterTrades()" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary">
-                            <option value="all">All Status</option>
-                            <option value="win">Won</option>
-                            <option value="loss">Lost</option>
-                            <option value="pending">Pending</option>
-                        </select>
-                        <select id="sortFilter" onchange="filterTrades()" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary">
-                            <option value="newest">Newest First</option>
-                            <option value="oldest">Oldest First</option>
-                            <option value="profit_high">Highest Profit</option>
-                            <option value="profit_low">Lowest Profit</option>
-                        </select>
-                        <input type="text" id="searchFilter" onkeyup="filterTrades()" placeholder="Search by ID..." class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-primary focus:border-primary flex-1 min-w-[200px]">
-                        <button onclick="loadTradeHistory()" class="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors text-sm font-medium">
-                            <i class="fas fa-sync-alt mr-2"></i>Refresh
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Trade Table -->
-                <div class="p-6">
-                    <div id="tradeHistoryList" class="overflow-x-auto"></div>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div class="p-4 border-t border-gray-700 bg-gray-800/50 flex justify-between items-center">
-                <button onclick="clearTradeHistory()" class="px-4 py-2 bg-danger/20 text-danger rounded-lg hover:bg-danger/30 transition-colors text-sm font-medium">
-                    <i class="fas fa-trash mr-2"></i>Clear History
-                </button>
-                <button onclick="toggleTradeHistory()" class="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>

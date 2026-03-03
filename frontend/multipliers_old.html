@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multipliers Trading | Algocdk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #0D1421;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .panel {
+            background: #0A0E1A;
+            border: 1px solid #1E293B;
+            border-radius: 8px;
+        }
+        .btn-primary { background: #FF4500; }
+        .btn-primary:hover { background: #e63e00; }
+        .btn-success { background: #00C851; }
+        .btn-success:hover { background: #00a844; }
+        .btn-danger { background: #FF4444; }
+        .btn-danger:hover { background: #e63939; }
+        .input-field {
+            background: #1E293B;
+            border: 1px solid #334155;
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #FF4500;
+            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
+        }
+        .trade-btn {
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+        .chart-container {
+            background: #0A0E1A;
+            border-radius: 8px;
+            padding: 20px;
+            height: 400px;
+        }
+        .multiplier-badge {
+            background: linear-gradient(135deg, #FF4500, #FF6B35);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .pnl-positive { color: #00C851; }
+        .pnl-negative { color: #FF4444; }
+        @media (max-width: 768px) {
+            .grid-cols-2 { grid-template-columns: 1fr; }
+            .lg\\:grid-cols-3 { grid-template-columns: 1fr; }
+            .chart-container { height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-[#0A0E1A] border-b border-gray-700 px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-[#FF4500] rounded flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">A</span>
+                    </div>
+                    <span class="text-xl font-bold">Algocdk</span>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/app" class="text-gray-400 hover:text-white">Chart</a>
+                    <a href="/trading" class="text-[#FF4500] font-semibold">Trade</a>
+                    <a href="/mybots" class="text-gray-400 hover:text-white">Bots</a>
+                </nav>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleAccountType()" class="px-3 py-1 text-sm rounded-lg font-semibold transition-all" id="accountTypeBtn">
+                    Demo
+                </button>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400" id="balanceLabel">Demo Balance</div>
+                    <div class="font-bold text-lg" id="accountBalance">10,000.00 USD</div>
+                </div>
+                <button onclick="exitApp()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="mb-6">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.location.href='/trading'" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Trading
+                </button>
+                <h1 class="text-2xl font-bold">Multipliers Trading</h1>
+                <div class="multiplier-badge" id="currentMultiplier">x100</div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Chart Panel -->
+            <div class="lg:col-span-2">
+                <div class="panel p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold">Price Chart</h3>
+                        <select id="marketSelect" class="input-field text-sm">
+                            <option value="R_10">Volatility 10 Index</option>
+                            <option value="R_25">Volatility 25 Index</option>
+                            <option value="R_50">Volatility 50 Index</option>
+                            <option value="R_75">Volatility 75 Index</option>
+                            <option value="R_100" selected>Volatility 100 Index</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Position Info -->
+                <div class="panel p-6" id="positionPanel" style="display: none;">
+                    <h3 class="text-lg font-bold mb-4">Active Position</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-lg font-bold" id="positionType">Up</div>
+                            <div class="text-sm text-gray-400">Direction</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold" id="entryPrice">1234.567</div>
+                            <div class="text-sm text-gray-400">Entry Price</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold" id="currentPnL">+0.00</div>
+                            <div class="text-sm text-gray-400">P&L</div>
+                        </div>
+                        <div class="text-center">
+                            <button onclick="closePosition()" class="trade-btn btn-danger text-sm px-4 py-2">
+                                Close Position
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Panel -->
+            <div class="lg:col-span-1">
+                <div class="panel p-6 mb-6">
+                    <h3 class="text-lg font-bold mb-4">Trade Parameters</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Stake (USD)</label>
+                            <input type="number" id="stakeAmount" value="1" min="1" step="0.01" 
+                                   class="input-field w-full" onchange="updateCalculations()">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Multiplier</label>
+                            <select id="multiplier" class="input-field w-full" onchange="updateMultiplier()">
+                                <option value="5">x5</option>
+                                <option value="10">x10</option>
+                                <option value="25">x25</option>
+                                <option value="50">x50</option>
+                                <option value="100" selected>x100</option>
+                                <option value="250">x250</option>
+                                <option value="500">x500</option>
+                                <option value="1000">x1000</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Stop Loss (Optional)</label>
+                            <input type="number" id="stopLoss" class="input-field w-full" 
+                                   placeholder="Enter amount" onchange="updateCalculations()">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Take Profit (Optional)</label>
+                            <input type="number" id="takeProfit" class="input-field w-full" 
+                                   placeholder="Enter amount" onchange="updateCalculations()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Buttons -->
+                <div class="panel p-6 mb-6" id="tradingButtons">
+                    <h3 class="text-lg font-bold mb-4">Open Position</h3>
+                    <div class="space-y-3">
+                        <button class="trade-btn btn-success w-full" onclick="placeTrade('MULTUP')">
+                            <div class="flex justify-between items-center">
+                                <span><i class="fas fa-arrow-up mr-2"></i>Up</span>
+                                <span>Start Trading</span>
+                            </div>
+                        </button>
+                        <button class="trade-btn btn-danger w-full" onclick="placeTrade('MULTDOWN')">
+                            <div class="flex justify-between items-center">
+                                <span><i class="fas fa-arrow-down mr-2"></i>Down</span>
+                                <span>Start Trading</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="panel p-6">
+                    <h3 class="text-lg font-bold mb-4">Risk Management</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Commission:</span>
+                            <span class="font-bold" id="commission">0.00 USD</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Max Loss:</span>
+                            <span class="font-bold text-red-500" id="maxLoss">-1.00 USD</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Stop Loss Level:</span>
+                            <span class="font-bold" id="stopLossLevel">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Take Profit Level:</span>
+                            <span class="font-bold" id="takeProfitLevel">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let widget = null;
+        let currentPrice = 1234.567;
+        let isDemo = true;
+        let activePosition = null;
+        let entryPrice = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAccount();
+            initializeTradingView();
+            connectWebSocket();
+            updateCalculations();
+        });
+
+        function initializeAccount() {
+            const savedAccountType = localStorage.getItem('accountType');
+            if (savedAccountType === 'real') {
+                isDemo = false;
+            }
+            updateAccountDisplay();
+        }
+
+        function initializeTradingView() {
+            widget = new TradingView.widget({
+                "width": "100%",
+                "height": 400,
+                "symbol": "OANDA:SPX500USD",
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#0A0E1A",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "hide_legend": true,
+                "save_image": false,
+                "container_id": "tradingview_chart",
+                "backgroundColor": "#0A0E1A",
+                "gridColor": "#1E293B",
+                "hide_side_toolbar": false,
+                "allow_symbol_change": false,
+                "studies": [],
+                "overrides": {
+                    "paneProperties.background": "#0A0E1A",
+                    "paneProperties.vertGridProperties.color": "#1E293B",
+                    "paneProperties.horzGridProperties.color": "#1E293B",
+                    "symbolWatermarkProperties.transparency": 90,
+                    "scalesProperties.textColor": "#94a3b8"
+                }
+            });
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            
+            ws.onopen = () => {
+                const market = document.getElementById('marketSelect').value;
+                ws.send(JSON.stringify({ ticks: market, subscribe: 1 }));
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.tick) {
+                    updatePrice(parseFloat(data.tick.quote));
+                }
+            };
+            
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updatePrice(price) {
+            currentPrice = price;
+            
+            // Update position P&L if active
+            if (activePosition) {
+                updatePositionPnL();
+            }
+        }
+
+        function updateMultiplier() {
+            const multiplier = document.getElementById('multiplier').value;
+            document.getElementById('currentMultiplier').textContent = `x${multiplier}`;
+            updateCalculations();
+        }
+
+        function updateCalculations() {
+            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value) || 0;
+            const takeProfit = parseFloat(document.getElementById('takeProfit').value) || 0;
+            
+            // Commission calculation (typically 0 for multipliers)
+            document.getElementById('commission').textContent = '0.00 USD';
+            
+            // Max loss is the stake amount
+            document.getElementById('maxLoss').textContent = `-${stake.toFixed(2)} USD`;
+            
+            // Stop loss and take profit levels
+            if (stopLoss > 0) {
+                document.getElementById('stopLossLevel').textContent = `${stopLoss.toFixed(2)} USD`;
+            } else {
+                document.getElementById('stopLossLevel').textContent = '-';
+            }
+            
+            if (takeProfit > 0) {
+                document.getElementById('takeProfitLevel').textContent = `${takeProfit.toFixed(2)} USD`;
+            } else {
+                document.getElementById('takeProfitLevel').textContent = '-';
+            }
+        }
+
+        function placeTrade(contractType) {
+            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
+            const multiplier = parseInt(document.getElementById('multiplier').value) || 100;
+            const market = document.getElementById('marketSelect').value;
+            
+            let proposal = {
+                proposal: 1,
+                amount: stake,
+                contract_type: contractType,
+                currency: "USD",
+                symbol: market,
+                basis: "stake",
+                multiplier: multiplier
+            };
+            
+            // Add stop loss and take profit if specified
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+            const takeProfit = parseFloat(document.getElementById('takeProfit').value);
+            
+            if (stopLoss > 0) {
+                proposal.limit_order = {
+                    stop_loss: stopLoss
+                };
+            }
+            
+            if (takeProfit > 0) {
+                if (!proposal.limit_order) proposal.limit_order = {};
+                proposal.limit_order.take_profit = takeProfit;
+            }
+            
+            // Send proposal to get price
+            ws.send(JSON.stringify(proposal));
+            
+            // Listen for proposal response
+            const originalOnMessage = ws.onmessage;
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.proposal) {
+                    // Buy the contract
+                    const buyRequest = {
+                        buy: data.proposal.id,
+                        price: data.proposal.ask_price
+                    };
+                    ws.send(JSON.stringify(buyRequest));
+                    
+                    // Set up active position
+                    activePosition = {
+                        type: contractType,
+                        stake: stake,
+                        multiplier: multiplier,
+                        entryPrice: currentPrice,
+                        startTime: Date.now()
+                    };
+                    
+                    entryPrice = currentPrice;
+                    
+                    // Show position panel
+                    document.getElementById('positionPanel').style.display = 'block';
+                    document.getElementById('tradingButtons').style.display = 'none';
+                    
+                    // Update position display
+                    document.getElementById('positionType').textContent = contractType === 'MULTUP' ? 'Up' : 'Down';
+                    document.getElementById('entryPrice').textContent = entryPrice.toFixed(3);
+                    
+                    // Show success message
+                    alert(`${contractType === 'MULTUP' ? 'Up' : 'Down'} multiplier position opened for ${stake} USD`);
+                    
+                    // Update balance
+                    updateBalance(-stake);
+                    
+                    // Restore original message handler
+                    ws.onmessage = originalOnMessage;
+                } else if (data.buy) {
+                    console.log('Trade executed:', data.buy);
+                } else {
+                    originalOnMessage(event);
+                }
+            };
+        }
+
+        function updatePositionPnL() {
+            if (!activePosition) return;
+            
+            const priceDiff = currentPrice - entryPrice;
+            const multiplier = activePosition.multiplier;
+            const stake = activePosition.stake;
+            
+            let pnl = 0;
+            if (activePosition.type === 'MULTUP') {
+                pnl = (priceDiff / entryPrice) * multiplier * stake;
+            } else {
+                pnl = -(priceDiff / entryPrice) * multiplier * stake;
+            }
+            
+            const pnlEl = document.getElementById('currentPnL');
+            pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+            pnlEl.className = `text-lg font-bold ${pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}`;
+            
+            // Check stop loss and take profit
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+            const takeProfit = parseFloat(document.getElementById('takeProfit').value);
+            
+            if ((stopLoss > 0 && pnl <= -stopLoss) || (takeProfit > 0 && pnl >= takeProfit)) {
+                closePosition();
+            }
+        }
+
+        function closePosition() {
+            if (!activePosition) return;
+            
+            const pnl = parseFloat(document.getElementById('currentPnL').textContent.replace(/[^0-9.-]/g, ''));
+            
+            // Update balance with P&L
+            updateBalance(pnl);
+            
+            // Reset position
+            activePosition = null;
+            entryPrice = 0;
+            
+            // Hide position panel and show trading buttons
+            document.getElementById('positionPanel').style.display = 'none';
+            document.getElementById('tradingButtons').style.display = 'block';
+            
+            alert(`Position closed with P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
+        }
+
+        function updateBalance(change) {
+            const currentBalance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.]/g, ''));
+            const newBalance = currentBalance + change;
+            document.getElementById('accountBalance').textContent = `${newBalance.toFixed(2)} USD`;
+            
+            if (isDemo) {
+                localStorage.setItem('demoBalance', newBalance.toFixed(2));
+            } else {
+                localStorage.setItem('realBalance', newBalance.toFixed(2));
+            }
+        }
+
+        function toggleAccountType() {
+            isDemo = !isDemo;
+            localStorage.setItem('accountType', isDemo ? 'demo' : 'real');
+            updateAccountDisplay();
+        }
+
+        function updateAccountDisplay() {
+            const btn = document.getElementById('accountTypeBtn');
+            const label = document.getElementById('balanceLabel');
+            const balance = document.getElementById('accountBalance');
+            
+            const demoBalance = localStorage.getItem('demoBalance') || '10000.00';
+            const realBalance = localStorage.getItem('realBalance') || '0.00';
+            
+            if (isDemo) {
+                btn.textContent = 'Demo';
+                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-green-600 text-white';
+                label.textContent = 'Demo Balance';
+                balance.textContent = `${parseFloat(demoBalance).toFixed(2)} USD`;
+                balance.className = 'font-bold text-lg text-green-500';
+            } else {
+                btn.textContent = 'Real';
+                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-red-600 text-white';
+                label.textContent = 'Real Balance';
+                balance.textContent = `${parseFloat(realBalance).toFixed(2)} USD`;
+                balance.className = 'font-bold text-lg text-red-500';
+            }
+        }
+
+        function exitApp() {
+            if (ws) ws.close();
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userSession');
+            window.location.href = '/auth';
+        }
+
+        // Market change handler
+        document.getElementById('marketSelect').addEventListener('change', function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ forget_all: 'ticks' }));
+                ws.send(JSON.stringify({ ticks: this.value, subscribe: 1 }));
+            }
+            
+            // Reset price tracking
+            priceData = [];
+        });
+    </script>
+</body>
+</html>
