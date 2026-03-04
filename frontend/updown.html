@@ -253,11 +253,11 @@ select option{background:#0f1923}
         <label class="form-label">Stake (USD)</label>
         <input type="number" id="stakeAmount" value="10" min="1" step="1" class="input-field" style="width:100%" oninput="updateCalculations()">
       </div>
-      <div style="margin-bottom:8px">
+      <div id="durationSection" style="margin-bottom:8px">
         <label class="form-label">Duration</label>
         <div style="display:flex;gap:4px">
-          <input type="number" id="duration" value="10" min="1" class="input-field" style="flex:1" oninput="validateDuration()">
-          <select id="durationUnit" class="input-field" onchange="validateDuration()">
+          <input type="number" id="duration" value="10" min="1" class="input-field" style="flex:1;min-width:0" oninput="validateDuration()">
+          <select id="durationUnit" class="input-field" style="max-width:90px" onchange="validateDuration()">
             <option value="t" selected>Ticks</option>
             <option value="s">Seconds</option>
             <option value="m">Minutes</option>
@@ -267,12 +267,12 @@ select option{background:#0f1923}
         </div>
       </div>
       <div id="barrierSection" style="margin-bottom:8px;display:none">
-        <label class="form-label">Barrier (absolute price)</label>
+        <label class="form-label">Barrier (target price)</label>
         <div style="display:flex;gap:4px;align-items:center">
           <input type="number" id="barrierInput" step="0.01" class="input-field" style="flex:1" oninput="updateCalculations()">
-          <button onclick="setBarrierToCurrent()" style="background:#1E293B;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">Use Current</button>
+          <button onclick="setBarrierToCurrent()" style="background:#1E293B;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">Current</button>
         </div>
-        <div style="font-size:10px;color:#64748b;margin-top:2px">Current: <span id="currentPriceHint">--</span></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px">Current price: <span id="currentPriceHint">--</span> | Higher predicts price ends above barrier, Lower predicts below</div>
       </div>
       <div style="background:#1E293B;border-radius:6px;padding:9px;font-size:11px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -289,7 +289,7 @@ select option{background:#0f1923}
         </div>
       </div>
       <div style="background:#422006;border:1px solid #92400e;border-radius:5px;padding:7px;font-size:10px;color:#fbbf24">
-        <i class="fas fa-info-circle"></i> Predict if the market will rise or fall. Higher/Lower requires setting a barrier price.
+        <i class="fas fa-info-circle"></i> <span id="contractInfo">Rise/Fall: Predict if last tick is higher/lower than entry. Higher/Lower: Predict if last tick is above/below barrier (requires both barrier and duration).</span>
       </div>
     </div>
     <!-- Start btn -->
@@ -1389,7 +1389,11 @@ function validateDuration() {
     if (duration < 1) input.value = 1;
   }
   
-  updateCalculations();
+  // Only update calculations if Rise/Fall is selected
+  const type = document.getElementById('contractType').value;
+  if (type === 'CALL') {
+    updateCalculations();
+  }
 }
 
 function updateContractAvailability() {
@@ -1418,7 +1422,9 @@ function updateContractAvailability() {
 
 function setBarrierToCurrent() {
   if (currentPrice && currentPrice > 0) {
-    document.getElementById('barrierInput').value = currentPrice.toFixed(2);
+    // Set barrier slightly above current price (0.1% higher)
+    const suggestedBarrier = currentPrice + (currentPrice * 0.001);
+    document.getElementById('barrierInput').value = suggestedBarrier.toFixed(2);
     updateCalculations();
   }
 }
@@ -1426,6 +1432,7 @@ function setBarrierToCurrent() {
 function updateContractType() {
   const type = document.getElementById('contractType').value;
   const barrierSection = document.getElementById('barrierSection');
+  const durationSection = document.getElementById('durationSection');
   const label = document.getElementById('contractTypeLabel');
   const btnUp = document.getElementById('btnUp');
   const btnDown = document.getElementById('btnDown');
@@ -1435,13 +1442,12 @@ function updateContractType() {
   const durationInput = document.getElementById('duration');
   
   if (type === 'CALLE') {
-    if (barrierSection) barrierSection.style.display = 'block';
-    // Set barrier to current price by default
-    if (currentPrice && currentPrice > 0) {
-      document.getElementById('barrierInput').value = currentPrice.toFixed(2);
-    }
-    durationUnit.value = 't';
-    durationInput.value = 5;
+    // CALLE/PUTE on volatility indices don't use barriers (Barriers: 0)
+    // They work just like CALL/PUT with duration only
+    if (barrierSection) barrierSection.style.display = 'none';
+    if (durationSection) durationSection.style.display = 'block';
+    durationUnit.disabled = false;
+    durationInput.min = 1;
     
     if (label) label.textContent = 'Higher/Lower';
     if (btnUp) btnUp.textContent = 'Higher';
@@ -1449,14 +1455,17 @@ function updateContractType() {
     if (higherLabel) higherLabel.textContent = 'Higher';
     if (lowerLabel) lowerLabel.textContent = 'Lower';
   } else {
-    barrierSection.style.display = 'none';
+    if (barrierSection) barrierSection.style.display = 'none';
+    if (durationSection) durationSection.style.display = 'block';
+    durationUnit.disabled = false;
+    durationInput.min = 1;
+    
     if (label) label.textContent = 'Rise/Fall';
     if (btnUp) btnUp.textContent = 'Rise';
     if (btnDown) btnDown.textContent = 'Fall';
     if (higherLabel) higherLabel.textContent = 'Rise';
     if (lowerLabel) lowerLabel.textContent = 'Fall';
   }
-  validateDuration();
   updateCalculations();
 }
 // Helper: parse "5t", "15s", "2m", "1d" → seconds (t returns 0)
@@ -1499,45 +1508,8 @@ function placeTrade(direction) {
     symbol: mkt
   };
 
-  if (type === 'CALLE') {
-
-    const variations = availableContracts[contractType];
-    if (!variations || variations.length === 0) {
-      alert('Higher/Lower not available for this market.');
-      return;
-    }
-
-    // Find variation that supports the chosen duration unit
-    const unitSeconds = { t: 0, s: 1, m: 60, h: 3600, d: 86400 };
-    const durationInSeconds = duration * (unitSeconds[unit] || 1);
-
-    const matchingVariation = variations.find(v => {
-      if (unit === 't') return v.min_contract_duration?.includes('t'); // tick variation
-      const minSec = parseDurationToSeconds(v.min_contract_duration);
-      const maxSec = parseDurationToSeconds(v.max_contract_duration);
-      return durationInSeconds >= minSec && durationInSeconds <= maxSec;
-    });
-
-    if (!matchingVariation) {
-      alert(`No Higher/Lower variation supports ${duration}${unit}. Try a different duration.`);
-      return;
-    }
-
-    if (!currentPrice || currentPrice === 0) {
-      alert('Waiting for price data...');
-      return;
-    }
-
-    // Get user-set barrier
-    const barrierInput = document.getElementById('barrierInput');
-    const barrier = parseFloat(barrierInput.value);
-    if (!barrier || barrier <= 0) {
-      alert('Please enter a valid barrier price.');
-      return;
-    }
-
-    proposal.barrier = barrier.toFixed(2);
-  }
+  // CALLE/PUTE on volatility indices work like CALL/PUT - no barrier needed
+  // The API shows "Barriers: 0" for all CALLE variations on this symbol
 
   console.log('[Trade] Sending proposal:', proposal);
   pendingProposal = { stake, direction, contractType };
