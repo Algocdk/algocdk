@@ -433,6 +433,40 @@ document.addEventListener('DOMContentLoaded', () => {
   updateCalculations();
   const saved = localStorage.getItem('accountType');
   if (saved === 'real') { isDemo = false; updateAccountDisplay(); }
+  // Restore market selection
+  const savedMarket = localStorage.getItem('selectedMarket');
+  if (savedMarket) {
+    const marketSelect = document.getElementById('marketSelect');
+    if (marketSelect) marketSelect.value = savedMarket;
+  }
+  // Restore contract type
+  const savedContractType = localStorage.getItem('contractType');
+  if (savedContractType) {
+    const contractTypeSelect = document.getElementById('contractType');
+    if (contractTypeSelect) {
+      contractTypeSelect.value = savedContractType;
+      updateContractType();
+    }
+  }
+  // Restore active contract
+  const savedContract = localStorage.getItem('activeContract');
+  if (savedContract) {
+    try {
+      activeContract = JSON.parse(savedContract);
+      document.getElementById('contractStatus').style.display = 'block';
+      document.getElementById('startButton').style.display = 'none';
+      document.getElementById('contractId').textContent = activeContract.contractId;
+      document.getElementById('tradeEntry').textContent = activeContract.entryPrice.toFixed(3);
+      // Subscribe to contract updates when WebSocket connects
+      setTimeout(() => {
+        if (wsOpen()) {
+          ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: activeContract.contractId, subscribe: 1 }));
+        }
+      }, 2000);
+    } catch(e) {
+      localStorage.removeItem('activeContract');
+    }
+  }
   // Restore indicators from localStorage
   const savedInds = localStorage.getItem('activeIndicators');
   if (savedInds) {
@@ -597,6 +631,22 @@ function loadHistory() {
   isHistoryLoaded = false;
   candles = [];
   oldestCandleTime = 0;
+  
+  // Remove all price lines and barriers
+  if (upperLine) { try { mainChart.removeSeries(upperLine); } catch(e){} upperLine = null; }
+  if (lowerLine) { try { mainChart.removeSeries(lowerLine); } catch(e){} lowerLine = null; }
+  if (entryLine) { try { mainChart.removeSeries(entryLine); } catch(e){} entryLine = null; }
+  
+  // Reset chart scale
+  if (mainChart) {
+    mainChart.applyOptions({
+      rightPriceScale: {
+        autoScale: true,
+        scaleMargins: { top: 0.06, bottom: 0.06 }
+      }
+    });
+  }
+  
   // Forget any active streams first
   ws.send(JSON.stringify({ forget_all: 'ticks' }));
   ws.send(JSON.stringify({ forget_all: 'candles' }));
@@ -940,6 +990,15 @@ function onMarketChange() {
   };
   const sel = getMarket();
   document.getElementById('marketName').textContent = names[sel] || sel;
+  
+  // Save selected market
+  localStorage.setItem('selectedMarket', sel);
+  
+  // Remove any accumulator barrier lines
+  if (upperLine) { try { mainChart.removeSeries(upperLine); } catch(e){} upperLine = null; }
+  if (lowerLine) { try { mainChart.removeSeries(lowerLine); } catch(e){} lowerLine = null; }
+  if (entryLine) { try { mainChart.removeSeries(entryLine); } catch(e){} entryLine = null; }
+  
   loadHistory();
 }
 
@@ -1441,6 +1500,9 @@ function updateContractType() {
   const durationUnit = document.getElementById('durationUnit');
   const durationInput = document.getElementById('duration');
   
+  // Save contract type
+  localStorage.setItem('contractType', type);
+  
   if (type === 'CALLE') {
     // CALLE/PUTE on volatility indices don't use barriers (Barriers: 0)
     // They work just like CALL/PUT with duration only
@@ -1517,6 +1579,10 @@ function placeTrade(direction) {
 }
 function handleBuyResponse(buy) {
   activeContract = { contractId: buy.contract_id, entryPrice: currentPrice, direction: pendingProposal.direction, stake: pendingProposal.stake };
+  
+  // Save active contract to localStorage
+  localStorage.setItem('activeContract', JSON.stringify(activeContract));
+  
   document.getElementById('contractStatus').style.display = 'block';
   document.getElementById('startButton').style.display = 'none';
   document.getElementById('contractId').textContent = buy.contract_id;
@@ -1565,6 +1631,7 @@ function saveTradeToHistory(trade) {
 }
 function closeTradeStatus() {
   activeContract = null;
+  localStorage.removeItem('activeContract');
   document.getElementById('contractStatus').style.display = 'none';
   document.getElementById('startButton').style.display = 'block';
 }
