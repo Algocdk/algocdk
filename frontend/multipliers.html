@@ -1,545 +1,1843 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multipliers Trading | Algocdk</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: #0D1421;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .panel {
-            background: #0A0E1A;
-            border: 1px solid #1E293B;
-            border-radius: 8px;
-        }
-        .btn-primary { background: #FF4500; }
-        .btn-primary:hover { background: #e63e00; }
-        .btn-success { background: #00C851; }
-        .btn-success:hover { background: #00a844; }
-        .btn-danger { background: #FF4444; }
-        .btn-danger:hover { background: #e63939; }
-        .input-field {
-            background: #1E293B;
-            border: 1px solid #334155;
-            color: #ffffff;
-            border-radius: 6px;
-            padding: 12px;
-        }
-        .input-field:focus {
-            outline: none;
-            border-color: #FF4500;
-            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
-        }
-        .trade-btn {
-            padding: 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            color: white;
-        }
-        .chart-container {
-            background: #0A0E1A;
-            border-radius: 8px;
-            padding: 20px;
-            height: 400px;
-        }
-        .multiplier-badge {
-            background: linear-gradient(135deg, #FF4500, #FF6B35);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .pnl-positive { color: #00C851; }
-        .pnl-negative { color: #FF4444; }
-        @media (max-width: 768px) {
-            .grid-cols-2 { grid-template-columns: 1fr; }
-            .lg\\:grid-cols-3 { grid-template-columns: 1fr; }
-            .chart-container { height: 300px; }
-        }
-    </style>
+<meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multipliers Trading | Algocdk</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0D1421;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0A0E1A}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.input-field{background:#1E293B;border:1px solid #334155;color:#fff;border-radius:6px;padding:8px 10px;font-size:13px}
+.input-field:focus{outline:none;border-color:#FF4500}
+.trade-btn{padding:14px;border-radius:8px;font-weight:600;transition:all .2s;border:none;cursor:pointer;color:#fff;width:100%}
+.tick-counter{background:#1E293B;border-radius:8px;padding:10px;text-align:center}
+.multiplier-badge{background:linear-gradient(135deg,#FF4500,#FF6B35);color:#fff;padding:3px 10px;border-radius:20px;font-weight:bold;font-size:13px}
+#toolbar{display:flex;align-items:center;gap:4px;padding:6px 8px;background:#0A0E1A;border-bottom:1px solid #1E293B;flex-wrap:wrap;min-height:44px}
+.tb-btn{background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s;white-space:nowrap;font-family:inherit}
+.tb-btn:hover{background:#2d3f55;color:#fff}.tb-btn.active{background:#FF4500;border-color:#FF4500;color:#fff}
+.tb-sep{width:1px;height:24px;background:#1E293B;margin:0 2px;flex-shrink:0}
+.tb-group{display:flex;align-items:center;gap:2px}
+.dropdown-menu{position:absolute;background:#0f1923;border:1px solid #2d3f55;border-radius:6px;z-index:300;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.7);max-height:420px;overflow-y:auto}
+.dropdown-item{padding:8px 14px;cursor:pointer;font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:8px;transition:background .1s}
+.dropdown-item:hover{background:#1E293B;color:#fff}.dropdown-item.active-ind{color:#FF4500}
+.dropdown-sep{padding:4px 14px;font-size:10px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:#06090f;border-top:1px solid #1E293B;margin-top:2px}
+#chartWrap{flex:1;display:flex;flex-direction:column;position:relative;min-height:0;overflow:hidden}
+#mainChart{width:100%;flex:1;min-height:0}
+#pane2Wrap{position:relative;border-top:2px solid #1E293B}
+#pane2Label{position:absolute;top:5px;left:8px;font-size:10px;color:#64748b;z-index:10;pointer-events:none;background:rgba(10,14,26,.7);padding:1px 5px;border-radius:3px}
+#resizeBar{height:5px;background:#1E293B;cursor:ns-resize;flex-shrink:0;transition:background .2s}
+#resizeBar:hover{background:#FF4500}
+#drawCanvas{position:absolute;top:0;left:0;pointer-events:none;z-index:50}
+#drawCanvas.drawing{pointer-events:all;cursor:crosshair}
+#ohlcBar{position:absolute;top:6px;left:8px;z-index:30;font-size:11px;pointer-events:none;display:flex;gap:10px;background:rgba(10,14,26,.6);padding:2px 8px;border-radius:4px}
+.ohlc-item{display:flex;gap:3px;align-items:center}
+#chartLogo{position:absolute;bottom:12px;right:12px;z-index:25;pointer-events:none;opacity:0.15;font-size:32px;font-weight:900;letter-spacing:-1px}
+.ind-chip{display:inline-flex;align-items:center;gap:5px;background:#1E293B;border:1px solid #2d3f55;border-radius:12px;padding:2px 8px;font-size:11px;color:#94a3b8;margin:2px}
+.ind-chip .rm{cursor:pointer;color:#f87171;font-size:10px;padding:0 2px}.ind-chip .rm:hover{color:#ef4444}
+#indicatorChips{display:flex;flex-wrap:wrap;padding:4px 8px;background:#06090f;border-bottom:1px solid #1E293B;min-height:26px}
+.color-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+#appBody{display:flex;flex-direction:column;height:calc(100vh - 52px)}
+@media(max-width:768px){
+  #appBody{height:calc(100vh - 70px)}
+  #toolbar{display:none}
+  #indicatorChips{display:none}
+}
+#mainRow{display:flex;flex:1;min-height:0;overflow:hidden}
+#chartPane{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#sidebar{width:275px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding:8px;background:#0a0e1a;border-left:1px solid #1E293B}
+.ss{background:#0f1923;border:1px solid #1E293B;border-radius:8px;padding:11px}
+.ss h3{font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.form-label{font-size:11px;color:#94a3b8;display:block;margin-bottom:4px}
+#mobileToggle{display:flex;align-items:center;justify-content:center;position:fixed;bottom:80px;right:15px;z-index:99999;width:70px;height:70px;border-radius:50%;background:#00FF00;border:3px solid #fff;color:#000;font-size:28px;box-shadow:0 0 30px rgba(0,255,0,1);cursor:pointer;animation:pulse 2s infinite;pointer-events:auto}
+#mobileToggle:active{transform:scale(0.95)}
+@keyframes pulse{0%,100%{box-shadow:0 0 30px rgba(0,255,0,1)}50%{box-shadow:0 0 50px rgba(0,255,0,1)}}
+@media(min-width:769px){
+  #mobileToggle{display:none}
+}
+#sidebarOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:140}
+#sidebarOverlay.show{display:block}
+@media(max-width:768px){
+  #sidebar{position:fixed;right:-100%;top:52px;bottom:0;width:90%;max-width:320px;z-index:150;transition:right .3s;box-shadow:-4px 0 12px rgba(0,0,0,.5);overflow-y:auto}
+  #sidebar.show{right:0}
+  #mobileToggle{display:flex;align-items:center;justify-content:center}
+  #toolbar{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #mainRow{flex-direction:column}
+  #chartPane{min-height:400px}
+  .modal-box{min-width:280px;max-width:95vw;padding:16px}
+  #chartLogo{font-size:24px;bottom:8px;right:8px}
+  header nav{display:none}
+  header{padding:6px 12px;height:auto;flex-wrap:wrap;gap:8px}
+  header>div:first-child{width:100%;justify-content:space-between}
+  header>div:last-child{width:100%;justify-content:space-between;font-size:11px}
+  #accountBalance{font-size:14px}
+  #balanceLabel{font-size:9px}
+  #accountTypeBtn{padding:3px 10px;font-size:11px}
+  #connStatus{font-size:10px}
+}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#0f1923;border:1px solid #2d3f55;border-radius:10px;padding:22px;min-width:300px;max-width:90vw}
+.modal-box h3{font-size:15px;font-weight:700;margin-bottom:14px;color:#fff}
+.modal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.modal-row label{font-size:12px;color:#94a3b8}
+select option{background:#0f1923}
+.btn-primary{background:#FF4500}.btn-primary:hover{background:#e63e00}
+.btn-danger{background:#ef4444}.btn-danger:hover{background:#dc2626}
+/* Connection status dot */
+#connDot{width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;margin-right:4px;transition:background .3s}
+#connDot.connected{background:#22c55e}
+#connDot.connecting{background:#fbbf24;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="bg-[#0A0E1A] border-b border-gray-700 px-4 py-3 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-[#FF4500] rounded flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">A</span>
-                    </div>
-                    <span class="text-xl font-bold">Algocdk</span>
-                </div>
-                <nav class="hidden md:flex space-x-6">
-                    <a href="/app" class="text-gray-400 hover:text-white">Chart</a>
-                    <a href="/trading" class="text-[#FF4500] font-semibold">Trade</a>
-                    <a href="/mybots" class="text-gray-400 hover:text-white">Bots</a>
-                </nav>
-            </div>
-            
-            <div class="flex items-center space-x-4">
-                <button onclick="toggleAccountType()" class="px-3 py-1 text-sm rounded-lg font-semibold transition-all" id="accountTypeBtn">
-                    Demo
-                </button>
-                <div class="text-right">
-                    <div class="text-xs text-gray-400" id="balanceLabel">Demo Balance</div>
-                    <div class="font-bold text-lg" id="accountBalance">10,000.00 USD</div>
-                </div>
-                <button onclick="exitApp()" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
-        </div>
-    </header>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <div class="mb-6">
-            <div class="flex items-center space-x-4">
-                <button onclick="window.location.href='/trading'" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Trading
-                </button>
-                <h1 class="text-2xl font-bold">Multipliers Trading</h1>
-                <div class="multiplier-badge" id="currentMultiplier">x100</div>
-            </div>
-        </div>
-
-        <div class="grid lg:grid-cols-3 gap-6">
-            <!-- Chart Panel -->
-            <div class="lg:col-span-2">
-                <div class="panel p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold">Price Chart</h3>
-                        <select id="marketSelect" class="input-field text-sm">
-                            <option value="R_10">Volatility 10 Index</option>
-                            <option value="R_25">Volatility 25 Index</option>
-                            <option value="R_50">Volatility 50 Index</option>
-                            <option value="R_75">Volatility 75 Index</option>
-                            <option value="R_100" selected>Volatility 100 Index</option>
-                        </select>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Position Info -->
-                <div class="panel p-6" id="positionPanel" style="display: none;">
-                    <h3 class="text-lg font-bold mb-4">Active Position</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="text-center">
-                            <div class="text-lg font-bold" id="positionType">Up</div>
-                            <div class="text-sm text-gray-400">Direction</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-lg font-bold" id="entryPrice">1234.567</div>
-                            <div class="text-sm text-gray-400">Entry Price</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-lg font-bold" id="currentPnL">+0.00</div>
-                            <div class="text-sm text-gray-400">P&L</div>
-                        </div>
-                        <div class="text-center">
-                            <button onclick="closePosition()" class="trade-btn btn-danger text-sm px-4 py-2">
-                                Close Position
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Trading Panel -->
-            <div class="lg:col-span-1">
-                <div class="panel p-6 mb-6">
-                    <h3 class="text-lg font-bold mb-4">Trade Parameters</h3>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Stake (USD)</label>
-                            <input type="number" id="stakeAmount" value="1" min="1" step="0.01" 
-                                   class="input-field w-full" onchange="updateCalculations()">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Multiplier</label>
-                            <select id="multiplier" class="input-field w-full" onchange="updateMultiplier()">
-                                <option value="5">x5</option>
-                                <option value="10">x10</option>
-                                <option value="25">x25</option>
-                                <option value="50">x50</option>
-                                <option value="100" selected>x100</option>
-                                <option value="250">x250</option>
-                                <option value="500">x500</option>
-                                <option value="1000">x1000</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Stop Loss (Optional)</label>
-                            <input type="number" id="stopLoss" class="input-field w-full" 
-                                   placeholder="Enter amount" onchange="updateCalculations()">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Take Profit (Optional)</label>
-                            <input type="number" id="takeProfit" class="input-field w-full" 
-                                   placeholder="Enter amount" onchange="updateCalculations()">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Purchase Buttons -->
-                <div class="panel p-6 mb-6" id="tradingButtons">
-                    <h3 class="text-lg font-bold mb-4">Open Position</h3>
-                    <div class="space-y-3">
-                        <button class="trade-btn btn-success w-full" onclick="placeTrade('MULTUP')">
-                            <div class="flex justify-between items-center">
-                                <span><i class="fas fa-arrow-up mr-2"></i>Up</span>
-                                <span>Start Trading</span>
-                            </div>
-                        </button>
-                        <button class="trade-btn btn-danger w-full" onclick="placeTrade('MULTDOWN')">
-                            <div class="flex justify-between items-center">
-                                <span><i class="fas fa-arrow-down mr-2"></i>Down</span>
-                                <span>Start Trading</span>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Risk Management -->
-                <div class="panel p-6">
-                    <h3 class="text-lg font-bold mb-4">Risk Management</h3>
-                    <div class="space-y-2">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Commission:</span>
-                            <span class="font-bold" id="commission">0.00 USD</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Max Loss:</span>
-                            <span class="font-bold text-red-500" id="maxLoss">-1.00 USD</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Stop Loss Level:</span>
-                            <span class="font-bold" id="stopLossLevel">-</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Take Profit Level:</span>
-                            <span class="font-bold" id="takeProfitLevel">-</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- HEADER -->
+<header style="background:#0A0E1A;border-bottom:1px solid #374151;padding:8px 16px;position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:30px;height:30px;background:#FF4500;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px">A</div>
+      <span style="font-size:18px;font-weight:700">Algocdk</span>
     </div>
+    <nav style="display:flex;gap:20px">
+      <a href="/app" style="color:#94a3b8;text-decoration:none;font-size:14px">Chart</a>
+      <a href="/trading" style="color:#FF4500;text-decoration:none;font-size:14px;font-weight:600">Trade</a>
+      <a href="/mybots" style="color:#94a3b8;text-decoration:none;font-size:14px">Bots</a>
+    </nav>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:11px;color:#94a3b8;display:flex;align-items:center"><span id="connDot"></span><span id="connStatus">Connecting...</span></span>
+    <button onclick="toggleAccountType()" id="accountTypeBtn" style="background:#16a34a;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Demo</button>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#94a3b8" id="balanceLabel">Demo Balance</div>
+      <div style="font-size:16px;font-weight:700" id="accountBalance">--</div>
+    </div>
+    <button onclick="exitApp()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+</header>
 
-    <script>
-        let ws = null;
-        let widget = null;
-        let currentPrice = 1234.567;
-        let isDemo = true;
-        let activePosition = null;
-        let entryPrice = 0;
+<!-- APP BODY -->
+<div id="appBody">
 
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeAccount();
-            initializeTradingView();
-            connectWebSocket();
-            updateCalculations();
-        });
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <!-- Market -->
+  <div class="tb-group">
+    <select id="marketSelect" class="input-field" style="width:auto" onchange="onMarketChange()">
+      <option value="1HZ10V">V10 (1s)</option>
+      <option value="1HZ25V">V25 (1s)</option>
+      <option value="1HZ50V">V50 (1s)</option>
+      <option value="1HZ75V" selected>V75 (1s)</option>
+      <option value="1HZ100V">V100 (1s)</option>
+      <option value="R_10">V10</option>
+      <option value="R_25">V25</option>
+      <option value="R_50">V50</option>
+      <option value="R_75">V75</option>
+      <option value="R_100">V100</option>
+    </select>
+  </div>
+  <div class="tb-sep"></div>
+  <!-- Timeframes -->
+  <div class="tb-group" id="tfGroup">
+    <button class="tb-btn" onclick="setTF(60,this)">1m</button>
+    <button class="tb-btn" onclick="setTF(120,this)">2m</button>
+    <button class="tb-btn" onclick="setTF(300,this)">5m</button>
+    <button class="tb-btn active" onclick="setTF(900,this)">15m</button>
+    <button class="tb-btn" onclick="setTF(1800,this)">30m</button>
+    <button class="tb-btn" onclick="setTF(3600,this)">1h</button>
+    <button class="tb-btn" onclick="setTF(14400,this)">4h</button>
+    <button class="tb-btn" onclick="setTF(86400,this)">1D</button>
+  </div>
+  <div class="tb-sep"></div>
+  <!-- Chart types -->
+  <div class="tb-group">
+    <button class="tb-btn active" id="btnCandle" onclick="setChartType('candlestick',this)" title="Candlestick"><i class="fas fa-chart-bar"></i></button>
+    <button class="tb-btn" id="btnLine" onclick="setChartType('line',this)" title="Line"><i class="fas fa-chart-line"></i></button>
+    <button class="tb-btn" id="btnArea" onclick="setChartType('area',this)" title="Area"><i class="fas fa-mountain"></i></button>
+    <button class="tb-btn" id="btnHeikin" onclick="setChartType('heikin',this)" title="Heikin Ashi">HA</button>
+  </div>
+  <div class="tb-sep"></div>
+  <!-- Indicators dropdown -->
+  <div class="tb-group" style="position:relative">
+    <button class="tb-btn" onclick="toggleDD('indDD')"><i class="fas fa-wave-square"></i> Indicators <i class="fas fa-chevron-down" style="font-size:9px"></i></button>
+    <div id="indDD" class="dropdown-menu" style="display:none;top:34px;left:0">
+      <div class="dropdown-sep">Overlay — Main Pane</div>
+      <div class="dropdown-item" onclick="toggleInd('ema9')"><span class="color-dot" style="background:#F59E0B"></span>EMA 9</div>
+      <div class="dropdown-item" onclick="toggleInd('ema20')"><span class="color-dot" style="background:#3B82F6"></span>EMA 20</div>
+      <div class="dropdown-item" onclick="toggleInd('ema50')"><span class="color-dot" style="background:#A855F7"></span>EMA 50</div>
+      <div class="dropdown-item" onclick="toggleInd('ema200')"><span class="color-dot" style="background:#EC4899"></span>EMA 200</div>
+      <div class="dropdown-item" onclick="toggleInd('sma20')"><span class="color-dot" style="background:#10B981"></span>SMA 20</div>
+      <div class="dropdown-item" onclick="toggleInd('sma50')"><span class="color-dot" style="background:#06B6D4"></span>SMA 50</div>
+      <div class="dropdown-item" onclick="toggleInd('bb')"><span class="color-dot" style="background:#6366F1"></span>Bollinger Bands (20,2)</div>
+      <div class="dropdown-item" onclick="toggleInd('vwap')"><span class="color-dot" style="background:#F97316"></span>VWAP</div>
+      <div class="dropdown-sep">Oscillators — Pane 2</div>
+      <div class="dropdown-item" onclick="toggleInd('rsi')"><span class="color-dot" style="background:#22D3EE"></span>RSI 14</div>
+      <div class="dropdown-item" onclick="toggleInd('macd')"><span class="color-dot" style="background:#34D399"></span>MACD (12,26,9)</div>
+      <div class="dropdown-item" onclick="toggleInd('stoch')"><span class="color-dot" style="background:#FBBF24"></span>Stochastic (14,3)</div>
+      <div class="dropdown-item" onclick="toggleInd('volume')"><span class="color-dot" style="background:#64748b"></span>Volume</div>
+      <div class="dropdown-item" onclick="toggleInd('atr')"><span class="color-dot" style="background:#F87171"></span>ATR 14</div>
+      <div class="dropdown-item" onclick="toggleInd('cci')"><span class="color-dot" style="background:#C084FC"></span>CCI 20</div>
+      <div class="dropdown-item" onclick="toggleInd('willr')"><span class="color-dot" style="background:#2DD4BF"></span>Williams %R 14</div>
+      <div class="dropdown-item" onclick="toggleInd('mom')"><span class="color-dot" style="background:#FB923C"></span>Momentum 10</div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <!-- Drawing tools -->
+  <div class="tb-group">
+    <button class="tb-btn active" id="toolNone" onclick="setDrawTool('none',this)" title="Pointer"><i class="fas fa-mouse-pointer"></i></button>
+    <button class="tb-btn" id="toolLine" onclick="setDrawTool('line',this)" title="Trend Line"><i class="fas fa-slash"></i></button>
+    <button class="tb-btn" id="toolHline" onclick="setDrawTool('hline',this)" title="Horizontal Line"><i class="fas fa-minus"></i></button>
+    <button class="tb-btn" id="toolVline" onclick="setDrawTool('vline',this)" title="Vertical Line"><i class="fas fa-grip-lines-vertical"></i></button>
+    <button class="tb-btn" id="toolRect" onclick="setDrawTool('rect',this)" title="Rectangle"><i class="far fa-square"></i></button>
+    <button class="tb-btn" id="toolFib" onclick="setDrawTool('fib',this)" title="Fibonacci">Fib</button>
+    <button class="tb-btn" id="toolRay" onclick="setDrawTool('ray',this)" title="Ray"><i class="fas fa-long-arrow-alt-right"></i></button>
+    <button class="tb-btn" id="toolText" onclick="setDrawTool('text',this)" title="Text"><i class="fas fa-font"></i></button>
+    <button class="tb-btn" style="color:#f87171" onclick="clearDrawings()" title="Clear"><i class="fas fa-trash"></i></button>
+    <button class="tb-btn" onclick="undoDrawing()" title="Undo"><i class="fas fa-undo"></i></button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-btn" onclick="togglePane2()" id="btnPane2"><i class="fas fa-chart-area"></i> Pane2</button>
+    <button class="tb-btn" onclick="openAlertModal()"><i class="fas fa-bell"></i></button>
+    <button class="tb-btn" onclick="resetZoom()" title="Fit chart"><i class="fas fa-compress-arrows-alt"></i></button>
+  </div>
+  <!-- Price display -->
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">LIVE PRICE</div>
+      <div style="font-size:15px;font-weight:700" id="currentPriceDisplay">--</div>
+    </div>
+  </div>
+</div>
 
-        function initializeAccount() {
-            const savedAccountType = localStorage.getItem('accountType');
-            if (savedAccountType === 'real') {
-                isDemo = false;
-            }
-            updateAccountDisplay();
-        }
+<!-- Indicator chips -->
+<div id="indicatorChips"></div>
 
-        function initializeTradingView() {
-            widget = new TradingView.widget({
-                "width": "100%",
-                "height": 400,
-                "symbol": "OANDA:SPX500USD",
-                "interval": "1",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#0A0E1A",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "hide_legend": true,
-                "save_image": false,
-                "container_id": "tradingview_chart",
-                "backgroundColor": "#0A0E1A",
-                "gridColor": "#1E293B",
-                "hide_side_toolbar": false,
-                "allow_symbol_change": false,
-                "studies": [],
-                "overrides": {
-                    "paneProperties.background": "#0A0E1A",
-                    "paneProperties.vertGridProperties.color": "#1E293B",
-                    "paneProperties.horzGridProperties.color": "#1E293B",
-                    "symbolWatermarkProperties.transparency": 90,
-                    "scalesProperties.textColor": "#94a3b8"
-                }
-            });
-        }
+<!-- MAIN ROW -->
+<div id="mainRow">
+  <!-- Chart pane -->
+  <div id="chartPane">
+    <div id="chartWrap">
+      <div id="ohlcBar">
+        <span class="ohlc-item"><span style="color:#64748b">O</span><span id="ohlcO" style="color:#e2e8f0">--</span></span>
+        <span class="ohlc-item"><span style="color:#64748b">H</span><span id="ohlcH" style="color:#26a69a">--</span></span>
+        <span class="ohlc-item"><span style="color:#64748b">L</span><span id="ohlcL" style="color:#ef5350">--</span></span>
+        <span class="ohlc-item"><span style="color:#64748b">C</span><span id="ohlcC" style="color:#e2e8f0">--</span></span>
+        <span class="ohlc-item" id="ohlcVol" style="display:none"><span style="color:#64748b">V</span><span id="ohlcV" style="color:#94a3b8">--</span></span>
+      </div>
+      <div id="chartLogo"><span style="color:#FF4500;text-shadow:0 0 20px rgba(255,69,0,0.3)">Algo</span><span style="color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.2)">cdk</span></div>
+      <div id="mainChart"></div>
+      <div id="resizeBar" style="display:none"></div>
+      <div id="pane2Wrap" style="display:none;height:150px">
+        <div id="pane2Label">RSI 14</div>
+        <div id="pane2Chart" style="width:100%;height:100%"></div>
+      </div>
+      <canvas id="drawCanvas"></canvas>
+    </div>
+  </div>
 
-        function connectWebSocket() {
-            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
-            
-            ws.onopen = () => {
-                const market = document.getElementById('marketSelect').value;
-                ws.send(JSON.stringify({ ticks: market, subscribe: 1 }));
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.tick) {
-                    updatePrice(parseFloat(data.tick.quote));
-                }
-            };
-            
-            ws.onclose = () => {
-                setTimeout(connectWebSocket, 3000);
-            };
-        }
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <!-- Multiplier params -->
+    <div class="ss">
+      <h3><span style="color:#FF4500">◆</span> Multiplier <span class="multiplier-badge" id="currentMultiplier" style="margin-left:auto">x100</span></h3>
+      <div style="margin-bottom:8px">
+        <label class="form-label">Market</label>
+        <div style="font-size:12px;color:#e2e8f0;font-weight:600" id="marketName">Volatility 75 (1s)</div>
+      </div>
+      <div style="margin-bottom:8px">
+        <label class="form-label">Stake (USD)</label>
+        <input type="number" id="stakeAmount" value="10" min="1" step="1" class="input-field" style="width:100%" oninput="updateCalculations()">
+      </div>
+      <div style="margin-bottom:8px">
+        <label class="form-label">Multiplier</label>
+        <select id="multiplierValue" class="input-field" style="width:100%" onchange="updateMultiplier()">
+          <option value="5">x5</option><option value="10">x10</option>
+          <option value="25">x25</option><option value="50">x50</option>
+          <option value="100" selected>x100</option><option value="250">x250</option>
+          <option value="500">x500</option><option value="1000">x1000</option>
+        </select>
+      </div>
+      <div style="margin-bottom:8px">
+        <label class="form-label">Stop Loss (Optional)</label>
+        <input type="number" id="stopLoss" class="input-field" style="width:100%" placeholder="Enter amount" oninput="updateCalculations()">
+      </div>
+      <div style="margin-bottom:8px">
+        <label class="form-label">Take Profit (Optional)</label>
+        <input type="number" id="takeProfit" class="input-field" style="width:100%" placeholder="Enter amount" oninput="updateCalculations()">
+      </div>
+      <div style="background:#1E293B;border-radius:6px;padding:9px;font-size:11px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#94a3b8">Commission:</span><span style="color:#fbbf24;font-weight:600" id="commission">0.00 USD</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#94a3b8">Max Loss:</span><span style="color:#ef4444;font-weight:600" id="maxLoss">-10.00 USD</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#94a3b8">Stop Loss Level:</span><span style="color:#ef4444;font-weight:600" id="stopLossLevel">-</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">Take Profit Level:</span><span style="color:#22c55e;font-weight:600" id="takeProfitLevel">-</span></div>
+      </div>
+      <div style="background:#422006;border:1px solid #92400e;border-radius:5px;padding:7px;font-size:10px;color:#fbbf24">
+        <i class="fas fa-info-circle"></i> Multiply your potential profit/loss by the selected multiplier. Higher multipliers = higher risk.
+      </div>
+    </div>
+    <!-- Start btn -->
+    <div class="ss" id="startButton">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="trade-btn" style="background:#22c55e" onclick="startMultiplier('UP')"><i class="fas fa-arrow-up"></i> Up</button>
+        <button class="trade-btn" style="background:#ef4444" onclick="startMultiplier('DOWN')"><i class="fas fa-arrow-down"></i> Down</button>
+      </div>
+    </div>
+    <!-- Active contract -->
+    <div class="ss" id="multiplierStatus" style="display:none">
+      <h3 style="color:#fbbf24"><i class="fas fa-circle-notch fa-spin"></i> Active Position</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div class="tick-counter"><div style="font-size:15px;font-weight:700;color:#e2e8f0" id="entryPrice">0.000</div><div style="font-size:10px;color:#94a3b8">Entry</div></div>
+        <div class="tick-counter"><div style="font-size:15px;font-weight:700;color:#e2e8f0" id="currentPricePos">0.000</div><div style="font-size:10px;color:#94a3b8">Current</div></div>
+        <div class="tick-counter" style="grid-column:span 2"><div style="font-size:20px;font-weight:700" id="currentPnL">+0.00</div><div style="font-size:10px;color:#94a3b8">P&L (USD)</div></div>
+      </div>
+      <div style="background:#1E293B;border-radius:4px;height:6px;margin-bottom:8px;overflow:hidden">
+        <div id="profitBar" style="height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);width:50%;transition:width .4s;border-radius:4px"></div>
+      </div>
+      <button onclick="closeMultiplier()" class="trade-btn btn-danger"><i class="fas fa-stop-circle"></i> Close Position</button>
+    </div>
+    <!-- Tech readings -->
+    <div class="ss">
+      <h3><i class="fas fa-robot" style="color:#6366f1"></i> Readings</h3>
+      <div id="techValues" style="font-size:11px;display:flex;flex-direction:column;gap:5px">
+        <div style="color:#475569;font-style:italic">Add indicators to see readings</div>
+      </div>
+    </div>
+    <!-- Alerts -->
+    <div class="ss">
+      <h3><i class="fas fa-bell" style="color:#fbbf24"></i> Price Alerts</h3>
+      <div id="alertsList" style="font-size:11px;color:#475569;margin-bottom:7px">No alerts set</div>
+      <button onclick="openAlertModal()" class="tb-btn" style="width:100%;justify-content:center"><i class="fas fa-plus"></i> Add Alert</button>
+    </div>
+    <!-- Trade History -->
+    <div class="ss">
+      <h3><i class="fas fa-history" style="color:#3B82F6"></i> Trade History</h3>
+      <button onclick="openTradeHistory()" class="tb-btn" style="width:100%;justify-content:center"><i class="fas fa-list"></i> View Trades</button>
+    </div>
+  </div>
+</div>
+</div>
 
-        function updatePrice(price) {
-            currentPrice = price;
-            
-            // Update position P&L if active
-            if (activePosition) {
-                updatePositionPnL();
-            }
-        }
+<!-- Mobile sidebar overlay -->
+<div id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
-        function updateMultiplier() {
-            const multiplier = document.getElementById('multiplier').value;
-            document.getElementById('currentMultiplier').textContent = `x${multiplier}`;
-            updateCalculations();
-        }
+<!-- Mobile toggle button -->
+<button id="mobileToggle" onclick="toggleMobileMenu()">
+  <i class="fas fa-sliders-h"></i>
+</button>
 
-        function updateCalculations() {
-            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
-            const stopLoss = parseFloat(document.getElementById('stopLoss').value) || 0;
-            const takeProfit = parseFloat(document.getElementById('takeProfit').value) || 0;
-            
-            // Commission calculation (typically 0 for multipliers)
-            document.getElementById('commission').textContent = '0.00 USD';
-            
-            // Max loss is the stake amount
-            document.getElementById('maxLoss').textContent = `-${stake.toFixed(2)} USD`;
-            
-            // Stop loss and take profit levels
-            if (stopLoss > 0) {
-                document.getElementById('stopLossLevel').textContent = `${stopLoss.toFixed(2)} USD`;
-            } else {
-                document.getElementById('stopLossLevel').textContent = '-';
-            }
-            
-            if (takeProfit > 0) {
-                document.getElementById('takeProfitLevel').textContent = `${takeProfit.toFixed(2)} USD`;
-            } else {
-                document.getElementById('takeProfitLevel').textContent = '-';
-            }
-        }
+<!-- Mobile radial menu -->
+<div id="mobileMenu" style="display:none;position:fixed;bottom:160px;right:25px;z-index:99998">
+  <button onclick="openMobileSection('trade')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FF4500;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(255,69,0,.6);cursor:pointer"><i class="fas fa-chart-line"></i></button>
+  <button onclick="openMobileSection('indicators')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#3B82F6;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(59,130,246,.6);cursor:pointer"><i class="fas fa-wave-square"></i></button>
+  <button onclick="showMobileDrawTools()" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#A855F7;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(168,85,247,.6);cursor:pointer"><i class="fas fa-pen"></i></button>
+  <button onclick="openMobileSection('alerts')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FBBF24;border:2px solid #fff;color:#000;font-size:20px;box-shadow:0 4px 15px rgba(251,191,36,.6);cursor:pointer"><i class="fas fa-bell"></i></button>
+</div>
 
-        function placeTrade(contractType) {
-            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
-            const multiplier = parseInt(document.getElementById('multiplier').value) || 100;
-            const market = document.getElementById('marketSelect').value;
-            
-            let proposal = {
-                proposal: 1,
-                amount: stake,
-                contract_type: contractType,
-                currency: "USD",
-                symbol: market,
-                basis: "stake",
-                multiplier: multiplier
-            };
-            
-            // Add stop loss and take profit if specified
-            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
-            const takeProfit = parseFloat(document.getElementById('takeProfit').value);
-            
-            if (stopLoss > 0) {
-                proposal.limit_order = {
-                    stop_loss: stopLoss
-                };
-            }
-            
-            if (takeProfit > 0) {
-                if (!proposal.limit_order) proposal.limit_order = {};
-                proposal.limit_order.take_profit = takeProfit;
-            }
-            
-            // Send proposal to get price
-            ws.send(JSON.stringify(proposal));
-            
-            // Listen for proposal response
-            const originalOnMessage = ws.onmessage;
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.proposal) {
-                    // Buy the contract
-                    const buyRequest = {
-                        buy: data.proposal.id,
-                        price: data.proposal.ask_price
-                    };
-                    ws.send(JSON.stringify(buyRequest));
-                    
-                    // Set up active position
-                    activePosition = {
-                        type: contractType,
-                        stake: stake,
-                        multiplier: multiplier,
-                        entryPrice: currentPrice,
-                        startTime: Date.now()
-                    };
-                    
-                    entryPrice = currentPrice;
-                    
-                    // Show position panel
-                    document.getElementById('positionPanel').style.display = 'block';
-                    document.getElementById('tradingButtons').style.display = 'none';
-                    
-                    // Update position display
-                    document.getElementById('positionType').textContent = contractType === 'MULTUP' ? 'Up' : 'Down';
-                    document.getElementById('entryPrice').textContent = entryPrice.toFixed(3);
-                    
-                    // Show success message
-                    alert(`${contractType === 'MULTUP' ? 'Up' : 'Down'} multiplier position opened for ${stake} USD`);
-                    
-                    // Update balance
-                    updateBalance(-stake);
-                    
-                    // Restore original message handler
-                    ws.onmessage = originalOnMessage;
-                } else if (data.buy) {
-                    console.log('Trade executed:', data.buy);
-                } else {
-                    originalOnMessage(event);
-                }
-            };
-        }
+<!-- ALERT MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal-box">
+    <h3><i class="fas fa-bell" style="color:#fbbf24"></i> Set Price Alert</h3>
+    <div class="modal-row"><label>Condition</label><select id="alertCondition" class="input-field" style="width:auto"><option value="above">Price Above</option><option value="below">Price Below</option></select></div>
+    <div class="modal-row"><label>Price Level</label><input type="number" id="alertPrice" class="input-field" style="width:120px" step="0.001"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="addAlert()" class="trade-btn btn-primary" style="flex:1;padding:10px">Set Alert</button>
+      <button onclick="closeAlertModal()" class="tb-btn" style="flex:1;justify-content:center">Cancel</button>
+    </div>
+  </div>
+</div>
 
-        function updatePositionPnL() {
-            if (!activePosition) return;
-            
-            const priceDiff = currentPrice - entryPrice;
-            const multiplier = activePosition.multiplier;
-            const stake = activePosition.stake;
-            
-            let pnl = 0;
-            if (activePosition.type === 'MULTUP') {
-                pnl = (priceDiff / entryPrice) * multiplier * stake;
-            } else {
-                pnl = -(priceDiff / entryPrice) * multiplier * stake;
-            }
-            
-            const pnlEl = document.getElementById('currentPnL');
-            pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
-            pnlEl.className = `text-lg font-bold ${pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}`;
-            
-            // Check stop loss and take profit
-            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
-            const takeProfit = parseFloat(document.getElementById('takeProfit').value);
-            
-            if ((stopLoss > 0 && pnl <= -stopLoss) || (takeProfit > 0 && pnl >= takeProfit)) {
-                closePosition();
-            }
-        }
+<!-- TRADE HISTORY MODAL -->
+<div class="modal-overlay" id="tradeHistoryModal">
+  <div class="modal-box" style="max-width:600px;width:90vw">
+    <h3><i class="fas fa-history" style="color:#3B82F6"></i> Trade History</h3>
+    <div id="tradeHistoryList" style="max-height:400px;overflow-y:auto;margin:14px 0"></div>
+    <button onclick="closeTradeHistory()" class="tb-btn" style="width:100%;justify-content:center">Close</button>
+  </div>
+</div>
 
-        function closePosition() {
-            if (!activePosition) return;
-            
-            const pnl = parseFloat(document.getElementById('currentPnL').textContent.replace(/[^0-9.-]/g, ''));
-            
-            // Update balance with P&L
-            updateBalance(pnl);
-            
-            // Reset position
-            activePosition = null;
-            entryPrice = 0;
-            
-            // Hide position panel and show trading buttons
-            document.getElementById('positionPanel').style.display = 'none';
-            document.getElementById('tradingButtons').style.display = 'block';
-            
-            alert(`Position closed with P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
-        }
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────
+let ws = null;
+let currentPrice = 0, prevPrice = 0, isDemo = true;
+// candles array: [{time, open, high, low, close}]  time = epoch seconds (integer)
+let candles = [];
+let currentTF = 900;
+let currentChartType = 'candlestick';
+let isHistoryLoaded = false;
+let isLoadingMore = false;
+let oldestCandleTime = 0;
 
-        function updateBalance(change) {
-            const currentBalance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.]/g, ''));
-            const newBalance = currentBalance + change;
-            document.getElementById('accountBalance').textContent = `${newBalance.toFixed(2)} USD`;
-            
-            if (isDemo) {
-                localStorage.setItem('demoBalance', newBalance.toFixed(2));
-            } else {
-                localStorage.setItem('realBalance', newBalance.toFixed(2));
-            }
-        }
+// Charts
+let mainChart = null, mainSeries = null;
+let pane2Chart = null;
+let pane2Visible = false;
+let pane2LabelText = '';
 
-        function toggleAccountType() {
-            isDemo = !isDemo;
-            localStorage.setItem('accountType', isDemo ? 'demo' : 'real');
-            updateAccountDisplay();
-        }
+// Series maps
+let indSeries = {};      // overlay series on main chart
+let p2Series = {};       // series on pane2 chart
+let activeInds = new Set();
 
-        function updateAccountDisplay() {
-            const btn = document.getElementById('accountTypeBtn');
-            const label = document.getElementById('balanceLabel');
-            const balance = document.getElementById('accountBalance');
-            
-            const demoBalance = localStorage.getItem('demoBalance') || '10000.00';
-            const realBalance = localStorage.getItem('realBalance') || '0.00';
-            
-            if (isDemo) {
-                btn.textContent = 'Demo';
-                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-green-600 text-white';
-                label.textContent = 'Demo Balance';
-                balance.textContent = `${parseFloat(demoBalance).toFixed(2)} USD`;
-                balance.className = 'font-bold text-lg text-green-500';
-            } else {
-                btn.textContent = 'Real';
-                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-red-600 text-white';
-                label.textContent = 'Real Balance';
-                balance.textContent = `${parseFloat(realBalance).toFixed(2)} USD`;
-                balance.className = 'font-bold text-lg text-red-500';
-            }
-        }
+// Multiplier
+let activeMultiplier = null;
+let entryPrice = 0, multiplierValue = 100, direction = 'UP';
+let stopLossPrice = 0, takeProfitPrice = 0;
+let entryLine = null, stopLossLine = null, takeProfitLine = null;
+let pendingProposal = null;
 
-        function exitApp() {
-            if (ws) ws.close();
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userSession');
-            window.location.href = '/auth';
-        }
+// Drawing
+let drawTool = 'none', drawings = [], drawingIP = null;
+let drawCanvas, drawCtx;
 
-        // Market change handler
-        document.getElementById('marketSelect').addEventListener('change', function() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ forget_all: 'ticks' }));
-                ws.send(JSON.stringify({ ticks: this.value, subscribe: 1 }));
-            }
-            
-            // Reset price tracking
-            priceData = [];
-        });
-    </script>
+// Alerts
+let priceAlerts = [];
+
+// Indicator metadata
+const IND_COLORS = {
+  ema9:'#F59E0B',ema20:'#3B82F6',ema50:'#A855F7',ema200:'#EC4899',
+  sma20:'#10B981',sma50:'#06B6D4',bb:'#6366F1',vwap:'#F97316',
+  rsi:'#22D3EE',macd:'#34D399',stoch:'#FBBF24',volume:'#64748b',
+  atr:'#F87171',cci:'#C084FC',willr:'#2DD4BF',mom:'#FB923C'
+};
+const IND_NAMES = {
+  ema9:'EMA 9',ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',
+  sma20:'SMA 20',sma50:'SMA 50',bb:'Bollinger Bands',vwap:'VWAP',
+  rsi:'RSI 14',macd:'MACD',stoch:'Stochastic',volume:'Volume',
+  atr:'ATR 14',cci:'CCI 20',willr:'Williams %R',mom:'Momentum'
+};
+const PANE2_INDS = new Set(['rsi','macd','stoch','volume','atr','cci','willr','mom']);
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initCharts();
+  initCanvas();
+  initResizeBar();
+  connectWebSocket();
+  updateCalculations();
+  updateMultiplier();
+  const saved = localStorage.getItem('accountType');
+  if (saved === 'real') { isDemo = false; updateAccountDisplay(); }
+  // Restore indicators from localStorage
+  const savedInds = localStorage.getItem('activeIndicators');
+  if (savedInds) {
+    try {
+      const inds = JSON.parse(savedInds);
+      inds.forEach(k => activeInds.add(k));
+      updateIndChips();
+      updateDDActive();
+    } catch(e) {}
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[onclick*="toggleDD"]') && !e.target.closest('.dropdown-menu'))
+      document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+  });
+});
+
+// ─── CHART INIT ───────────────────────────────────────────────────────
+function initCharts() {
+  const mainEl = document.getElementById('mainChart');
+  const p2El   = document.getElementById('pane2Chart');
+
+  mainChart = LightweightCharts.createChart(mainEl, makeChartOpts(mainEl, true));
+  pane2Chart = LightweightCharts.createChart(p2El,   makeChartOpts(p2El, false));
+
+  createMainSeries();
+
+  // Sync timescales bidirectionally
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r => {
+    if (r && pane2Chart) pane2Chart.timeScale().setVisibleLogicalRange(r);
+    // Load more data when scrolling to the left edge
+    if (r && r.from < 10 && !isLoadingMore && candles.length > 0) {
+      loadMoreHistory();
+    }
+  });
+  pane2Chart.timeScale().subscribeVisibleLogicalRangeChange(r => {
+    if (r && mainChart) mainChart.timeScale().setVisibleLogicalRange(r);
+  });
+
+  // Crosshair OHLC
+  mainChart.subscribeCrosshairMove(onCrosshairMove);
+
+  // Resize observer
+  new ResizeObserver(resizeCharts).observe(document.getElementById('chartWrap'));
+}
+
+function makeChartOpts(el, isMain) {
+  return {
+    width:  el.clientWidth  || 800,
+    height: el.clientHeight || (isMain ? 500 : 150),
+    layout: { background: { color: '#0A0E1A' }, textColor: '#94a3b8', fontSize: 11 },
+    grid:   { vertLines: { color: '#0c1220' }, horzLines: { color: '#0c1220' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: {
+      borderColor: '#1E293B',
+      scaleMargins: isMain ? { top: 0.06, bottom: 0.06 } : { top: 0.08, bottom: 0.08 }
+    },
+    timeScale: {
+      borderColor: '#1E293B',
+      timeVisible: true,
+      secondsVisible: currentTF < 3600,
+      rightOffset: 8,
+      barSpacing: 8,
+      visible: true
+    }
+  };
+}
+
+function resizeCharts() {
+  const wrap   = document.getElementById('chartWrap');
+  const mainEl = document.getElementById('mainChart');
+  const p2Wrap = document.getElementById('pane2Wrap');
+  const rb     = document.getElementById('resizeBar');
+  if (!wrap || !mainEl) return;
+  const totalH = wrap.clientHeight;
+  const p2H  = pane2Visible ? (p2Wrap?.offsetHeight || 150) : 0;
+  const rbH  = pane2Visible ? 5 : 0;
+  const mainH = Math.max(180, totalH - p2H - rbH);
+
+  mainEl.style.height = mainH + 'px';
+  if (mainChart) mainChart.applyOptions({ width: mainEl.clientWidth, height: mainH });
+
+  if (pane2Chart && pane2Visible && p2Wrap) {
+    const p2El = document.getElementById('pane2Chart');
+    if (p2El) {
+      const h = Math.max(80, p2Wrap.offsetHeight);
+      p2El.style.height = h + 'px';
+      pane2Chart.applyOptions({ width: p2El.clientWidth, height: h });
+    }
+  }
+  resizeCanvas();
+  redrawCanvas();
+}
+
+function createMainSeries() {
+  if (mainSeries) { try { mainChart.removeSeries(mainSeries); } catch(e){} mainSeries = null; }
+  switch (currentChartType) {
+    case 'candlestick':
+    case 'heikin':
+      mainSeries = mainChart.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+      });
+      break;
+    case 'line':
+      mainSeries = mainChart.addLineSeries({ color: '#3B82F6', lineWidth: 2 });
+      break;
+    case 'area':
+      mainSeries = mainChart.addAreaSeries({
+        topColor: 'rgba(59,130,246,0.28)', bottomColor: 'rgba(59,130,246,0)',
+        lineColor: '#3B82F6', lineWidth: 2
+      });
+      break;
+  }
+}
+
+// ─── WEBSOCKET ────────────────────────────────────────────────────────
+// The correct candle data flow:
+//  1. On connect: request ticks_history with style:'candles' — gives historical OHLC array
+//  2. After receiving history: subscribe to ohlc stream (style:'candles', subscribe:1)
+//     → receives ohlc messages that form/update the current live candle
+//  3. Also subscribe to raw ticks for the price display and accumulator logic
+//  4. NEVER manually construct candles from ticks — use ohlc stream exclusively
+
+function connectWebSocket() {
+  setConnStatus('connecting');
+  ws = new WebSocket("wss://ws.binaryws.com/websockets/v3?app_id=63623");
+
+  ws.onopen = () => {
+    setConnStatus('connected');
+    const accs = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+    if (accs.length) {
+      const acc = isDemo
+        ? accs.find(a => a.account && a.account.startsWith('VRT'))
+        : accs.find(a => a.account && !a.account.startsWith('VRT'));
+      if (acc && acc.token) {
+        ws.send(JSON.stringify({ authorize: acc.token }));
+      } else {
+        restoreActivePosition();
+      }
+    } else {
+      restoreActivePosition();
+    }
+    loadHistory();
+  };
+
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
+
+  ws.onclose = () => {
+    setConnStatus('connecting');
+    setTimeout(connectWebSocket, 3000);
+  };
+
+  ws.onerror = () => setConnStatus('connecting');
+}
+
+function setConnStatus(s) {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connStatus');
+  dot.className = s;
+  txt.textContent = s === 'connected' ? 'Connected' : 'Connecting...';
+}
+
+// Step 1: load historical candles
+function loadHistory() {
+  if (!wsOpen()) return;
+  const mkt = getMarket();
+  isHistoryLoaded = false;
+  candles = [];
+  oldestCandleTime = 0;
+  // Forget any active streams first
+  ws.send(JSON.stringify({ forget_all: 'ticks' }));
+  ws.send(JSON.stringify({ forget_all: 'candles' }));
+  // Request historical candles (non-subscribing)
+  ws.send(JSON.stringify({
+    ticks_history: mkt,
+    adjust_start_time: 1,
+    count: 1000,         // get plenty of history
+    end: 'latest',
+    start: 1,
+    style: 'candles',
+    granularity: currentTF
+  }));
+}
+
+// Load more historical data when scrolling back
+function loadMoreHistory() {
+  if (!wsOpen() || isLoadingMore || !oldestCandleTime) return;
+  isLoadingMore = true;
+  const mkt = getMarket();
+  ws.send(JSON.stringify({
+    ticks_history: mkt,
+    adjust_start_time: 1,
+    count: 500,
+    end: oldestCandleTime - 1,
+    start: 1,
+    style: 'candles',
+    granularity: currentTF
+  }));
+}
+
+// Step 2: after history arrives, subscribe to live OHLC stream + tick stream
+function subscribeToLiveStreams() {
+  if (!wsOpen() || !isHistoryLoaded) return;
+  const mkt = getMarket();
+  // Subscribe to live OHLC updates (this will send ohlc messages, NOT candles messages)
+  ws.send(JSON.stringify({
+    ticks_history: mkt,
+    adjust_start_time: 1,
+    count: 1,
+    end: 'latest',
+    start: 1,
+    style: 'candles',
+    granularity: currentTF,
+    subscribe: 1
+  }));
+  // Raw tick stream for price display and accumulator
+  ws.send(JSON.stringify({ ticks: mkt, subscribe: 1 }));
+  
+  // Draw position lines if we have an active position
+  if (activeMultiplier && entryPrice > 0) {
+    drawPositionLines();
+  }
+}
+
+function handleMessage(data) {
+  // Log all messages for debugging
+  if (data.msg_type) console.log('[WS]', data.msg_type, data);
+  
+  // Auth
+  if (data.msg_type === 'authorize' || data.authorize) {
+    ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+    restoreActivePosition();
+    return;
+  }
+  // Balance
+  if (data.msg_type === 'balance' || data.balance) {
+    const bal = data.balance?.balance ?? data.balance;
+    if (bal !== undefined)
+      document.getElementById('accountBalance').textContent = `${parseFloat(bal).toFixed(2)} USD`;
+    return;
+  }
+  // ── Historical candles (one-time response, no subscription) ──
+  if (data.msg_type === 'candles' && data.candles && Array.isArray(data.candles)) {
+    if (!isHistoryLoaded) {
+      // Initial history load
+      candles = data.candles
+        .filter(c => c.open && c.high && c.low && c.close) // Filter out invalid candles
+        .map(c => ({
+          time:  parseInt(c.epoch),
+          open:  parseFloat(c.open),
+          high:  parseFloat(c.high),
+          low:   parseFloat(c.low),
+          close: parseFloat(c.close)
+        }));
+      candles.sort((a, b) => a.time - b.time);
+      candles = dedupeCandles(candles);
+      if (candles.length > 0) oldestCandleTime = candles[0].time;
+      isHistoryLoaded = true;
+      console.log('[History] Loaded', candles.length, 'candles');
+      renderMainSeries();
+      renderAllInds();
+      if (candles.length > 0) {
+        const last = candles[candles.length - 1];
+        updatePriceDisplay(last.close, last.close);
+      }
+      subscribeToLiveStreams();
+    } else if (isLoadingMore && data.candles.length > 1) {
+      // Loading more historical data (ignore single candle subscription responses)
+      const newCandles = data.candles
+        .filter(c => c.open && c.high && c.low && c.close)
+        .map(c => ({
+          time:  parseInt(c.epoch),
+          open:  parseFloat(c.open),
+          high:  parseFloat(c.high),
+          low:   parseFloat(c.low),
+          close: parseFloat(c.close)
+        }));
+      if (newCandles.length > 0) {
+        candles = [...newCandles, ...candles];
+        candles = dedupeCandles(candles);
+        oldestCandleTime = candles[0].time;
+        console.log('[History] Loaded', newCandles.length, 'more candles. Total:', candles.length);
+        renderMainSeries();
+        renderAllInds();
+      }
+      isLoadingMore = false;
+    }
+    return;
+  }
+  // ── Live OHLC update (subscription stream) ──
+  // This is how candles are properly formed in real-time
+  if (data.msg_type === 'ohlc' && data.ohlc) {
+    if (!isHistoryLoaded) return; // wait for history first
+    const o = data.ohlc;
+    // Validate OHLC data
+    if (!o.open || !o.high || !o.low || !o.close) return;
+    const newCandle = {
+      time:  parseInt(o.open_time),   // candle open time in epoch seconds
+      open:  parseFloat(o.open),
+      high:  parseFloat(o.high),
+      low:   parseFloat(o.low),
+      close: parseFloat(o.close)
+    };
+    // Additional validation
+    if (isNaN(newCandle.open) || isNaN(newCandle.high) || isNaN(newCandle.low) || isNaN(newCandle.close)) return;
+    updateOrAppendCandle(newCandle);
+    return;
+  }
+  // ── Raw tick (for price display + accumulator) ──
+  if (data.msg_type === 'tick' && data.tick) {
+    const price = parseFloat(data.tick.quote);
+    onTick(price);
+    return;
+  }
+  // Proposal (multiplier)
+  if (data.proposal && pendingProposal) {
+    ws.send(JSON.stringify({ buy: data.proposal.id, price: data.proposal.ask_price }));
+    return;
+  }
+  // Buy confirmation
+  if (data.buy && pendingProposal) {
+    handleBuyResponse(data.buy);
+    return;
+  }
+  // Contract update (for real-time P&L)
+  if (data.msg_type === 'proposal_open_contract' && data.proposal_open_contract) {
+    handleContractUpdate(data.proposal_open_contract);
+    return;
+  }
+  // Sell confirmation
+  if (data.sell && activeMultiplier) {
+    console.log('[Multiplier] Contract sold:', data.sell);
+    const pnl = parseFloat(data.sell.sold_for) - activeMultiplier.stake;
+    saveTradeToHistory({
+      contractId: activeMultiplier.contractId,
+      type: 'MULTIPLIER',
+      direction: activeMultiplier.direction,
+      stake: activeMultiplier.stake,
+      multiplier: activeMultiplier.multiplier,
+      entryPrice: activeMultiplier.entryPrice,
+      exitPrice: currentPrice,
+      pnl: pnl,
+      timestamp: Date.now(),
+      market: getMarket()
+    });
+    clearMultiplierUI();
+    setTimeout(() => {
+      alert(`Position closed. P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
+    }, 300);
+    return;
+  }
+  // Error
+  if (data.error) {
+    const code = data.error.code;
+    if (code !== 'AlreadySubscribed' && code !== 'WrongResponse') {
+      console.warn('[API]', code, data.error.message);
+    }
+  }
+}
+
+// ── Core candle update logic ──────────────────────────────────────────
+// Called for every ohlc message from the subscription.
+// The ohlc stream sends the *current forming candle* (open_time = start of the bar).
+// When open_time changes, a new candle has started.
+function updateOrAppendCandle(newCandle) {
+  if (candles.length === 0) {
+    candles.push(newCandle);
+    renderMainSeries();
+    return;
+  }
+  const last = candles[candles.length - 1];
+
+  if (newCandle.time === last.time) {
+    // ── Same candle: update in place ──
+    candles[candles.length - 1] = newCandle;
+    // Push single update to chart (efficient)
+    pushCandleUpdate(newCandle);
+  } else if (newCandle.time > last.time) {
+    // ── New candle opened ──
+    candles.push(newCandle);
+    if (candles.length > 600) candles.shift();
+    // Re-render indicators on new candle
+    renderAllInds();
+    // Push new candle
+    pushCandleUpdate(newCandle);
+  }
+  // Ignore candles with time < last (stale/duplicate)
+}
+
+function pushCandleUpdate(c) {
+  if (!mainSeries) return;
+  if (currentChartType === 'heikin') {
+    // Heikin-Ashi: recompute last bar
+    const ha = computeHeikin();
+    if (ha.length > 0) mainSeries.update(ha[ha.length - 1]);
+  } else if (currentChartType === 'candlestick') {
+    mainSeries.update(c);
+  } else {
+    mainSeries.update({ time: c.time, value: c.close });
+  }
+  updatePositionLines();
+}
+
+function onTick(price) {
+  prevPrice = currentPrice;
+  currentPrice = price;
+  updatePriceDisplay(price, prevPrice);
+  updateMultiplierPosition(price);
+  checkAlerts(price);
+  updateTechReadings();
+}
+
+function updatePriceDisplay(price, prev) {
+  const el = document.getElementById('currentPriceDisplay');
+  if (!el) return;
+  el.textContent = price.toFixed(3);
+  el.style.color = price > prev ? '#22c55e' : price < prev ? '#ef5350' : '#94a3b8';
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────
+function renderMainSeries() {
+  if (!mainSeries || candles.length === 0) return;
+  const data = currentChartType === 'heikin'
+    ? computeHeikin()
+    : currentChartType === 'candlestick'
+      ? candles
+      : candles.map(c => ({ time: c.time, value: c.close }));
+  mainSeries.setData(data);
+}
+
+function computeHeikin() {
+  const ha = [];
+  for (let i = 0; i < candles.length; i++) {
+    const c = candles[i];
+    const p = i > 0 ? ha[i - 1] : c;
+    const hc = (c.open + c.high + c.low + c.close) / 4;
+    const ho = (p.open + p.close) / 2;
+    ha.push({
+      time:  c.time,
+      open:  ho,
+      high:  Math.max(c.high, ho, hc),
+      low:   Math.min(c.low,  ho, hc),
+      close: hc
+    });
+  }
+  return ha;
+}
+
+function dedupeCandles(arr) {
+  const seen = new Set();
+  const out  = [];
+  for (const c of arr) {
+    if (!seen.has(c.time)) { seen.add(c.time); out.push(c); }
+  }
+  return out;
+}
+
+// ─── CHART CONTROLS ───────────────────────────────────────────────────
+function setTF(tf, btn) {
+  if (tf === currentTF) return;
+  currentTF = tf;
+  document.querySelectorAll('#tfGroup .tb-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  mainChart.applyOptions({ timeScale: { secondsVisible: tf < 3600 } });
+  loadHistory();
+}
+
+function setChartType(type, btn) {
+  if (type === currentChartType) return;
+  currentChartType = type;
+  document.querySelectorAll('#btnCandle,#btnLine,#btnArea,#btnHeikin').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  createMainSeries();
+  renderMainSeries();
+  // Re-render overlay indicators
+  [...activeInds].filter(k => !PANE2_INDS.has(k)).forEach(k => renderInd(k));
+}
+
+function onMarketChange() {
+  const names = {
+    '1HZ10V':'Volatility 10 (1s)','1HZ25V':'Volatility 25 (1s)',
+    '1HZ50V':'Volatility 50 (1s)','1HZ75V':'Volatility 75 (1s)',
+    '1HZ100V':'Volatility 100 (1s)','R_10':'Volatility 10',
+    'R_25':'Volatility 25','R_50':'Volatility 50','R_75':'Volatility 75','R_100':'Volatility 100'
+  };
+  const sel = getMarket();
+  document.getElementById('marketName').textContent = names[sel] || sel;
+  loadHistory();
+}
+
+function resetZoom() {
+  if (mainChart)  mainChart.timeScale().fitContent();
+  if (pane2Chart) pane2Chart.timeScale().fitContent();
+}
+
+function toggleDD(id) {
+  const el = document.getElementById(id);
+  const showing = el.style.display !== 'none';
+  document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+  el.style.display = showing ? 'none' : 'block';
+}
+
+// ─── CROSSHAIR ────────────────────────────────────────────────────────
+function onCrosshairMove(param) {
+  if (!param.time || !mainSeries) return;
+  const d = param.seriesData.get(mainSeries);
+  if (!d) return;
+  if (d.open !== undefined) {
+    document.getElementById('ohlcO').textContent = d.open.toFixed(3);
+    document.getElementById('ohlcH').textContent = d.high.toFixed(3);
+    document.getElementById('ohlcL').textContent = d.low.toFixed(3);
+    document.getElementById('ohlcC').textContent = d.close.toFixed(3);
+  } else if (d.value !== undefined) {
+    document.getElementById('ohlcC').textContent = d.value.toFixed(3);
+  }
+}
+
+// ─── INDICATOR MATH ───────────────────────────────────────────────────
+const cls = () => candles.map(c => c.close);
+const tms = () => candles.map(c => c.time);
+
+function calcEMA(data, p) {
+  const k = 2 / (p + 1); let e = data[0];
+  return data.map((v, i) => { e = i === 0 ? v : v * k + e * (1 - k); return e; });
+}
+function calcSMA(data, p) {
+  return data.map((_, i) => {
+    if (i < p - 1) return null;
+    return data.slice(i - p + 1, i + 1).reduce((a, b) => a + b, 0) / p;
+  });
+}
+function calcSD(data, p) {
+  return data.map((_, i) => {
+    if (i < p - 1) return 0;
+    const s = data.slice(i - p + 1, i + 1), m = s.reduce((a, b) => a + b, 0) / p;
+    return Math.sqrt(s.reduce((a, b) => a + (b - m) ** 2, 0) / p);
+  });
+}
+function calcRSI(data, p) {
+  if (data.length < p + 1) return data.map(() => 50);
+  let ag = 0, al = 0;
+  for (let i = 1; i <= p; i++) { const d = data[i] - data[i-1]; d > 0 ? ag += d : al -= d; }
+  ag /= p; al /= p;
+  return data.map((_, i) => {
+    if (i < p) return 50;
+    if (i > p) {
+      const d = data[i] - data[i-1];
+      ag = (ag * (p-1) + (d > 0 ? d : 0)) / p;
+      al = (al * (p-1) + (d < 0 ? -d : 0)) / p;
+    }
+    return al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+  });
+}
+function calcMACD(data) {
+  const e12 = calcEMA(data, 12), e26 = calcEMA(data, 26);
+  const m = data.map((_, i) => e12[i] - e26[i]);
+  const s = calcEMA(m, 9);
+  return { macd: m, signal: s, hist: m.map((v, i) => v - s[i]) };
+}
+function calcStoch(p = 14) {
+  return candles.map((_, i) => {
+    if (i < p - 1) return 50;
+    const sl = candles.slice(i - p + 1, i + 1);
+    const h = Math.max(...sl.map(c => c.high)), l = Math.min(...sl.map(c => c.low));
+    return h === l ? 50 : ((candles[i].close - l) / (h - l)) * 100;
+  });
+}
+function calcATR(p = 14) {
+  const tr = candles.map((c, i) => {
+    if (i === 0) return c.high - c.low;
+    const pc = candles[i-1];
+    return Math.max(c.high - c.low, Math.abs(c.high - pc.close), Math.abs(c.low - pc.close));
+  });
+  return calcSMA(tr, p);
+}
+function calcCCI(p = 20) {
+  return candles.map((_, i) => {
+    if (i < p - 1) return 0;
+    const sl = candles.slice(i - p + 1, i + 1);
+    const tp = sl.map(c => (c.high + c.low + c.close) / 3);
+    const m = tp.reduce((a, b) => a + b, 0) / p;
+    const mad = tp.reduce((a, b) => a + Math.abs(b - m), 0) / p;
+    return mad === 0 ? 0 : (tp[tp.length-1] - m) / (0.015 * mad);
+  });
+}
+function calcWillR(p = 14) {
+  return candles.map((_, i) => {
+    if (i < p - 1) return -50;
+    const sl = candles.slice(i - p + 1, i + 1);
+    const h = Math.max(...sl.map(c => c.high)), l = Math.min(...sl.map(c => c.low));
+    return h === l ? -50 : ((h - candles[i].close) / (h - l)) * -100;
+  });
+}
+function calcMom(p = 10) {
+  return candles.map((_, i) => i < p ? 0 : candles[i].close - candles[i-p].close);
+}
+function calcVWAP() {
+  let ct = 0, cv = 0;
+  return candles.map(c => {
+    const tp = (c.high + c.low + c.close) / 3;
+    ct += tp * Math.abs(c.close - c.open + 0.001);
+    cv += Math.abs(c.close - c.open + 0.001);
+    return ct / cv;
+  });
+}
+
+// ─── INDICATOR RENDER ─────────────────────────────────────────────────
+function renderAllInds() {
+  if (candles.length < 30) return;
+  activeInds.forEach(k => renderInd(k));
+}
+
+function removeSeries(s) {
+  if (!s) return;
+  const arr = Array.isArray(s) ? s
+    : (typeof s === 'object' && !s.time && !s.open) ? Object.values(s)
+    : [s];
+  arr.forEach(x => { try { mainChart.removeSeries(x); } catch(e){} try { pane2Chart.removeSeries(x); } catch(e){} });
+}
+
+function renderInd(key) {
+  // Remove old
+  removeSeries(indSeries[key]); delete indSeries[key];
+  removeSeries(p2Series[key]);  delete p2Series[key];
+
+  if (!activeInds.has(key) || candles.length < 20) return;
+
+  const t  = tms();
+  const cl = cls();
+  const color = IND_COLORS[key];
+
+  if (!PANE2_INDS.has(key)) {
+    // ── Overlay on main chart ──
+    if (key.startsWith('ema')) {
+      const p = parseInt(key.replace('ema',''));
+      const v = calcEMA(cl, p);
+      const s = mainChart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      indSeries[key] = s;
+    } else if (key.startsWith('sma')) {
+      const p = parseInt(key.replace('sma',''));
+      const v = calcSMA(cl, p);
+      const s = mainChart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      s.setData(t.map((ti, i) => v[i] !== null ? { time: ti, value: v[i] } : null).filter(Boolean));
+      indSeries[key] = s;
+    } else if (key === 'bb') {
+      const sm = calcSMA(cl, 20), sd = calcSD(cl, 20);
+      const u = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.85)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      const m = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.45)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      const l = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.85)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      const dd = t.map((ti, i) => sm[i] !== null ? { time: ti, u: sm[i] + 2*sd[i], m: sm[i], l: sm[i] - 2*sd[i] } : null).filter(Boolean);
+      u.setData(dd.map(d => ({ time: d.time, value: d.u })));
+      m.setData(dd.map(d => ({ time: d.time, value: d.m })));
+      l.setData(dd.map(d => ({ time: d.time, value: d.l })));
+      indSeries[key] = [u, m, l];
+    } else if (key === 'vwap') {
+      const v = calcVWAP();
+      const s = mainChart.addLineSeries({ color, lineWidth: 2, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      indSeries[key] = s;
+    }
+  } else {
+    // ── Pane 2 oscillators ──
+    if (key === 'rsi') {
+      const v = calcRSI(cl, 14);
+      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      const ob = pane2Chart.addLineSeries({ color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      const os = pane2Chart.addLineSeries({ color: 'rgba(34,197,94,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      ob.setData(t.map(ti => ({ time: ti, value: 70 })));
+      os.setData(t.map(ti => ({ time: ti, value: 30 })));
+      p2Series[key] = { main: s, ob, os };
+      pane2LabelText = 'RSI 14';
+    } else if (key === 'macd') {
+      const { macd, signal, hist } = calcMACD(cl);
+      const ms = pane2Chart.addLineSeries({ color: '#34D399', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      const ss = pane2Chart.addLineSeries({ color: '#F97316', lineWidth: 1,   priceLineVisible: false, lastValueVisible: true });
+      const hs = pane2Chart.addHistogramSeries({ priceLineVisible: false });
+      ms.setData(t.map((ti, i) => ({ time: ti, value: macd[i] })));
+      ss.setData(t.map((ti, i) => ({ time: ti, value: signal[i] })));
+      hs.setData(t.map((ti, i) => ({ time: ti, value: hist[i], color: hist[i] >= 0 ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)' })));
+      p2Series[key] = { ms, ss, hs };
+      pane2LabelText = 'MACD';
+    } else if (key === 'stoch') {
+      const k = calcStoch();
+      const dRaw = calcSMA(k, 3);
+      const ks = pane2Chart.addLineSeries({ color: '#FBBF24', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      const ds = pane2Chart.addLineSeries({ color: '#F97316', lineWidth: 1,   priceLineVisible: false, lastValueVisible: true });
+      ks.setData(t.map((ti, i) => ({ time: ti, value: k[i] })));
+      ds.setData(t.map((ti, i) => dRaw[i] !== null ? { time: ti, value: dRaw[i] } : null).filter(Boolean));
+      p2Series[key] = { ks, ds };
+      pane2LabelText = 'Stochastic';
+    } else if (key === 'volume') {
+      const hs = pane2Chart.addHistogramSeries({ priceLineVisible: false });
+      hs.setData(candles.map(c => ({
+        time: c.time, value: Math.abs(c.close - c.open) * 1000,
+        color: c.close >= c.open ? 'rgba(38,166,154,0.55)' : 'rgba(239,83,80,0.55)'
+      })));
+      p2Series[key] = hs;
+      pane2LabelText = 'Volume';
+    } else if (key === 'atr') {
+      const v = calcATR(14);
+      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      s.setData(t.map((ti, i) => v[i] !== null ? { time: ti, value: v[i] } : null).filter(Boolean));
+      p2Series[key] = s;
+      pane2LabelText = 'ATR 14';
+    } else if (key === 'cci') {
+      const v = calcCCI(20);
+      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      const ob = pane2Chart.addLineSeries({ color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      const os = pane2Chart.addLineSeries({ color: 'rgba(34,197,94,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+      ob.setData(t.map(ti => ({ time: ti, value:  100 })));
+      os.setData(t.map(ti => ({ time: ti, value: -100 })));
+      p2Series[key] = { main: s, ob, os };
+      pane2LabelText = 'CCI 20';
+    } else if (key === 'willr') {
+      const v = calcWillR(14);
+      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      p2Series[key] = s;
+      pane2LabelText = 'Williams %R';
+    } else if (key === 'mom') {
+      const v = calcMom(10);
+      const s = pane2Chart.addHistogramSeries({ priceLineVisible: false });
+      s.setData(t.map((ti, i) => ({ time: ti, value: v[i], color: v[i] >= 0 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)' })));
+      p2Series[key] = s;
+      pane2LabelText = 'Momentum';
+    }
+    const lbl = document.getElementById('pane2Label');
+    if (lbl) lbl.textContent = pane2LabelText;
+  }
+}
+
+// ─── INDICATOR TOGGLE ─────────────────────────────────────────────────
+function toggleInd(key) {
+  if (activeInds.has(key)) {
+    activeInds.delete(key);
+    renderInd(key); // will remove since not in activeInds
+    const anyP2 = [...activeInds].some(k => PANE2_INDS.has(k));
+    if (!anyP2 && pane2Visible) togglePane2();
+  } else {
+    activeInds.add(key);
+    if (candles.length > 0) renderInd(key);
+    if (PANE2_INDS.has(key) && !pane2Visible) togglePane2();
+  }
+  updateIndChips();
+  updateDDActive();
+  // Save to localStorage
+  localStorage.setItem('activeIndicators', JSON.stringify([...activeInds]));
+  document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+}
+
+function updateIndChips() {
+  const el = document.getElementById('indicatorChips');
+  el.innerHTML = '';
+  activeInds.forEach(key => {
+    const c = document.createElement('span');
+    c.className = 'ind-chip';
+    c.innerHTML = `<span class="color-dot" style="background:${IND_COLORS[key]}"></span>${IND_NAMES[key]}<span class="rm" onclick="toggleInd('${key}')">✕</span>`;
+    el.appendChild(c);
+  });
+}
+function updateDDActive() {
+  document.querySelectorAll('#indDD .dropdown-item').forEach(item => {
+    const m = item.getAttribute('onclick')?.match(/'(\w+)'/);
+    if (m) item.classList.toggle('active-ind', activeInds.has(m[1]));
+  });
+}
+
+// ─── TECH READINGS ────────────────────────────────────────────────────
+function updateTechReadings() {
+  const techEl = document.getElementById('techValues');
+  if (!techEl) return;
+  if (candles.length < 30 || !activeInds.size) {
+    techEl.innerHTML = '<div style="color:#475569;font-style:italic">Add indicators to see readings</div>';
+    return;
+  }
+  const cl = cls(), last = cl.length - 1;
+  const row = (lbl, val, col = '#e2e8f0') =>
+    `<div style="display:flex;justify-content:space-between"><span style="color:#64748b">${lbl}</span><span style="color:${col};font-weight:600">${val}</span></div>`;
+  let html = '';
+  if (activeInds.has('rsi')) { const v = calcRSI(cl, 14)[last].toFixed(1); html += row('RSI 14', v, +v > 70 ? '#ef4444' : +v < 30 ? '#22c55e' : '#e2e8f0'); }
+  if (activeInds.has('ema9'))  html += row('EMA 9',   calcEMA(cl, 9)[last].toFixed(3),  '#F59E0B');
+  if (activeInds.has('ema20')) html += row('EMA 20',  calcEMA(cl,20)[last].toFixed(3),  '#3B82F6');
+  if (activeInds.has('ema50')) html += row('EMA 50',  calcEMA(cl,50)[last].toFixed(3),  '#A855F7');
+  if (activeInds.has('ema200')) { const v = calcEMA(cl, 200); html += row('EMA 200', v[last]?.toFixed(3) || '--', '#EC4899'); }
+  if (activeInds.has('sma20')) { const v = calcSMA(cl,20)[last]; html += row('SMA 20', v ? v.toFixed(3) : '--', '#10B981'); }
+  if (activeInds.has('bb')) { const sm = calcSMA(cl,20), sd = calcSD(cl,20); html += row('BB Upper', (sm[last]+2*sd[last]).toFixed(3), '#6366F1'); html += row('BB Lower', (sm[last]-2*sd[last]).toFixed(3), '#6366F1'); }
+  if (activeInds.has('macd')) { const { macd, signal } = calcMACD(cl); html += row('MACD', macd[last].toFixed(4), '#34D399'); html += row('Signal', signal[last].toFixed(4), '#F97316'); }
+  if (activeInds.has('stoch')) { const k = calcStoch(); const v = k[last].toFixed(1); html += row('Stoch %K', v, +v > 80 ? '#ef4444' : +v < 20 ? '#22c55e' : '#e2e8f0'); }
+  if (activeInds.has('atr')) { const v = calcATR(14)[last]; html += row('ATR 14', v ? v.toFixed(4) : '--', '#F87171'); }
+  if (activeInds.has('cci')) { const v = calcCCI(20)[last].toFixed(1); html += row('CCI 20', v, +v > 100 ? '#ef4444' : +v < -100 ? '#22c55e' : '#e2e8f0'); }
+  if (activeInds.has('willr')) html += row('Williams %R', calcWillR(14)[last].toFixed(1), '#2DD4BF');
+  if (activeInds.has('mom')) { const v = calcMom(10)[last].toFixed(3); html += row('Momentum', v, +v > 0 ? '#22c55e' : '#ef4444'); }
+  if (techEl) techEl.innerHTML = html || '<div style="color:#475569">--</div>';
+}
+
+// ─── PANE 2 ───────────────────────────────────────────────────────────
+function togglePane2() {
+  pane2Visible = !pane2Visible;
+  document.getElementById('pane2Wrap').style.display = pane2Visible ? 'block' : 'none';
+  document.getElementById('resizeBar').style.display  = pane2Visible ? 'block' : 'none';
+  document.getElementById('btnPane2').classList.toggle('active', pane2Visible);
+  resizeCharts();
+  if (pane2Visible) {
+    pane2Chart.timeScale().applyOptions({ visible: true });
+    [...activeInds].filter(k => PANE2_INDS.has(k)).forEach(k => renderInd(k));
+  }
+}
+
+// ─── DRAWING TOOLS ────────────────────────────────────────────────────
+function initCanvas() {
+  drawCanvas = document.getElementById('drawCanvas');
+  drawCtx = drawCanvas.getContext('2d');
+  resizeCanvas();
+  drawCanvas.addEventListener('mousedown', onDrawDown);
+  drawCanvas.addEventListener('mousemove', onDrawMove);
+  drawCanvas.addEventListener('mouseup',   onDrawUp);
+  drawCanvas.addEventListener('contextmenu', e => { e.preventDefault(); cancelDraw(); });
+}
+function resizeCanvas() {
+  const el = document.getElementById('mainChart');
+  drawCanvas.width  = el.offsetWidth  || 800;
+  drawCanvas.height = el.offsetHeight || 400;
+  drawCanvas.style.width  = drawCanvas.width  + 'px';
+  drawCanvas.style.height = drawCanvas.height + 'px';
+}
+function setDrawTool(tool, btn) {
+  drawTool = tool;
+  drawCanvas.className = tool !== 'none' ? 'drawing' : '';
+  document.querySelectorAll('[id^="tool"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  cancelDraw();
+}
+function cancelDraw() { drawingIP = null; redrawCanvas(); }
+function getPos(e) { const r = drawCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function onDrawDown(e) {
+  if (drawTool === 'none') return;
+  const pos = getPos(e);
+  if (drawTool === 'text') {
+    const t = prompt('Annotation:');
+    if (t) { drawings.push({ type: 'text', x: pos.x, y: pos.y, text: t }); redrawCanvas(); }
+    return;
+  }
+  drawingIP = { type: drawTool, start: pos, end: pos };
+}
+function onDrawMove(e) { if (!drawingIP) return; drawingIP.end = getPos(e); redrawCanvas(); drawShape(drawingIP, true); }
+function onDrawUp(e) {
+  if (!drawingIP) return;
+  drawingIP.end = getPos(e);
+  drawings.push({ ...drawingIP });
+  drawingIP = null;
+  redrawCanvas();
+}
+function redrawCanvas() { drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); drawings.forEach(d => drawShape(d, false)); }
+function drawShape(d, preview) {
+  const ctx = drawCtx, { start, end } = d;
+  ctx.save();
+  ctx.strokeStyle = preview ? 'rgba(255,165,0,.85)' : '#FF4500';
+  ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(255,69,0,.07)'; ctx.setLineDash([]);
+  switch (d.type) {
+    case 'line':
+      ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+      break;
+    case 'hline':
+      ctx.strokeStyle = '#FFD700'; ctx.setLineDash([7, 5]);
+      ctx.beginPath(); ctx.moveTo(0, start.y); ctx.lineTo(drawCanvas.width, start.y); ctx.stroke();
+      ctx.fillStyle = '#FFD700'; ctx.font = '10px sans-serif';
+      if (!preview) ctx.fillText('─', drawCanvas.width - 14, start.y - 3);
+      break;
+    case 'vline':
+      ctx.strokeStyle = '#a78bfa'; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(start.x, 0); ctx.lineTo(start.x, drawCanvas.height); ctx.stroke();
+      break;
+    case 'rect':
+      ctx.beginPath(); ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y); ctx.fill(); ctx.stroke();
+      break;
+    case 'fib': {
+      const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+      const dy = end.y - start.y;
+      levels.forEach(l => {
+        const y = end.y - dy * l;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(drawCanvas.width, y);
+        ctx.strokeStyle = l === 0 || l === 1 ? '#ef4444' : l === 0.618 ? '#fbbf24' : '#6366f1';
+        ctx.lineWidth = l === 0.618 ? 2 : 1; ctx.setLineDash([4, 4]); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif';
+        ctx.fillText(`${(l * 100).toFixed(1)}%`, 4, y - 2);
+      });
+      break;
+    }
+    case 'ray': {
+      const dx = end.x - start.x, dy = end.y - start.y, len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const ex = start.x + (dx / len) * 3000, ey = start.y + (dy / len) * 3000;
+      ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(ex, ey); ctx.stroke();
+      break;
+    }
+    case 'text':
+      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(d.text, d.x, d.y);
+      break;
+  }
+  ctx.restore();
+}
+function clearDrawings() { drawings = []; redrawCanvas(); }
+function undoDrawing()   { drawings.pop(); redrawCanvas(); }
+
+// ─── RESIZE BAR ───────────────────────────────────────────────────────
+function initResizeBar() {
+  const bar = document.getElementById('resizeBar');
+  let drag = false, sy = 0, sh = 0;
+  bar.addEventListener('mousedown', e => { drag = true; sy = e.clientY; sh = document.getElementById('pane2Wrap').offsetHeight; document.body.style.cursor = 'ns-resize'; });
+  document.addEventListener('mousemove', e => { if (!drag) return; const nh = Math.max(80, Math.min(380, sh + (sy - e.clientY))); document.getElementById('pane2Wrap').style.height = nh + 'px'; resizeCharts(); });
+  document.addEventListener('mouseup', () => { drag = false; document.body.style.cursor = ''; });
+}
+
+// ─── TRADE HISTORY ────────────────────────────────────────────────────
+function saveTradeToHistory(trade) {
+  const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+  history.unshift(trade);
+  if (history.length > 100) history.pop();
+  localStorage.setItem('tradeHistory', JSON.stringify(history));
+  console.log('[Trade] Saved to history:', trade);
+}
+
+// ─── MULTIPLIER ──────────────────────────────────────────────────────
+function startMultiplier(dir) {
+  if (!wsOpen()) { alert('Connecting… please wait.'); return; }
+  const stake = parseFloat(document.getElementById('stakeAmount').value) || 10;
+  const mult  = parseInt(document.getElementById('multiplierValue').value) || 100;
+  const sl    = parseFloat(document.getElementById('stopLoss').value) || 0;
+  const tp    = parseFloat(document.getElementById('takeProfit').value) || 0;
+  
+  direction = dir;
+  multiplierValue = mult;
+  entryPrice = currentPrice;
+  
+  // Build proposal request
+  const proposal = {
+    proposal: 1,
+    amount: stake,
+    basis: 'stake',
+    contract_type: dir === 'UP' ? 'MULTUP' : 'MULTDOWN',
+    currency: 'USD',
+    multiplier: mult,
+    symbol: getMarket()
+  };
+  
+  // Add stop loss if specified
+  if (sl > 0) {
+    proposal.limit_order = { stop_loss: sl };
+  }
+  
+  // Add take profit if specified
+  if (tp > 0) {
+    if (!proposal.limit_order) proposal.limit_order = {};
+    proposal.limit_order.take_profit = tp;
+  }
+  
+  // Store pending proposal
+  pendingProposal = { stake, multiplier: mult, direction: dir, sl, tp };
+  
+  // Send proposal to Deriv
+  ws.send(JSON.stringify(proposal));
+  
+  console.log('[Multiplier] Sending proposal:', proposal);
+}
+
+function handleBuyResponse(buy) {
+  if (!buy || !pendingProposal) return;
+  
+  console.log('[Multiplier] Contract purchased:', buy);
+  
+  activeMultiplier = {
+    contractId: buy.contract_id,
+    stake: pendingProposal.stake,
+    multiplier: pendingProposal.multiplier,
+    direction: pendingProposal.direction,
+    entryPrice: buy.buy_price || currentPrice
+  };
+  
+  entryPrice = activeMultiplier.entryPrice;
+  
+  // Calculate stop loss and take profit prices if specified
+  if (pendingProposal.sl > 0) {
+    stopLossPrice = pendingProposal.direction === 'UP' 
+      ? entryPrice - (pendingProposal.sl / pendingProposal.multiplier) 
+      : entryPrice + (pendingProposal.sl / pendingProposal.multiplier);
+  }
+  if (pendingProposal.tp > 0) {
+    takeProfitPrice = pendingProposal.direction === 'UP' 
+      ? entryPrice + (pendingProposal.tp / pendingProposal.multiplier) 
+      : entryPrice - (pendingProposal.tp / pendingProposal.multiplier);
+  }
+  
+  // Save to localStorage
+  localStorage.setItem('activeMultiplier', JSON.stringify(activeMultiplier));
+  
+  pendingProposal = null;
+  
+  document.getElementById('multiplierStatus').style.display = 'block';
+  document.getElementById('startButton').style.display = 'none';
+  document.getElementById('entryPrice').textContent = entryPrice.toFixed(3);
+  
+  drawPositionLines();
+  
+  // Subscribe to contract updates
+  ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: activeMultiplier.contractId, subscribe: 1 }));
+}
+
+function handleContractUpdate(contract) {
+  if (!activeMultiplier || !contract) return;
+  
+  const currentPrice = parseFloat(contract.current_spot) || 0;
+  const pnl = parseFloat(contract.profit) || 0;
+  
+  // Update display with real contract data (check if elements exist for mobile)
+  const priceEl = document.getElementById('currentPricePos');
+  const pnlEl = document.getElementById('currentPnL');
+  const barEl = document.getElementById('profitBar');
+  
+  if (priceEl) priceEl.textContent = currentPrice.toFixed(3);
+  if (pnlEl) {
+    pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+    pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+  }
+  
+  // Update profit bar
+  if (barEl) {
+    const barWidth = Math.min(100, Math.max(0, 50 + (pnl / activeMultiplier.stake) * 50));
+    barEl.style.width = barWidth + '%';
+    barEl.style.background = pnl >= 0
+      ? 'linear-gradient(90deg,#22c55e,#4ade80)'
+      : 'linear-gradient(90deg,#ef4444,#f87171)';
+  }
+  
+  // Check if contract is closed
+  if (contract.status === 'sold' || contract.is_sold) {
+    // Save trade to history
+    saveTradeToHistory({
+      contractId: activeMultiplier.contractId,
+      type: 'MULTIPLIER',
+      direction: activeMultiplier.direction,
+      stake: activeMultiplier.stake,
+      multiplier: activeMultiplier.multiplier,
+      entryPrice: activeMultiplier.entryPrice,
+      exitPrice: currentPrice,
+      pnl: pnl,
+      timestamp: Date.now(),
+      market: getMarket()
+    });
+    
+    setTimeout(() => {
+      closeMultiplier();
+      alert(`Position closed. P&L: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`);
+    }, 500);
+  }
+}
+
+function restoreActivePosition() {
+  const saved = localStorage.getItem('activeMultiplier');
+  if (!saved || !wsOpen()) return;
+  
+  try {
+    activeMultiplier = JSON.parse(saved);
+    entryPrice = activeMultiplier.entryPrice;
+    
+    document.getElementById('multiplierStatus').style.display = 'block';
+    document.getElementById('startButton').style.display = 'none';
+    document.getElementById('entryPrice').textContent = entryPrice.toFixed(3);
+    
+    // Draw lines when candles are ready
+    if (candles.length > 0) {
+      drawPositionLines();
+    }
+    
+    // Re-subscribe to contract updates
+    ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: activeMultiplier.contractId, subscribe: 1 }));
+    console.log('[Multiplier] Restored active position:', activeMultiplier.contractId);
+  } catch(e) {
+    console.error('[Multiplier] Failed to restore position:', e);
+    localStorage.removeItem('activeMultiplier');
+  }
+}
+
+function updateMultiplierPosition(price) {
+  if (!activeMultiplier) return;
+  // Position updates now come from handleContractUpdate via WebSocket
+  // This function is kept for backward compatibility but does nothing
+  // when real contracts are active
+}
+
+function closeMultiplier() {
+  if (!activeMultiplier) return;
+  
+  console.log('[Multiplier] Closing contract:', activeMultiplier.contractId, 'wsOpen:', wsOpen());
+  
+  // Send sell request to Deriv if we have a contract ID
+  if (activeMultiplier.contractId && wsOpen()) {
+    ws.send(JSON.stringify({ sell: activeMultiplier.contractId, price: 0 }));
+    console.log('[Multiplier] Sell request sent for:', activeMultiplier.contractId);
+    // Don't clear activeMultiplier yet - wait for sell response
+    return;
+  }
+  
+  // If no contract or not connected, just clear the UI
+  clearMultiplierUI();
+}
+
+function clearMultiplierUI() {
+  activeMultiplier = null;
+  entryPrice = 0;
+  stopLossPrice = 0;
+  takeProfitPrice = 0;
+  
+  // Clear from localStorage
+  localStorage.removeItem('activeMultiplier');
+  
+  [entryLine, stopLossLine, takeProfitLine].forEach(s => {
+    if (s) { try { mainChart.removeSeries(s); } catch(e){} }
+  });
+  entryLine = stopLossLine = takeProfitLine = null;
+  
+  document.getElementById('multiplierStatus').style.display = 'none';
+  document.getElementById('startButton').style.display = 'block';
+}
+
+function drawPositionLines() {
+  if (!mainChart || !entryPrice || !candles.length) return;
+  
+  [entryLine, stopLossLine, takeProfitLine].forEach(s => {
+    if (s) { try { mainChart.removeSeries(s); } catch(e){} }
+  });
+  
+  const t = tms();
+  
+  // Entry line
+  entryLine = mainChart.addLineSeries({
+    color: '#FFD700',
+    lineWidth: 2,
+    lineStyle: 1,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    autoscaleInfoProvider: () => ({ priceRange: null })
+  });
+  entryLine.setData(t.map(ti => ({ time: ti, value: entryPrice })));
+  
+  // Stop loss line
+  if (stopLossPrice > 0) {
+    stopLossLine = mainChart.addLineSeries({
+      color: '#ef4444',
+      lineWidth: 1.5,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      autoscaleInfoProvider: () => ({ priceRange: null })
+    });
+    stopLossLine.setData(t.map(ti => ({ time: ti, value: stopLossPrice })));
+  }
+  
+  // Take profit line
+  if (takeProfitPrice > 0) {
+    takeProfitLine = mainChart.addLineSeries({
+      color: '#22c55e',
+      lineWidth: 1.5,
+      lineStyle: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      autoscaleInfoProvider: () => ({ priceRange: null })
+    });
+    takeProfitLine.setData(t.map(ti => ({ time: ti, value: takeProfitPrice })));
+  }
+}
+
+function updatePositionLines() {
+  if (!activeMultiplier || !candles.length) return;
+  const last = candles[candles.length - 1];
+  const pt = { time: last.time };
+  
+  try { entryLine?.update({ ...pt, value: entryPrice }); } catch(e){}
+  if (stopLossPrice > 0) {
+    try { stopLossLine?.update({ ...pt, value: stopLossPrice }); } catch(e){}
+  }
+  if (takeProfitPrice > 0) {
+    try { takeProfitLine?.update({ ...pt, value: takeProfitPrice }); } catch(e){}
+  }
+}
+
+function updateMultiplier() {
+  const mult = document.getElementById('multiplierValue').value;
+  document.getElementById('currentMultiplier').textContent = `x${mult}`;
+  updateCalculations();
+}
+
+function updateCalculations() {
+  const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
+  const sl    = parseFloat(document.getElementById('stopLoss').value) || 0;
+  const tp    = parseFloat(document.getElementById('takeProfit').value) || 0;
+  
+  document.getElementById('commission').textContent = '0.00 USD';
+  document.getElementById('maxLoss').textContent = `-${stake.toFixed(2)} USD`;
+  
+  if (sl > 0) {
+    document.getElementById('stopLossLevel').textContent = `-${sl.toFixed(2)} USD`;
+  } else {
+    document.getElementById('stopLossLevel').textContent = '-';
+  }
+  
+  if (tp > 0) {
+    document.getElementById('takeProfitLevel').textContent = `+${tp.toFixed(2)} USD`;
+  } else {
+    document.getElementById('takeProfitLevel').textContent = '-';
+  }
+}
+
+// ─── ALERTS ───────────────────────────────────────────────────────────
+function openAlertModal()  { document.getElementById('alertPrice').value = currentPrice.toFixed(3); document.getElementById('alertModal').classList.add('show'); }
+function closeAlertModal() { document.getElementById('alertModal').classList.remove('show'); }
+function addAlert() {
+  const cond  = document.getElementById('alertCondition').value;
+  const price = parseFloat(document.getElementById('alertPrice').value);
+  if (!price) return;
+  priceAlerts.push({ cond, price, triggered: false });
+  updateAlertsList(); closeAlertModal();
+}
+function updateAlertsList() {
+  const el = document.getElementById('alertsList');
+  if (!priceAlerts.length) { el.textContent = 'No alerts set'; return; }
+  el.innerHTML = priceAlerts.map((a, i) =>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #1E293B">
+      <span style="color:${a.triggered ? '#475569' : '#e2e8f0'}">${a.cond === 'above' ? '▲' : '▼'} ${a.price.toFixed(3)}</span>
+      <span style="cursor:pointer;color:#f87171;font-size:10px" onclick="removeAlert(${i})">✕</span>
+    </div>`).join('');
+}
+function removeAlert(i) { priceAlerts.splice(i, 1); updateAlertsList(); }
+function checkAlerts(price) {
+  priceAlerts.forEach(a => {
+    if (!a.triggered && ((a.cond === 'above' && price >= a.price) || (a.cond === 'below' && price <= a.price))) {
+      a.triggered = true;
+      const el = document.createElement('div');
+      el.style.cssText = 'position:fixed;top:68px;right:18px;background:#1E293B;border:1px solid #FFD700;border-radius:8px;padding:10px 18px;z-index:1000;color:#fff;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.6)';
+      el.innerHTML = `<i class="fas fa-bell" style="color:#FFD700;margin-right:7px"></i><b>Alert!</b> Price went ${a.cond} ${a.price.toFixed(3)}`;
+      document.body.appendChild(el); setTimeout(() => el.remove(), 5000);
+      updateAlertsList();
+    }
+  });
+}
+
+// ─── TRADE HISTORY ────────────────────────────────────────────────────
+function openTradeHistory() {
+  const allHistory = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+  const history = allHistory.filter(t => t.type === 'MULTIPLIER');
+  const el = document.getElementById('tradeHistoryList');
+  
+  if (!history.length) {
+    el.innerHTML = '<div style="text-align:center;color:#475569;padding:20px">No multiplier trades yet</div>';
+  } else {
+    let totalPnL = 0;
+    el.innerHTML = history.map(t => {
+      totalPnL += (t.pnl || 0);
+      const date = new Date(t.timestamp).toLocaleString();
+      const pnlColor = (t.pnl || 0) >= 0 ? '#22c55e' : '#ef4444';
+      return `<div style="background:#1E293B;border-radius:6px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:600;color:#e2e8f0">MULT ${t.direction || ''}</span>
+          <span style="color:${pnlColor};font-weight:700">${(t.pnl || 0) >= 0 ? '+' : ''}${(t.pnl || 0).toFixed(2)} USD</span>
+        </div>
+        <div style="font-size:11px;color:#94a3b8">
+          <div>Stake: $${(t.stake || 0).toFixed(2)} | Multiplier: x${t.multiplier || 0}</div>
+          <div>Entry: ${(t.entryPrice || 0).toFixed(3)} | Exit: ${(t.exitPrice || 0).toFixed(3)}</div>
+          <div>${t.market || 'N/A'} | ${date}</div>
+        </div>
+      </div>`;
+    }).join('') + `<div style="background:#0f1923;border:2px solid ${totalPnL >= 0 ? '#22c55e' : '#ef4444'};border-radius:6px;padding:12px;text-align:center;margin-top:12px">
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Total P&L (Multipliers)</div>
+      <div style="font-size:20px;font-weight:700;color:${totalPnL >= 0 ? '#22c55e' : '#ef4444'}">${totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)} USD</div>
+    </div>`;
+  }
+  
+  document.getElementById('tradeHistoryModal').classList.add('show');
+}
+
+function closeTradeHistory() {
+  document.getElementById('tradeHistoryModal').classList.remove('show');
+}
+
+// ─── ACCOUNT ──────────────────────────────────────────────────────────
+function toggleAccountType() { isDemo = !isDemo; localStorage.setItem('accountType', isDemo ? 'demo' : 'real'); updateAccountDisplay(); }
+function updateAccountDisplay() {
+  const btn = document.getElementById('accountTypeBtn'), lbl = document.getElementById('balanceLabel');
+  btn.textContent = isDemo ? 'Demo' : 'Real';
+  btn.style.background = isDemo ? '#16a34a' : '#dc2626';
+  lbl.textContent = isDemo ? 'Demo Balance' : 'Real Balance';
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+  setTimeout(connectWebSocket, 500);
+}
+function exitApp() {
+  if (ws) ws.close();
+  localStorage.removeItem('authToken'); localStorage.removeItem('userSession');
+  window.location.href = '/auth';
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────
+function wsOpen()    { return ws && ws.readyState === WebSocket.OPEN; }
+function getMarket() { return document.getElementById('marketSelect').value; }
+
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('show');
+  overlay.classList.toggle('show');
+}
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.getElementById('mobileToggle');
+  const isOpen = menu.style.display !== 'none';
+  
+  if (isOpen) {
+    menu.style.display = 'none';
+    btn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+  } else {
+    menu.style.display = 'block';
+    btn.innerHTML = '<i class="fas fa-times"></i>';
+  }
+}
+
+function openMobileSection(section) {
+  toggleMobileMenu();
+  if (section === 'trade') {
+    toggleMobileSidebar();
+  } else if (section === 'indicators') {
+    showMobileIndicators();
+  } else if (section === 'alerts') {
+    openAlertModal();
+  }
+}
+
+function showMobileIndicators() {
+  const toolbar = document.getElementById('toolbar');
+  const chips = document.getElementById('indicatorChips');
+  toolbar.style.display = 'flex';
+  chips.style.display = 'flex';
+  toggleDD('indDD');
+  
+  // Auto-hide after selection
+  setTimeout(() => {
+    const dd = document.getElementById('indDD');
+    const observer = new MutationObserver(() => {
+      if (dd.style.display === 'none') {
+        toolbar.style.display = 'none';
+        chips.style.display = 'none';
+        observer.disconnect();
+      }
+    });
+    observer.observe(dd, { attributes: true, attributeFilter: ['style'] });
+  }, 100);
+}
+
+function showMobileDrawTools() {
+  toggleMobileMenu();
+  const toolbar = document.getElementById('toolbar');
+  toolbar.style.display = 'flex';
+  
+  // Create overlay to close toolbar
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.3)';
+  overlay.onclick = () => {
+    toolbar.style.display = 'none';
+    overlay.remove();
+  };
+  document.body.appendChild(overlay);
+}
+
+function initDraggableButton() {
+  const btn = document.getElementById('mobileToggle');
+  if (!btn) return;
+  let isDragging = false, startX, startY, startLeft, startTop;
+  
+  btn.addEventListener('touchstart', e => {
+    isDragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startLeft = btn.offsetLeft;
+    startTop = btn.offsetTop;
+    btn.style.transition = 'none';
+  }, {passive: false});
+  
+  document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    btn.style.left = (startLeft + dx) + 'px';
+    btn.style.top = (startTop + dy) + 'px';
+    btn.style.right = 'auto';
+    btn.style.bottom = 'auto';
+  }, {passive: false});
+  
+  document.addEventListener('touchend', () => {
+    if (isDragging) {
+      isDragging = false;
+      btn.style.transition = 'all 0.3s';
+    }
+  });
+}
+
+window.addEventListener('resize', () => { resizeCharts(); resizeCanvas(); redrawCanvas(); });
+document.addEventListener('DOMContentLoaded', initDraggableButton);
+</script>
 </body>
 </html>

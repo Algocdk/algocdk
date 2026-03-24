@@ -128,16 +128,18 @@
   document.head.appendChild(style);
   document.body.appendChild(offlineOverlay);
 
+  let _wasOffline = false;
+
   // Show offline overlay
   function showOffline() {
+    if (!_wasOffline) { console.log('[Offline] Connection lost'); _wasOffline = true; }
     offlineOverlay.classList.add('show');
-    console.log('[Offline] Connection lost');
   }
 
   // Hide offline overlay
   function hideOffline() {
+    if (_wasOffline) { console.log('[Offline] Connection restored'); _wasOffline = false; }
     offlineOverlay.classList.remove('show');
-    console.log('[Offline] Connection restored');
   }
 
   // Check online status
@@ -195,7 +197,7 @@
         showOffline();
       }
     }
-  }, 3000); // Check every 3 seconds
+  }, 15000); // Check every 15 seconds
 
   console.log('[Offline] Offline detector initialized');
 })();

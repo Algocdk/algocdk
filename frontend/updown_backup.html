@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ups & Downs Trading | Algocdk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #0D1421;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .panel {
+            background: #0A0E1A;
+            border: 1px solid #1E293B;
+            border-radius: 8px;
+        }
+        .btn-primary { background: #FF4500; }
+        .btn-primary:hover { background: #e63e00; }
+        .btn-success { background: #00C851; }
+        .btn-success:hover { background: #00a844; }
+        .btn-danger { background: #FF4444; }
+        .btn-danger:hover { background: #e63939; }
+        .input-field {
+            background: #1E293B;
+            border: 1px solid #334155;
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #FF4500;
+            box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
+        }
+        .trade-btn {
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+        .chart-container {
+            background: #0A0E1A;
+            border-radius: 8px;
+            height: 400px;
+        }
+        #chart {
+            background: #0e1117;
+            display: block;
+            cursor: grab;
+        }
+        #chart:active {
+            cursor: grabbing;
+        }
+        @media (max-width: 768px) {
+            .grid-cols-2 { grid-template-columns: 1fr; }
+            .lg\\:grid-cols-3 { grid-template-columns: 1fr; }
+            .chart-container { height: 300px; }
+        }
+        .bot-overlay {
+            position: fixed;
+            background: rgba(10, 14, 26, 0.95);
+            border: 2px solid #FF4500;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            min-width: 300px;
+            min-height: 200px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: none;
+            flex-direction: column;
+        }
+        .bot-overlay.active { display: flex; }
+        .bot-header {
+            background: #FF4500;
+            padding: 12px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 10px 10px 0 0;
+            user-select: none;
+        }
+        .bot-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .bot-size-input {
+            width: 60px;
+            padding: 4px 6px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            color: white;
+            font-size: 11px;
+            text-align: center;
+        }
+        .bot-size-input:focus {
+            outline: none;
+            background: rgba(255,255,255,0.3);
+        }
+        .bot-content {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+        }
+        .bot-loader-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #FF4500, #e63e00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.4);
+            z-index: 999;
+            transition: all 0.3s ease;
+        }
+        .bot-loader-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(255, 69, 0, 0.6);
+        }
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, #FF4500 50%);
+            border-radius: 0 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Bot Loader Button -->
+    <div class="bot-loader-btn" onclick="toggleBotLoader()" title="Load Trading Bot">
+        <i class="fas fa-robot text-white text-2xl"></i>
+    </div>
+
+    <!-- Bot Overlay -->
+    <div id="botOverlay" class="bot-overlay">
+        <div class="bot-header" id="botHeader">
+            <span class="font-bold text-white"><i class="fas fa-robot mr-2"></i>Trading Bot</span>
+            <div class="bot-controls">
+                <div class="flex items-center gap-1 text-xs text-white">
+                    <span>W:</span>
+                    <input type="number" id="botWidth" class="bot-size-input" min="300" max="2000" value="600" onchange="updateBotSize()">
+                    <span>H:</span>
+                    <input type="number" id="botHeight" class="bot-size-input" min="200" max="1200" value="400" onchange="updateBotSize()">
+                </div>
+                <button onclick="minimizeBot()" class="text-white hover:text-gray-300 px-2">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button onclick="closeBot()" class="text-white hover:text-gray-300 px-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="bot-content" id="botContent">
+            <div id="botUploader">
+                <div class="text-center py-8">
+                    <i class="fas fa-upload text-6xl text-gray-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Load Your Trading Bot</h3>
+                    <p class="text-gray-400 mb-6">Upload an HTML file with your custom bot</p>
+                    <input type="file" id="botFileInput" accept=".html" class="hidden" onchange="loadBotFile(event)">
+                    <button onclick="document.getElementById('botFileInput').click()" class="trade-btn btn-primary px-6 py-3">
+                        <i class="fas fa-file-upload mr-2"></i>Choose File
+                    </button>
+                    <div class="mt-4 text-xs text-gray-500">
+                        <p>Supports: HTML with embedded CSS/JS</p>
+                    </div>
+                </div>
+            </div>
+            <iframe id="botFrame" style="display:none; width:100%; height:100%; border:none; background:transparent;"></iframe>
+        </div>
+        <div class="resize-handle" id="resizeHandle"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-[#0A0E1A] border-b border-gray-700 px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl font-bold"><span style="color: #FF4500;">Algo</span><span style="color: white;">cdk</span></span>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/app" class="text-gray-400 hover:text-white">Chart</a>
+                    <a href="/trading" class="text-[#FF4500] font-semibold">Trade</a>
+                    <a href="/mybots" class="text-gray-400 hover:text-white">Bots</a>
+                    <a id="adminDashboardLink" href="/admin" class="text-gray-400 hover:text-white" style="display:none">Admin</a>
+                    <a id="superadminDashboardLink" href="/superadmin" class="text-gray-400 hover:text-white" style="display:none">SuperAdmin</a>
+                </nav>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleAccountType()" class="px-3 py-1 text-sm rounded-lg font-semibold transition-all" id="accountTypeBtn">
+                    Demo
+                </button>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400" id="balanceLabel">Demo Balance</div>
+                    <div class="font-bold text-lg" id="accountBalance">Loading...</div>
+                </div>
+                <button onclick="exitApp()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="mb-6">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.location.href='/trading'" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Trading
+                </button>
+                <h1 class="text-2xl font-bold">Ups & Downs Trading</h1>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Chart Panel -->
+            <div class="lg:col-span-2">
+                <div class="panel p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold">Price Chart</h3>
+                        <div class="flex items-center gap-2">
+                            <select id="indicators" onchange="handleIndicatorSelect(this.value)" class="input-field text-sm">
+                                <option value="">Add Indicator</option>
+                                <option value="sma20">SMA 20</option>
+                                <option value="sma50">SMA 50</option>
+                                <option value="ema20">EMA 20</option>
+                                <option value="bb">Bollinger Bands</option>
+                                <option value="rsi">RSI</option>
+                                <option value="custom">Custom Indicator</option>
+                            </select>
+                            <div id="activeIndicators" style="display:inline-flex;gap:5px;margin-left:10px;"></div>
+                            <input type="file" id="customIndicatorFile" accept=".js" style="display:none;">
+                            <select id="drawingTool" onchange="setDrawingTool(this.value)" class="input-field text-sm">
+                                <option value="">Drawing Tools</option>
+                                <option value="line">Trend Line</option>
+                                <option value="horizontal">Horizontal Line</option>
+                                <option value="vertical">Vertical Line</option>
+                                <option value="rectangle">Rectangle</option>
+                                <option value="fibonacci">Fibonacci</option>
+                                <option value="delete">🗑️ Delete</option>
+                            </select>
+                            <input type="color" id="drawingColor" value="#ffff00" class="w-8 h-8 border-none rounded cursor-pointer" title="Drawing Color">
+                            <button id="clearDrawings" onclick="clearAllDrawings()" class="btn-danger px-3 py-2 rounded text-sm" title="Clear All">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                            <select id="marketSelect" class="input-field text-sm">
+                                <option value="R_10">Volatility 10 Index</option>
+                                <option value="R_25">Volatility 25 Index</option>
+                                <option value="R_50">Volatility 50 Index</option>
+                                <option value="R_75">Volatility 75 Index</option>
+                                <option value="R_100" selected>Volatility 100 Index</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Market Info -->
+                <div class="panel p-6">
+                    <h3 class="text-lg font-bold mb-4">Market Information</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-[#FF4500]" id="currentPrice">1234.567</div>
+                            <div class="text-sm text-gray-400">Current Price</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-green-500" id="priceChange">+0.123</div>
+                            <div class="text-sm text-gray-400">Change</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold" id="highPrice">1235.890</div>
+                            <div class="text-sm text-gray-400">High</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold" id="lowPrice">1233.456</div>
+                            <div class="text-sm text-gray-400">Low</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Panel -->
+            <div class="lg:col-span-1">
+                <div class="panel p-6 mb-6">
+                    <h3 class="text-lg font-bold mb-4">Trade Parameters</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Trade Type</label>
+                            <select id="tradeType" class="input-field w-full" onchange="updateTradeType()">
+                                <option value="CALL">Rise/Fall</option>
+                                <option value="CALLE">Higher/Lower</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Stake (USD)</label>
+                            <input type="number" id="stakeAmount" value="1" min="0.35" step="0.01" 
+                                   class="input-field w-full" onchange="updatePayout()">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Duration</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="duration" value="5" min="1" class="input-field flex-1">
+                                <select id="durationUnit" class="input-field" onchange="updatePayout()">
+                                    <option value="t">Ticks</option>
+                                    <option value="s">Seconds</option>
+                                    <option value="m">Minutes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="barrierSection" style="display: none;">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Barrier</label>
+                            <input type="number" id="barrier" step="0.001" class="input-field w-full" 
+                                   onchange="updatePayout()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Buttons -->
+                <div class="panel p-6 mb-6">
+                    <h3 class="text-lg font-bold mb-4">Purchase</h3>
+                    <div class="space-y-3" id="purchaseButtons">
+                        <button class="trade-btn btn-success w-full" onclick="placeTrade('CALL')">
+                            <div class="flex justify-between items-center">
+                                <span>Rise</span>
+                                <span id="risePayout">1.85</span>
+                            </div>
+                        </button>
+                        <button class="trade-btn btn-danger w-full" onclick="placeTrade('PUT')">
+                            <div class="flex justify-between items-center">
+                                <span>Fall</span>
+                                <span id="fallPayout">1.85</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trade Summary -->
+                <div class="panel p-6">
+                    <h3 class="text-lg font-bold mb-4">Trade Summary</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Potential Payout:</span>
+                            <span class="font-bold text-green-500" id="potentialPayout">1.85 USD</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Potential Profit:</span>
+                            <span class="font-bold text-green-500" id="potentialProfit">0.85 USD</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Commission:</span>
+                            <span class="font-bold">0.00 USD</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trade History -->
+                <div class="panel p-6 mt-6">
+                    <h3 class="text-lg font-bold mb-4"><i class="fas fa-history text-blue-500 mr-2"></i>Trade History</h3>
+                    <button onclick="openTradeHistory()" class="trade-btn btn-primary w-full">
+                        <i class="fas fa-list mr-2"></i>View Trades
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRADE HISTORY MODAL -->
+    <div class="modal-overlay" id="tradeHistoryModal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center">
+        <div style="background:#0f1923;border:1px solid #2d3f55;border-radius:10px;padding:22px;min-width:300px;max-width:600px;width:90vw">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:#fff"><i class="fas fa-history" style="color:#3B82F6"></i> Trade History</h3>
+            <div id="tradeHistoryList" style="max-height:400px;overflow-y:auto;margin:14px 0"></div>
+            <button onclick="closeTradeHistory()" class="trade-btn btn-primary" style="width:100%;padding:10px">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Show role-based links
+        (function showRoleLinks() {
+            const admin = document.getElementById('adminDashboardLink');
+            const superadmin = document.getElementById('superadminDashboardLink');
+            if (!admin || !superadmin) return;
+            
+            const token = localStorage.getItem('token') || localStorage.getItem('jwt_token') || localStorage.getItem('authToken');
+            if (!token) return;
+            
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const role = (payload.role || payload.user_role || '').toString().toLowerCase();
+                if (role.includes('superadmin')) {
+                    superadmin.style.display = 'block';
+                } else if (role.includes('admin')) {
+                    admin.style.display = 'block';
+                }
+            } catch(e) {
+                fetch('/api/user/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(r => r.json()).then(data => {
+                    const role = (data.role || data.user?.role || '').toString().toLowerCase();
+                    if (role.includes('superadmin')) {
+                        superadmin.style.display = 'block';
+                    } else if (role.includes('admin')) {
+                        admin.style.display = 'block';
+                    }
+                }).catch(() => {});
+            }
+        })();
+
+        let ws = null;
+        let canvas = null;
+        let ctx = null;
+        let candles = [];
+        let currentCandle = null;
+        let currentPrice = 1234.567;
+        let isDemo = true;
+        let highPrice = 1234.567;
+        let lowPrice = 1234.567;
+        let startPrice = 1234.567;
+        let zoom = 1;
+        let offset = 0;
+        const MAX_CANDLES = 100;
+        const TIMEFRAME = 60;
+        let derivWS = null;
+        let authToken = null;
+        let isDerivConnected = false;
+        let drawings = [];
+        let currentDrawing = null;
+        let drawingTool = '';
+        let isDrawing = false;
+        let indicators = new Map();
+        let customIndicators = new Map();
+        let isDraggingChart = false;
+        let dragStartX = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAccount();
+            initializeChart();
+            connectWebSocket();
+            connectDeriv();
+            updatePayout();
+            loadState();
+            
+            // Add drawing event listeners after canvas is initialized
+            canvas.addEventListener('mousedown', e => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (drawingTool === 'delete') {
+                    deleteDrawingAt(x, y);
+                } else if (drawingTool) {
+                    isDrawing = true;
+                    const color = document.getElementById('drawingColor').value;
+                    currentDrawing = {
+                        type: drawingTool,
+                        startX: x,
+                        startY: y,
+                        endX: x,
+                        endY: y,
+                        color: color
+                    };
+                } else {
+                    isDraggingChart = true;
+                    dragStartX = e.clientX;
+                }
+            });
+            
+            canvas.addEventListener('mousemove', e => {
+                if (isDrawing && currentDrawing) {
+                    const rect = canvas.getBoundingClientRect();
+                    currentDrawing.endX = e.clientX - rect.left;
+                    currentDrawing.endY = e.clientY - rect.top;
+                    draw();
+                } else if (isDraggingChart) {
+                    offset += (e.clientX - dragStartX) / 10;
+                    dragStartX = e.clientX;
+                    saveState();
+                    draw();
+                }
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                if (isDrawing && currentDrawing) {
+                    drawings.push({...currentDrawing});
+                    currentDrawing = null;
+                    isDrawing = false;
+                    saveState();
+                }
+                isDraggingChart = false;
+            });
+            
+            canvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.5, Math.min(3, zoom));
+                saveState();
+                draw();
+            });
+            
+            document.getElementById('customIndicatorFile').onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const code = ev.target.result;
+                        const customInd = eval(`(${code})`);
+                        if (customInd.name && customInd.calculate) {
+                            const id = 'custom_' + customInd.name.toLowerCase().replace(/\s+/g, '_');
+                            customIndicators.set(id, customInd);
+                            addIndicator(id);
+                            saveState();
+                            alert(`Custom indicator "${customInd.name}" loaded!`);
+                        } else {
+                            alert('Invalid indicator format');
+                        }
+                    } catch (err) {
+                        alert('Error loading indicator: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+        });
+
+        function initializeAccount() {
+            const savedAccountType = localStorage.getItem('accountType');
+            if (savedAccountType === 'real') {
+                isDemo = false;
+            }
+            updateAccountDisplay();
+        }
+
+        function initializeChart() {
+            canvas = document.getElementById('chart');
+            ctx = canvas.getContext('2d');
+            
+            function resize() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                draw();
+            }
+            resize();
+            window.addEventListener('resize', resize);
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            
+            ws.onopen = () => {
+                const market = document.getElementById('marketSelect').value;
+                ws.send(JSON.stringify({
+                    ticks_history: market,
+                    style: "candles",
+                    granularity: TIMEFRAME,
+                    count: MAX_CANDLES,
+                    end: "latest"
+                }));
+                ws.send(JSON.stringify({ ticks: market, subscribe: 1 }));
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.candles) {
+                    candles = data.candles.map(c => ({
+                        time: Math.floor(c.epoch / TIMEFRAME) * TIMEFRAME,
+                        open: +c.open,
+                        high: +c.high,
+                        low: +c.low,
+                        close: +c.close
+                    }));
+                    currentCandle = null;
+                    draw();
+                }
+                if (data.tick) {
+                    updatePrice(parseFloat(data.tick.quote));
+                    updateCandle(parseFloat(data.tick.quote), data.tick.epoch);
+                }
+            };
+            
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateCandle(price, epoch) {
+            const t = Math.floor(epoch / TIMEFRAME) * TIMEFRAME;
+
+            if (!currentCandle || currentCandle.time !== t) {
+                if (currentCandle) {
+                    candles.push(currentCandle);
+                    if (candles.length > MAX_CANDLES) candles.shift();
+                }
+                currentCandle = { time: t, open: price, high: price, low: price, close: price };
+            } else {
+                currentCandle.high = Math.max(currentCandle.high, price);
+                currentCandle.low = Math.min(currentCandle.low, price);
+                currentCandle.close = price;
+            }
+            
+            draw();
+        }
+
+        function draw() {
+            if (!ctx || !canvas) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let data = [...candles];
+            if (currentCandle) data.push(currentCandle);
+            if (!data.length) return;
+
+            const pad = 50;
+            const w = canvas.width - pad * 2;
+            const h = canvas.height - pad * 2;
+
+            const candleSpacing = 8 * zoom;
+            const visible = Math.floor(w / candleSpacing);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const view = data.slice(start, start + visible);
+
+            if (!view.length) return;
+
+            const max = Math.max(...view.map(c => c.high));
+            const min = Math.min(...view.map(c => c.low));
+            const range = max - min || 1;
+            const y = p => pad + h - ((p - min) / range) * h;
+
+            // Grid
+            ctx.strokeStyle = "#1f2430";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const gy = pad + (h / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(pad, gy);
+                ctx.lineTo(canvas.width - pad, gy);
+                ctx.stroke();
+            }
+
+            // Candles
+            view.forEach((c, i) => {
+                const x = pad + i * candleSpacing + candleSpacing / 2;
+                const up = c.close >= c.open;
+                
+                ctx.strokeStyle = ctx.fillStyle = up ? '#00C851' : '#FF4444';
+                ctx.lineWidth = 1;
+
+                // Wick
+                ctx.beginPath();
+                ctx.moveTo(x, y(c.high));
+                ctx.lineTo(x, y(c.low));
+                ctx.stroke();
+
+                // Body
+                const bodyWidth = Math.max(2, candleSpacing * 0.6);
+                const bodyHeight = Math.max(1, Math.abs(y(c.close) - y(c.open)));
+                
+                ctx.fillRect(
+                    x - bodyWidth / 2,
+                    Math.min(y(c.open), y(c.close)),
+                    bodyWidth,
+                    bodyHeight
+                );
+            });
+
+            // Price labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const price = min + (range / 5) * (5 - i);
+                const gy = pad + (h / 5) * i;
+                ctx.fillText(price.toFixed(3), pad - 5, gy + 4);
+            }
+            
+            drawIndicators(view, pad, candleSpacing, y);
+            drawDrawings();
+        }
+        
+        function handleIndicatorSelect(type) {
+            if (type === 'custom') {
+                document.getElementById('customIndicatorFile').click();
+            } else if (type) {
+                addIndicator(type);
+            }
+            document.getElementById('indicators').value = '';
+        }
+        
+        function addIndicator(type) {
+            if (!type || indicators.has(type)) return;
+            indicators.set(type, { type, color: getIndicatorColor(type), period: getIndicatorPeriod(type) });
+            updateIndicatorTags();
+            saveState();
+            draw();
+        }
+        
+        function removeIndicator(type) {
+            indicators.delete(type);
+            updateIndicatorTags();
+            saveState();
+            draw();
+        }
+        
+        function updateIndicatorTags() {
+            const container = document.getElementById('activeIndicators');
+            container.innerHTML = '';
+            indicators.forEach((ind, type) => {
+                const tag = document.createElement('span');
+                tag.style.cssText = 'background:#2b2f3a;color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;';
+                tag.textContent = type.toUpperCase();
+                tag.onclick = () => showIndicatorConfig(type);
+                tag.title = 'Click to edit';
+                container.appendChild(tag);
+            });
+        }
+        
+        function showIndicatorConfig(type) {
+            const ind = indicators.get(type);
+            const newPeriod = prompt(`Enter period for ${type.toUpperCase()}:`, ind.period);
+            if (newPeriod && !isNaN(newPeriod)) {
+                ind.period = parseInt(newPeriod);
+                saveState();
+                draw();
+            }
+            const remove = confirm('Remove this indicator?');
+            if (remove) removeIndicator(type);
+        }
+        
+        function getIndicatorColor(type) {
+            const colors = { sma20: '#ffa500', sma50: '#00bfff', ema20: '#ff69b4', bb: '#9370db', rsi: '#32cd32' };
+            return colors[type] || '#ffffff';
+        }
+        
+        function getIndicatorPeriod(type) {
+            const periods = { sma20: 20, sma50: 50, ema20: 20, bb: 20, rsi: 14 };
+            return periods[type] || 20;
+        }
+        
+        function calculateSMA(data, period) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b.close, 0);
+                return sum / period;
+            });
+        }
+        
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1);
+            const ema = [data[0]?.close || 0];
+            for (let i = 1; i < data.length; i++) {
+                ema[i] = data[i].close * k + ema[i - 1] * (1 - k);
+            }
+            return ema;
+        }
+        
+        function drawIndicators(view, pad, spacing, yFunc) {
+            indicators.forEach((ind) => {
+                ctx.strokeStyle = ind.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                
+                let values = [];
+                const allData = [...candles, currentCandle].filter(c => c);
+                
+                if (ind.type.startsWith('custom_')) {
+                    const customInd = customIndicators.get(ind.type);
+                    if (customInd && customInd.calculate) {
+                        values = customInd.calculate(allData, { period: ind.period }).slice(-view.length);
+                    }
+                } else if (ind.type.startsWith('sma')) {
+                    values = calculateSMA(allData, ind.period).slice(-view.length);
+                } else if (ind.type.startsWith('ema')) {
+                    values = calculateEMA(allData, ind.period).slice(-view.length);
+                }
+                
+                ctx.beginPath();
+                let started = false;
+                values.forEach((val, i) => {
+                    if (val !== null) {
+                        const x = pad + i * spacing + spacing / 2;
+                        if (!started) {
+                            ctx.moveTo(x, yFunc(val));
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, yFunc(val));
+                        }
+                    }
+                });
+                ctx.stroke();
+            });
+        }
+        
+        function setDrawingTool(tool) {
+            drawingTool = tool;
+            canvas.style.cursor = tool ? 'crosshair' : 'grab';
+        }
+        
+        function clearAllDrawings() {
+            drawings = [];
+            currentDrawing = null;
+            saveState();
+            draw();
+        }
+        
+        function drawDrawings() {
+            drawings.forEach(drawing => {
+                drawSingleDrawing(drawing);
+            });
+            if (currentDrawing) {
+                drawSingleDrawing(currentDrawing);
+            }
+        }
+        
+        function drawSingleDrawing(drawing) {
+            ctx.strokeStyle = drawing.color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+            
+            switch (drawing.type) {
+                case 'line':
+                    ctx.beginPath();
+                    ctx.moveTo(drawing.startX, drawing.startY);
+                    ctx.lineTo(drawing.endX, drawing.endY);
+                    ctx.stroke();
+                    break;
+                case 'horizontal':
+                    ctx.beginPath();
+                    ctx.moveTo(0, drawing.startY);
+                    ctx.lineTo(canvas.width, drawing.startY);
+                    ctx.stroke();
+                    break;
+                case 'vertical':
+                    ctx.beginPath();
+                    ctx.moveTo(drawing.startX, 0);
+                    ctx.lineTo(drawing.startX, canvas.height);
+                    ctx.stroke();
+                    break;
+                case 'rectangle':
+                    ctx.strokeRect(drawing.startX, drawing.startY, drawing.endX - drawing.startX, drawing.endY - drawing.startY);
+                    break;
+                case 'fibonacci':
+                    const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+                    const fibHeight = drawing.endY - drawing.startY;
+                    fibLevels.forEach(level => {
+                        const y = drawing.startY + fibHeight * level;
+                        ctx.globalAlpha = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(Math.min(drawing.startX, drawing.endX), y);
+                        ctx.lineTo(Math.max(drawing.startX, drawing.endX), y);
+                        ctx.stroke();
+                        ctx.fillStyle = drawing.color;
+                        ctx.fillText(`${(level * 100).toFixed(1)}%`, Math.min(drawing.startX, drawing.endX) + 5, y - 5);
+                    });
+                    ctx.globalAlpha = 1;
+                    break;
+            }
+        }
+        
+
+        
+        function deleteDrawingAt(x, y) {
+            const tolerance = 10;
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const d = drawings[i];
+                if (Math.abs(d.startX - x) < tolerance && Math.abs(d.startY - y) < tolerance) {
+                    drawings.splice(i, 1);
+                    saveState();
+                    draw();
+                    return;
+                }
+            }
+        }
+        
+        function saveState() {
+            const state = {
+                indicators: Array.from(indicators.entries()),
+                customIndicators: Array.from(customIndicators.entries()),
+                drawings: drawings,
+                zoom: zoom,
+                offset: offset
+            };
+            localStorage.setItem('updownChartState', JSON.stringify(state));
+        }
+        
+        function loadState() {
+            const saved = localStorage.getItem('updownChartState');
+            if (!saved) return;
+            try {
+                const state = JSON.parse(saved);
+                if (state.indicators) {
+                    indicators = new Map(state.indicators);
+                    updateIndicatorTags();
+                }
+                if (state.customIndicators) {
+                    customIndicators = new Map(state.customIndicators);
+                }
+                if (state.drawings) drawings = state.drawings;
+                if (state.zoom) zoom = state.zoom;
+                if (state.offset) offset = state.offset;
+                draw();
+            } catch (e) {
+                console.error('Failed to load state:', e);
+            }
+        }
+
+        function updateTradeType() {
+            const tradeType = document.getElementById('tradeType').value;
+            const barrierSection = document.getElementById('barrierSection');
+            const purchaseButtons = document.getElementById('purchaseButtons');
+            
+            if (tradeType === 'CALLE') {
+                barrierSection.style.display = 'block';
+                document.getElementById('barrier').value = (currentPrice + 0.1).toFixed(3);
+                purchaseButtons.innerHTML = `
+                    <button class="trade-btn btn-success w-full" onclick="placeTrade('CALLE')">
+                        <div class="flex justify-between items-center">
+                            <span>Higher</span>
+                            <span id="higherPayout">1.85</span>
+                        </div>
+                    </button>
+                    <button class="trade-btn btn-danger w-full" onclick="placeTrade('PUTE')">
+                        <div class="flex justify-between items-center">
+                            <span>Lower</span>
+                            <span id="lowerPayout">1.85</span>
+                        </div>
+                    </button>
+                `;
+            } else {
+                barrierSection.style.display = 'none';
+                purchaseButtons.innerHTML = `
+                    <button class="trade-btn btn-success w-full" onclick="placeTrade('CALL')">
+                        <div class="flex justify-between items-center">
+                            <span>Rise</span>
+                            <span id="risePayout">1.85</span>
+                        </div>
+                    </button>
+                    <button class="trade-btn btn-danger w-full" onclick="placeTrade('PUT')">
+                        <div class="flex justify-between items-center">
+                            <span>Fall</span>
+                            <span id="fallPayout">1.85</span>
+                        </div>
+                    </button>
+                `;
+            }
+            updatePayout();
+        }
+
+        function updatePayout() {
+            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
+            const multiplier = 1.85;
+            const payout = stake * multiplier;
+            const profit = payout - stake;
+            
+            document.getElementById('potentialPayout').textContent = `${payout.toFixed(2)} USD`;
+            document.getElementById('potentialProfit').textContent = `${profit.toFixed(2)} USD`;
+            
+            // Update button payouts
+            const tradeType = document.getElementById('tradeType').value;
+            if (tradeType === 'CALLE') {
+                const higherEl = document.getElementById('higherPayout');
+                const lowerEl = document.getElementById('lowerPayout');
+                if (higherEl) higherEl.textContent = payout.toFixed(2);
+                if (lowerEl) lowerEl.textContent = payout.toFixed(2);
+            } else {
+                const riseEl = document.getElementById('risePayout');
+                const fallEl = document.getElementById('fallPayout');
+                if (riseEl) riseEl.textContent = payout.toFixed(2);
+                if (fallEl) fallEl.textContent = payout.toFixed(2);
+            }
+        }
+
+        function placeTrade(contractType) {
+            const stake = parseFloat(document.getElementById('stakeAmount').value) || 1;
+            const duration = parseInt(document.getElementById('duration').value) || 5;
+            const durationUnit = document.getElementById('durationUnit').value;
+            const market = document.getElementById('marketSelect').value;
+            
+            if (!derivWS || derivWS.readyState !== WebSocket.OPEN || !isDerivConnected) {
+                if (confirm('You need to connect your Deriv account to place trades. Go to Settings now?')) {
+                    window.location.href = '/settings';
+                }
+                return;
+            }
+            
+            // Send proposal first
+            const proposal = {
+                proposal: 1,
+                amount: stake,
+                basis: 'stake',
+                contract_type: contractType,
+                currency: 'USD',
+                duration: duration,
+                duration_unit: durationUnit,
+                symbol: market
+            };
+            
+            if (contractType === 'CALLE' || contractType === 'PUTE') {
+                const barrier = parseFloat(document.getElementById('barrier').value);
+                proposal.barrier = barrier.toString();
+            }
+            
+            derivWS.send(JSON.stringify(proposal));
+            
+            // Store pending trade info
+            window.pendingTrade = { contractType, stake, market };
+        }
+
+        function updateBalance(change) {
+            const currentBalance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.]/g, ''));
+            const newBalance = currentBalance + change;
+            document.getElementById('accountBalance').textContent = `${newBalance.toFixed(2)} USD`;
+            
+            if (isDemo) {
+                localStorage.setItem('demoBalance', newBalance);
+            } else {
+                localStorage.setItem('realBalance', newBalance);
+            }
+        }
+
+        function toggleAccountType() {
+            isDemo = !isDemo;
+            localStorage.setItem('accountType', isDemo ? 'demo' : 'real');
+            
+            isDerivConnected = false;
+            if (derivWS) {
+                derivWS.close();
+                derivWS = null;
+            }
+            
+            updateAccountDisplay();
+            
+            setTimeout(() => {
+                connectDeriv();
+            }, 500);
+        }
+
+        function updateAccountDisplay() {
+            const btn = document.getElementById('accountTypeBtn');
+            const label = document.getElementById('balanceLabel');
+            const balance = document.getElementById('accountBalance');
+            
+            if (isDemo) {
+                btn.textContent = 'Demo';
+                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-green-600 text-white';
+                label.textContent = 'Demo Balance';
+                balance.textContent = 'Loading...';
+                balance.className = 'font-bold text-lg text-white';
+            } else {
+                btn.textContent = 'Real';
+                btn.className = 'px-3 py-1 text-sm rounded-lg font-semibold transition-all bg-red-600 text-white';
+                label.textContent = 'Real Balance';
+                balance.textContent = 'Loading...';
+                balance.className = 'font-bold text-lg text-white';
+            }
+        }
+        
+        function connectDeriv() {
+            const token = localStorage.getItem('authToken') || localStorage.getItem('jwt_token') || localStorage.getItem('token');
+            if (!token) {
+                console.log('No auth token found');
+                document.getElementById('accountBalance').textContent = 'Not Available';
+                return;
+            }
+            
+            fetch(`/api/deriv/token?account_type=${isDemo ? 'demo' : 'real'}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.has_token && data.token) {
+                    derivWS = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+                    
+                    derivWS.onopen = () => {
+                        derivWS.send(JSON.stringify({ authorize: data.token }));
+                    };
+                    
+                    derivWS.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.authorize) {
+                            authToken = data.authorize.token;
+                            isDerivConnected = true;
+                            console.log('Connected to Deriv');
+                            derivWS.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+                        }
+                        
+                        if (data.balance) {
+                            const balance = data.balance.balance;
+                            const isVirtual = data.balance.is_virtual === 1;
+                            
+                            document.getElementById('accountBalance').textContent = `${parseFloat(balance).toFixed(2)} USD`;
+                            
+                            if (isVirtual) {
+                                localStorage.setItem('demoBalance', balance.toFixed(2));
+                            } else {
+                                localStorage.setItem('realBalance', balance.toFixed(2));
+                            }
+                        }
+                        
+                        if (data.proposal && window.pendingTrade) {
+                            // Buy the contract
+                            derivWS.send(JSON.stringify({ buy: data.proposal.id, price: data.proposal.ask_price }));
+                        }
+                        
+                        if (data.buy && window.pendingTrade) {
+                            const tradeNames = { 'CALL': 'Rise', 'PUT': 'Fall', 'CALLE': 'Higher', 'PUTE': 'Lower' };
+                            alert(`${tradeNames[window.pendingTrade.contractType]} trade placed! Contract ID: ${data.buy.contract_id}`);
+                            
+                            // Save to history
+                            saveTradeToHistory({
+                                contractId: data.buy.contract_id,
+                                type: 'RISEFALL',
+                                direction: tradeNames[window.pendingTrade.contractType],
+                                stake: window.pendingTrade.stake,
+                                payout: data.buy.payout || 0,
+                                timestamp: Date.now(),
+                                market: window.pendingTrade.market
+                            });
+                            
+                            window.pendingTrade = null;
+                        }
+                        
+                        if (data.error) {
+                            alert('Trade Error: ' + data.error.message);
+                        }
+                    };
+                } else {
+                    console.log('No Deriv token saved. Please connect your Deriv account.');
+                    document.getElementById('accountBalance').textContent = 'Not Available';
+                }
+            })
+            .catch(error => {
+                console.log('Failed to get Deriv token:', error);
+                document.getElementById('accountBalance').textContent = 'Not Available';
+            });
+        }
+
+        function exitApp() {
+            if (ws) ws.close();
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userSession');
+            window.location.href = '/auth';
+        }
+        
+        function saveTradeToHistory(trade) {
+            const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+            history.unshift(trade);
+            if (history.length > 100) history.pop();
+            localStorage.setItem('tradeHistory', JSON.stringify(history));
+            console.log('[Trade] Saved to history:', trade);
+        }
+        
+        function openTradeHistory() {
+            const allHistory = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+            const history = allHistory.filter(t => t.type === 'RISEFALL');
+            const el = document.getElementById('tradeHistoryList');
+            
+            if (!history.length) {
+                el.innerHTML = '<div style="text-align:center;color:#475569;padding:20px">No Rise/Fall trades yet</div>';
+            } else {
+                let totalPayout = 0;
+                el.innerHTML = history.map(t => {
+                    totalPayout += (t.payout || 0);
+                    const date = new Date(t.timestamp).toLocaleString();
+                    return `<div style="background:#1E293B;border-radius:6px;padding:10px;margin-bottom:8px">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                            <span style="font-weight:600;color:#e2e8f0">${t.direction || 'TRADE'}</span>
+                            <span style="color:#22c55e;font-weight:700">${(t.payout || 0).toFixed(2)} USD</span>
+                        </div>
+                        <div style="font-size:11px;color:#94a3b8">
+                            <div>Stake: $${(t.stake || 0).toFixed(2)}</div>
+                            <div>${t.market || 'N/A'} | ${date}</div>
+                        </div>
+                    </div>`;
+                }).join('') + `<div style="background:#0f1923;border:2px solid #22c55e;border-radius:6px;padding:12px;text-align:center;margin-top:12px">
+                    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Total Payout (Rise/Fall)</div>
+                    <div style="font-size:20px;font-weight:700;color:#22c55e">${totalPayout.toFixed(2)} USD</div>
+                </div>`;
+            }
+            
+            document.getElementById('tradeHistoryModal').style.display = 'flex';
+        }
+        
+        function closeTradeHistory() {
+            document.getElementById('tradeHistoryModal').style.display = 'none';
+        }
+
+        function updatePrice(price) {
+            currentPrice = price;
+            
+            // Update high/low
+            if (price > highPrice) highPrice = price;
+            if (price < lowPrice) lowPrice = price;
+            
+            // Update display
+            document.getElementById('currentPrice').textContent = price.toFixed(3);
+            document.getElementById('highPrice').textContent = highPrice.toFixed(3);
+            document.getElementById('lowPrice').textContent = lowPrice.toFixed(3);
+            
+            const change = price - startPrice;
+            const changeEl = document.getElementById('priceChange');
+            changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(3);
+            changeEl.className = `text-lg font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`;
+            
+            updatePayout();
+        }
+
+        // Bot Loader Functions
+        let isDragging = false;
+        let isResizing = false;
+        let currentX, currentY, initialX, initialY;
+        let botOverlay = null;
+        let isMinimized = false;
+        let savedSize = { width: 600, height: 400 };
+        let botState = null;
+        
+        function loadBotState() {
+            const saved = localStorage.getItem('updownBotState');
+            if (saved) {
+                try {
+                    botState = JSON.parse(saved);
+                    savedSize = { width: botState.width || 600, height: botState.height || 400 };
+                    
+                    if (botState.isActive && botState.botContent) {
+                        setTimeout(() => {
+                            botOverlay.classList.add('active');
+                            
+                            const iframe = document.getElementById('botFrame');
+                            const uploader = document.getElementById('botUploader');
+                            uploader.style.display = 'none';
+                            iframe.style.display = 'block';
+                            iframe.srcdoc = botState.botContent;
+                            
+                            botOverlay.style.width = botState.width + 'px';
+                            botOverlay.style.height = botState.height + 'px';
+                            botOverlay.style.left = botState.left + 'px';
+                            botOverlay.style.top = botState.top + 'px';
+                            
+                            updateSizeInputs();
+                        }, 100);
+                    }
+                } catch (e) {
+                    console.error('Failed to load bot state:', e);
+                    localStorage.removeItem('updownBotState');
+                }
+            }
+        }
+        
+        function saveBotState() {
+            if (!botOverlay) return;
+            
+            const iframe = document.getElementById('botFrame');
+            const state = {
+                isActive: botOverlay.classList.contains('active'),
+                width: botOverlay.offsetWidth,
+                height: botOverlay.offsetHeight,
+                left: botOverlay.offsetLeft,
+                top: botOverlay.offsetTop,
+                botContent: iframe.style.display === 'block' ? iframe.srcdoc : null
+            };
+            
+            localStorage.setItem('updownBotState', JSON.stringify(state));
+        }
+        
+        function toggleBotLoader() {
+            botOverlay = document.getElementById('botOverlay');
+            if (botOverlay.classList.contains('active')) {
+                closeBot();
+            } else {
+                botOverlay.classList.add('active');
+                if (!botState || !botState.left) {
+                    centerBot();
+                }
+                updateSizeInputs();
+                saveBotState();
+            }
+        }
+        
+        function centerBot() {
+            botOverlay.style.width = savedSize.width + 'px';
+            botOverlay.style.height = savedSize.height + 'px';
+            botOverlay.style.left = (window.innerWidth - savedSize.width) / 2 + 'px';
+            botOverlay.style.top = (window.innerHeight - savedSize.height) / 2 + 'px';
+            updateSizeInputs();
+        }
+        
+        function closeBot() {
+            botOverlay.classList.remove('active');
+            saveBotState();
+        }
+        
+        function minimizeBot() {
+            const content = document.getElementById('botContent');
+            if (isMinimized) {
+                content.style.display = 'block';
+                botOverlay.style.height = savedSize.height + 'px';
+                isMinimized = false;
+            } else {
+                savedSize.height = botOverlay.offsetHeight;
+                content.style.display = 'none';
+                botOverlay.style.height = '50px';
+                isMinimized = true;
+            }
+            updateSizeInputs();
+            saveBotState();
+        }
+        
+        function updateBotSize() {
+            const width = parseInt(document.getElementById('botWidth').value);
+            const height = parseInt(document.getElementById('botHeight').value);
+            
+            if (width >= 300 && width <= 2000) {
+                botOverlay.style.width = width + 'px';
+                savedSize.width = width;
+            }
+            
+            if (height >= 200 && height <= 1200 && !isMinimized) {
+                botOverlay.style.height = height + 'px';
+                savedSize.height = height;
+            }
+            
+            saveBotState();
+        }
+        
+        function updateSizeInputs() {
+            document.getElementById('botWidth').value = botOverlay.offsetWidth;
+            document.getElementById('botHeight').value = isMinimized ? savedSize.height : botOverlay.offsetHeight;
+        }
+        
+        function loadBotFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const iframe = document.getElementById('botFrame');
+                const uploader = document.getElementById('botUploader');
+                
+                uploader.style.display = 'none';
+                iframe.style.display = 'block';
+                iframe.srcdoc = content;
+                
+                savedSize = { width: 800, height: 600 };
+                centerBot();
+                saveBotState();
+            };
+            reader.readAsText(file);
+        }
+        
+        // Initialize bot loader
+        window.addEventListener('load', function() {
+            const header = document.getElementById('botHeader');
+            const overlay = document.getElementById('botOverlay');
+            const resizeHandle = document.getElementById('resizeHandle');
+            
+            botOverlay = overlay;
+            loadBotState();
+            
+            header.addEventListener('mousedown', dragStart);
+            resizeHandle.addEventListener('mousedown', resizeStart);
+            
+            function dragStart(e) {
+                if (e.target.closest('button') || e.target.closest('input')) return;
+                isDragging = true;
+                initialX = e.clientX - overlay.offsetLeft;
+                initialY = e.clientY - overlay.offsetTop;
+            }
+            
+            function resizeStart(e) {
+                e.stopPropagation();
+                isResizing = true;
+                initialX = e.clientX;
+                initialY = e.clientY;
+                savedSize.width = overlay.offsetWidth;
+                savedSize.height = overlay.offsetHeight;
+            }
+            
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    overlay.style.left = currentX + 'px';
+                    overlay.style.top = currentY + 'px';
+                } else if (isResizing) {
+                    e.preventDefault();
+                    const width = savedSize.width + (e.clientX - initialX);
+                    const height = savedSize.height + (e.clientY - initialY);
+                    const newWidth = Math.max(300, Math.min(2000, width));
+                    const newHeight = Math.max(200, Math.min(1200, height));
+                    overlay.style.width = newWidth + 'px';
+                    overlay.style.height = newHeight + 'px';
+                    updateSizeInputs();
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    savedSize.width = overlay.offsetWidth;
+                    savedSize.height = overlay.offsetHeight;
+                    saveBotState();
+                }
+                if (isDragging) {
+                    saveBotState();
+                }
+                isDragging = false;
+                isResizing = false;
+            });
+            
+            window.addEventListener('beforeunload', saveBotState);
+        });
+    </script>
+</body>
+</html>
