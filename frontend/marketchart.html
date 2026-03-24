@@ -1604,10 +1604,10 @@
                     dragHandle = findHandle(clicked, x, y);
                     dragStartX = x;
                     dragStartY = y;
-                    objStartX1 = clicked.x1;
-                    objStartY1 = clicked.y1;
-                    objStartX2 = clicked.x2;
-                    objStartY2 = clicked.y2;
+                    objStartX1 = clicked.startIndex;
+                    objStartY1 = clicked.startPrice;
+                    objStartX2 = clicked.endIndex;
+                    objStartY2 = clicked.endPrice;
                     canvas.style.cursor = "move";
                     draw();
                 } else {
@@ -1703,7 +1703,10 @@
                 const obj = findObjectAt(x, y);
                 if (obj) {
                     const handle = findHandle(obj, x, y);
-                    canvas.style.cursor = handle === "move" ? "move" : "nwse-resize";
+                    if (handle === "move") canvas.style.cursor = "move";
+                    else if (handle === "top" || handle === "bottom") canvas.style.cursor = "ns-resize";
+                    else if (handle === "left" || handle === "right") canvas.style.cursor = "ew-resize";
+                    else canvas.style.cursor = "nwse-resize";
                 } else {
                     canvas.style.cursor = selectedTool ? "crosshair" : "grab";
                 }
@@ -1727,10 +1730,10 @@
                         dragHandle = findHandle(clicked, x, y);
                         dragStartX = x;
                         dragStartY = y;
-                        objStartX1 = clicked.x1;
-                        objStartY1 = clicked.y1;
-                        objStartX2 = clicked.x2;
-                        objStartY2 = clicked.y2;
+                        objStartX1 = clicked.startIndex;
+                        objStartY1 = clicked.startPrice;
+                        objStartX2 = clicked.endIndex;
+                        objStartY2 = clicked.endPrice;
                         draw();
                     } else {
                         selectedObject = null;
@@ -1964,11 +1967,12 @@
                        distanceToLine(x, y, x1, y2, x2, y2) < threshold ||
                        distanceToLine(x, y, x2, y2, midX, y1) < threshold;
             } else if (obj.type === "circle") {
-                const radius = Math.abs(x2 - x1) / 2;
-                const centerX = (x1 + x2) / 2;
-                const centerY = (y1 + y2) / 2;
-                const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                return Math.abs(dist - radius) < threshold;
+                const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                const rx = Math.abs(x2 - x1) / 2 || 1, ry = Math.abs(y2 - y1) / 2 || 1;
+                const nx = (x - cx) / rx, ny = (y - cy) / ry;
+                const dist = Math.sqrt(nx * nx + ny * ny);
+                const tNorm = threshold / Math.min(rx, ry);
+                return Math.abs(dist - 1) < tNorm || dist < 1;
             } else if (obj.type === "fibonacci" || obj.type === "fibext" || obj.type === "channel" || obj.type === "pitchfork" || obj.type === "gann") {
                 const minX = Math.min(x1, x2);
                 const maxX = Math.max(x1, x2);
@@ -2008,6 +2012,45 @@
             const y1 = getYFromPrice(obj.startPrice);
             const x2 = getXFromCandleIndex(obj.endIndex);
             const y2 = getYFromPrice(obj.endPrice);
+
+            if (obj.type === "horizontal") {
+                // start handle: left side at y1; end handle: right side at y1
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            if (obj.type === "vertical") {
+                // start handle: top at x1; end handle: bottom at x1
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            if (obj.type === "circle") {
+                // 4 cardinal handles on the bounding box edges
+                const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
+                if (Math.abs(x - cx) < threshold && Math.abs(y - (cy - ry)) < threshold) return "top";
+                if (Math.abs(x - cx) < threshold && Math.abs(y - (cy + ry)) < threshold) return "bottom";
+                if (Math.abs(x - (cx - rx)) < threshold && Math.abs(y - cy) < threshold) return "left";
+                if (Math.abs(x - (cx + rx)) < threshold && Math.abs(y - cy) < threshold) return "right";
+                return "move";
+            }
+            if (obj.type === "rectangle") {
+                // 4 corner handles
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y1) < threshold) return "topright";
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y2) < threshold) return "bottomleft";
+                return "move";
+            }
+            if (obj.type === "triangle") {
+                const midX = (x1 + x2) / 2;
+                if (Math.abs(x - midX) < threshold && Math.abs(y - y1) < threshold) return "apex";
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y2) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            // default: trendline, ray, arrow, fibonacci, channel, pitchfork, gann, text
             if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
             if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
             return "move";
@@ -2016,26 +2059,63 @@
         function updateObjectHandle(obj, handle, x, y) {
             const newIndex = getCandleIndexFromX(x);
             const newPrice = getPriceFromY(y);
-            
-            if (handle === "start") {
-                obj.startIndex = newIndex;
-                obj.startPrice = newPrice;
-                if (obj.type === "horizontal") {
-                    obj.endPrice = newPrice;
-                }
-            } else if (handle === "end") {
-                obj.endIndex = newIndex;
-                obj.endPrice = newPrice;
-                if (obj.type === "horizontal") {
-                    obj.startPrice = newPrice;
-                }
-            } else if (handle === "move") {
-                const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
-                const deltaPrice = newPrice - getPriceFromY(dragStartY);
+            const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+            const deltaPrice = newPrice - getPriceFromY(dragStartY);
+
+            if (handle === "move") {
                 obj.startIndex = objStartX1 + deltaIndex;
                 obj.startPrice = objStartY1 + deltaPrice;
-                obj.endIndex = objStartX2 + deltaIndex;
-                obj.endPrice = objStartY2 + deltaPrice;
+                obj.endIndex   = objStartX2 + deltaIndex;
+                obj.endPrice   = objStartY2 + deltaPrice;
+            } else if (obj.type === "horizontal") {
+                // only Y matters; keep both prices in sync
+                obj.startPrice = newPrice;
+                obj.endPrice   = newPrice;
+                if (handle === "start") obj.startIndex = newIndex;
+                else                   obj.endIndex   = newIndex;
+            } else if (obj.type === "vertical") {
+                // only X matters; keep both indices in sync
+                obj.startIndex = newIndex;
+                obj.endIndex   = newIndex;
+                if (handle === "start") obj.startPrice = newPrice;
+                else                   obj.endPrice   = newPrice;
+            } else if (obj.type === "circle") {
+                // cardinal handles resize the bounding box
+                const cx = (getXFromCandleIndex(objStartX1) + getXFromCandleIndex(objStartX2)) / 2;
+                const cy = (getYFromPrice(objStartY1) + getYFromPrice(objStartY2)) / 2;
+                if (handle === "top") {
+                    obj.startPrice = newPrice;
+                    obj.endPrice   = getPriceFromY(2 * cy - y);
+                } else if (handle === "bottom") {
+                    obj.endPrice   = newPrice;
+                    obj.startPrice = getPriceFromY(2 * cy - y);
+                } else if (handle === "left") {
+                    obj.startIndex = newIndex;
+                    obj.endIndex   = getCandleIndexFromX(2 * cx - x);
+                } else if (handle === "right") {
+                    obj.endIndex   = newIndex;
+                    obj.startIndex = getCandleIndexFromX(2 * cx - x);
+                }
+            } else if (obj.type === "rectangle") {
+                if (handle === "start")      { obj.startIndex = newIndex; obj.startPrice = newPrice; }
+                else if (handle === "end")   { obj.endIndex   = newIndex; obj.endPrice   = newPrice; }
+                else if (handle === "topright")   { obj.endIndex   = newIndex; obj.startPrice = newPrice; }
+                else if (handle === "bottomleft") { obj.startIndex = newIndex; obj.endPrice   = newPrice; }
+            } else if (obj.type === "triangle") {
+                if (handle === "apex")  {
+                    // apex is midX, y1 — move only the Y of start
+                    obj.startPrice = newPrice;
+                } else if (handle === "start") {
+                    obj.startIndex = newIndex;
+                    obj.endPrice   = newPrice;
+                } else if (handle === "end") {
+                    obj.endIndex = newIndex;
+                    obj.endPrice = newPrice;
+                }
+            } else {
+                // trendline, ray, arrow, fibonacci, channel, pitchfork, gann, text
+                if (handle === "start") { obj.startIndex = newIndex; obj.startPrice = newPrice; }
+                else                   { obj.endIndex   = newIndex; obj.endPrice   = newPrice; }
             }
             saveDrawings();
         }
@@ -2102,11 +2182,11 @@
                     ctx.closePath();
                     ctx.stroke();
                 } else if (obj.type === "circle") {
-                    const radius = Math.abs(x2 - x1) / 2;
-                    const centerX = (x1 + x2) / 2;
-                    const centerY = (y1 + y2) / 2;
+                    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                    const rx = Math.abs(x2 - x1) / 2 || 1;
+                    const ry = Math.abs(y2 - y1) / 2 || 1;
                     ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 } else if (obj.type === "fibonacci") {
                     const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
@@ -2180,42 +2260,68 @@
                 }
                 
                 if (obj === selectedObject) {
-                    ctx.fillStyle = "#00FF00";
-                    ctx.strokeStyle = "#FFFFFF";
-                    ctx.lineWidth = 2;
-                    
-                    // Draw handles for all types
-                    ctx.beginPath();
-                    ctx.arc(x1, y1, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    if (obj.type !== "horizontal" && obj.type !== "vertical") {
+                    ctx.setLineDash([]);
+
+                    function drawHandle(hx, hy) {
+                        ctx.fillStyle = "#00FF00";
+                        ctx.strokeStyle = "#FFFFFF";
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
-                        ctx.arc(x2, y2, 6, 0, Math.PI * 2);
+                        ctx.arc(hx, hy, 6, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
                     }
-                    
-                    // Draw selection box for complex shapes
-                    if (obj.type === "rectangle" || obj.type === "text" || obj.type === "triangle" || obj.type === "circle") {
-                        ctx.strokeStyle = "#00FF00";
-                        ctx.lineWidth = 1;
+
+                    if (obj.type === "circle") {
+                        const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                        const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
+                        // bounding box dashes
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
                         ctx.setLineDash([5, 5]);
-                        if (obj.type === "rectangle") {
-                            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-                        } else if (obj.type === "text") {
-                            ctx.font = "14px Arial";
-                            const metrics = ctx.measureText(obj.text);
-                            ctx.strokeRect(x1 - 5, y1 - 20, metrics.width + 10, 25);
-                        } else if (obj.type === "triangle" || obj.type === "circle") {
-                            const minX = Math.min(x1, x2);
-                            const maxX = Math.max(x1, x2);
-                            const minY = Math.min(y1, y2);
-                            const maxY = Math.max(y1, y2);
-                            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-                        }
+                        ctx.strokeRect(cx - rx, cy - ry, rx * 2, ry * 2);
                         ctx.setLineDash([]);
+                        // 4 cardinal handles
+                        drawHandle(cx, cy - ry);
+                        drawHandle(cx, cy + ry);
+                        drawHandle(cx - rx, cy);
+                        drawHandle(cx + rx, cy);
+                    } else if (obj.type === "rectangle") {
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                        ctx.setLineDash([]);
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
+                        drawHandle(x2, y1);
+                        drawHandle(x1, y2);
+                    } else if (obj.type === "triangle") {
+                        const midX = (x1 + x2) / 2;
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(Math.min(x1,x2), Math.min(y1,y2), Math.abs(x2-x1), Math.abs(y2-y1));
+                        ctx.setLineDash([]);
+                        drawHandle(midX, y1); // apex
+                        drawHandle(x1, y2);   // bottom-left
+                        drawHandle(x2, y2);   // bottom-right
+                    } else if (obj.type === "horizontal") {
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y1);
+                    } else if (obj.type === "vertical") {
+                        drawHandle(x1, y1);
+                        drawHandle(x1, y2);
+                    } else if (obj.type === "text") {
+                        ctx.font = "14px Arial";
+                        const metrics = ctx.measureText(obj.text);
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(x1 - 5, y1 - 20, metrics.width + 10, 25);
+                        ctx.setLineDash([]);
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
+                    } else {
+                        // trendline, ray, arrow, fibonacci, channel, pitchfork, gann
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
                     }
                 }
             });
