@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algocdk - Charting Platform for Traders & Investors</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,9 +50,185 @@
         .hero-bg-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(13, 17, 23, 0.88) 0%, rgba(13, 17, 23, 0.82) 100%); }
         .forex-bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.8s ease-in-out; }
         .forex-bg-slide.active { opacity: 1; }
+
+        /* ── Mobile drawer nav ── */
+        #mobileDrawer {
+            position: fixed; inset: 0; z-index: 2000;
+            display: none; flex-direction: column;
+        }
+        #mobileDrawer.open { display: flex; }
+        #drawerOverlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.65);
+        }
+        #drawerPanel {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            width: min(80vw, 300px);
+            background: #0d1117;
+            border-left: 1px solid #21262d;
+            display: flex; flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+            overflow-y: auto;
+        }
+        #mobileDrawer.open #drawerPanel { transform: translateX(0); }
+        .drawer-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 20px; color: #d1d4dc;
+            text-decoration: none; font-size: 15px; font-weight: 500;
+            border-bottom: 1px solid #21262d;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .drawer-link:last-child { border-bottom: none; }
+        .drawer-link:active { background: #21262d; }
+
+        /* ── Mobile sticky CTA bar ── */
+        #mobileCta {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #0d1117;
+            border-top: 1px solid #21262d;
+            padding: 10px 16px env(safe-area-inset-bottom);
+            z-index: 1500;
+            gap: 10px;
+        }
+        #mobileCta a {
+            flex: 1; text-align: center; padding: 12px 8px;
+            border-radius: 8px; font-size: 14px; font-weight: 700;
+            text-decoration: none; -webkit-tap-highlight-color: transparent;
+        }
+        #mobileCta .cta-signin {
+            background: #21262d; color: #d1d4dc;
+            border: 1px solid #30363d;
+        }
+        #mobileCta .cta-start {
+            background: linear-gradient(135deg, #FF4500, #FF8C00);
+            color: #fff;
+        }
+
+        /* ── Mobile layout overrides ── */
+        @media (max-width: 768px) {
+            /* body padding for sticky CTA */
+            body { padding-bottom: 70px !important; }
+
+            /* Nav: hide desktop links & auth buttons, show hamburger */
+            nav ul { display: none !important; }
+            nav .flex.gap-3 { display: none !important; }
+            #navHamburger { display: flex !important; }
+            #mobileCta { display: flex !important; }
+
+            /* Hero: stack vertically, tighter text */
+            section.mt-\[60px\] .grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+            section.mt-\[60px\] h1 { font-size: 2rem !important; line-height: 1.2 !important; margin-bottom: 16px !important; }
+            section.mt-\[60px\] p.text-xl { font-size: 15px !important; margin-bottom: 24px !important; }
+            section.mt-\[60px\] .flex.gap-4 { flex-direction: column !important; }
+            section.mt-\[60px\] .flex.gap-4 a { text-align: center !important; }
+            /* Hide hero chart mockup on mobile — saves space */
+            section.mt-\[60px\] .animate-fadeInRight { display: none !important; }
+            section.mt-\[60px\] { min-height: calc(100vh - 60px) !important; }
+
+            /* Sections: remove side margins, tighter padding */
+            section.my-8.mx-6 { margin: 8px 0 !important; border-radius: 0 !important; }
+            section.py-28 { padding-top: 48px !important; padding-bottom: 48px !important; }
+            section.py-28.px-6 { padding-left: 16px !important; padding-right: 16px !important; }
+            section.py-20.px-6 { padding: 40px 16px !important; }
+
+            /* Market summary: hide slide nav arrows, shrink slide */
+            .slide-nav-btn { display: none !important; }
+            .relative.h-96 { height: auto !important; min-height: 320px !important; }
+            .market-slide { padding: 20px !important; }
+            .market-slide h2 { font-size: 1.5rem !important; margin-bottom: 8px !important; }
+            .market-slide p { display: none !important; }
+            .market-slide .grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+            .stat-card { padding: 14px !important; }
+            .stat-card .text-3xl { font-size: 1.25rem !important; }
+
+            /* Overview cards: 2 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+
+            /* Trading platform: hide symbol sidebar */
+            .w-full.lg\:w-80.bg-dark-200 { display: none !important; }
+            .flex.flex-col.lg\:flex-row { height: 280px !important; }
+            .flex-1.flex.flex-col.bg-dark-100 .flex.justify-between { flex-wrap: wrap !important; gap: 8px !important; }
+            .flex-1.flex.flex-col.bg-dark-100 .flex.gap-2 { display: none !important; }
+            #currentSymbol { font-size: 1rem !important; }
+            #currentPrice { font-size: 1rem !important; }
+
+            /* Features: 1 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .bg-dark-200.border.border-dark-400.rounded-xl.p-8 { padding: 20px !important; }
+
+            /* Forex ideas: 1 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.gap-6 { grid-template-columns: 1fr !important; }
+            .flex.gap-2.mb-8.flex-wrap { gap: 6px !important; overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 4px !important; }
+
+            /* Synthetics: 1 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.gap-6 { grid-template-columns: 1fr 1fr !important; }
+
+            /* Crypto: 2 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+
+            /* Stats: 2 col */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.gap-6:not(.features-grid) { grid-template-columns: 1fr 1fr !important; }
+
+            /* Bot slideshow: shorter */
+            .relative.h-\[520px\] { height: 300px !important; }
+            .bot-slide .p-9 { padding: 20px !important; }
+            .bot-slide .text-3xl { font-size: 1.25rem !important; }
+            .bot-slide .text-sm { display: none !important; }
+
+            /* CTA section */
+            .max-w-4xl.mx-auto.text-center.bg-gradient-to-br { padding: 32px 20px !important; }
+            .max-w-4xl h2 { font-size: 1.75rem !important; }
+            .max-w-4xl p { font-size: 15px !important; }
+            .flex.items-center.justify-center.gap-4.mb-8 { display: none !important; }
+
+            /* Footer: 2 col */
+            footer .grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+
+            /* Global map section */
+            .min-h-\[500px\] { min-height: 260px !important; }
+            .py-28.px-6.relative.z-10 { padding: 40px 16px !important; }
+            .text-5xl { font-size: 2rem !important; }
+
+            /* Section headings */
+            .text-4xl.font-bold { font-size: 1.6rem !important; }
+            .text-5xl.font-bold { font-size: 1.8rem !important; }
+        }
+
+        /* Hamburger hidden on desktop */
+        #navHamburger { display: none; }
     </style>
 </head>
 <body class="bg-dark-100 text-gray-300 overflow-x-hidden max-w-full">
+
+    <!-- Mobile drawer nav -->
+    <div id="mobileDrawer" role="dialog" aria-modal="true">
+        <div id="drawerOverlay" onclick="closeDrawer()"></div>
+        <div id="drawerPanel">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #21262d">
+                <span style="font-size:18px;font-weight:800"><span style="color:#FF4500">Algo</span><span style="color:#fff">cdk</span></span>
+                <button onclick="closeDrawer()" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;padding:4px;-webkit-tap-highlight-color:transparent">&times;</button>
+            </div>
+            <a href="#products" class="drawer-link" onclick="closeDrawer()">Products</a>
+            <a href="#community" class="drawer-link" onclick="closeDrawer()">Community</a>
+            <a href="#markets" class="drawer-link" onclick="closeDrawer()">Markets</a>
+            <a href="#news" class="drawer-link" onclick="closeDrawer()">News</a>
+            <a href="#brokers" class="drawer-link" onclick="closeDrawer()">Brokers</a>
+            <a href="#features" class="drawer-link" onclick="closeDrawer()">Features</a>
+            <a href="#trading-platform" class="drawer-link" onclick="closeDrawer()">Trading Platform</a>
+            <div style="padding:16px 20px;margin-top:auto;border-top:1px solid #21262d;display:flex;flex-direction:column;gap:10px">
+                <a href="/auth" style="display:block;text-align:center;padding:12px;background:#21262d;border:1px solid #30363d;color:#d1d4dc;border-radius:8px;font-weight:600;text-decoration:none">Sign in</a>
+                <a href="/auth" style="display:block;text-align:center;padding:12px;background:linear-gradient(135deg,#FF4500,#FF8C00);color:#fff;border-radius:8px;font-weight:700;text-decoration:none">Get started free</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sticky CTA bar -->
+    <div id="mobileCta">
+        <a href="/auth" class="cta-signin">Sign in</a>
+        <a href="/auth" class="cta-start">Get started free</a>
+    </div>
     
     <!-- Navigation -->
     <nav class="fixed top-0 w-full bg-dark-100/98 backdrop-blur-xl z-[1000] border-b border-dark-400/80 animate-slideDown">
@@ -70,6 +247,11 @@
             <div class="flex gap-3 items-center">
                 <a href="/auth" class="text-gray-400 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Sign in</a>
                 <a href="/auth" class="px-5 py-2.5 bg-gradient-to-r from-primary to-tertiary text-white rounded font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/35 transition-all">Get started</a>
+                <!-- Hamburger (mobile only) -->
+                <button id="navHamburger" onclick="openDrawer()" aria-label="Menu"
+                    style="background:#21262d;border:1px solid #30363d;color:#d1d4dc;width:38px;height:38px;border-radius:8px;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
             </div>
         </div>
     </nav>
@@ -1383,12 +1565,16 @@
                 const symbolData = this.symbolsData.get(this.currentSymbol);
                 if (!symbolData) return;
                 const formattedPrice = this.formatPrice(price, pip);
-                document.getElementById('currentPrice').textContent = `$${formattedPrice}`;
-                const oldPrice = symbolData.quote;
-                const change = ((price - oldPrice) / oldPrice * 100).toFixed(2);
-                const isPositive = change >= 0;
-                document.getElementById('currentChange').textContent = `${isPositive ? '+' : ''}${change}%`;
-                document.getElementById('currentChange').className = isPositive ? 'text-sm font-medium text-secondary' : 'text-sm font-medium text-red-500';
+                const priceEl = document.getElementById('currentPrice');
+                const changeEl = document.getElementById('currentChange');
+                if (priceEl) priceEl.textContent = `$${formattedPrice}`;
+                if (changeEl) {
+                    const oldPrice = symbolData.quote;
+                    const change = ((price - oldPrice) / oldPrice * 100).toFixed(2);
+                    const isPositive = change >= 0;
+                    changeEl.textContent = `${isPositive ? '+' : ''}${change}%`;
+                    changeEl.className = isPositive ? 'text-sm font-medium text-secondary' : 'text-sm font-medium text-red-500';
+                }
             }
             
             renderSymbolsList() {
@@ -1475,9 +1661,11 @@
             
             initializeChart() {
                 const canvas = document.getElementById('platformChart');
+                if (!canvas) return;
                 this.ctx = canvas.getContext('2d');
                 const resizeChart = () => {
                     const parent = canvas.parentElement;
+                    if (!parent || !parent.clientWidth) return;
                     canvas.width = parent.clientWidth * window.devicePixelRatio;
                     canvas.height = parent.clientHeight * window.devicePixelRatio;
                     this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
@@ -1510,6 +1698,7 @@
             
             drawPlatformChart() {
                 const canvas = document.getElementById('platformChart');
+                if (!canvas || !canvas.offsetWidth) return;
                 const ctx = this.ctx;
                 const width = canvas.offsetWidth;
                 const height = canvas.offsetHeight;
@@ -1648,6 +1837,20 @@
                 botSlides[currentBotSlide].style.transform = 'scale(1)';
             }, 5000);
         });
+
+        // Drawer
+        function openDrawer() {
+            const d = document.getElementById('mobileDrawer');
+            d.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDrawer() {
+            const d = document.getElementById('mobileDrawer');
+            d.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
     </script>
 </body>
 </html>

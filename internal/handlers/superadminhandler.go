@@ -1285,6 +1285,54 @@ func RecordTransaction(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, transaction)
 }
 
+// GetAllSubscribers returns all users with an admin subscription
+func GetAllSubscribers(ctx *gin.Context) {
+	var subs []models.Subscription
+	if err := database.DB.Where("plan = ?", "admin").Order("created_at DESC").Find(&subs).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch subscribers"})
+		return
+	}
+
+	var response []gin.H
+	for _, sub := range subs {
+		var user models.User
+		database.DB.Select("id, name, email, role, country, created_at").First(&user, sub.UserID)
+		response = append(response, gin.H{
+			"subscription_id": sub.ID,
+			"plan":            sub.Plan,
+			"status":          sub.Status,
+			"amount":          sub.Amount,
+			"started_at":      sub.StartedAt,
+			"cancelled_at":    sub.CancelledAt,
+			"reference":       sub.Reference,
+			"user": gin.H{
+				"id":      user.ID,
+				"name":    user.Name,
+				"email":   user.Email,
+				"role":    user.Role,
+				"country": user.Country,
+				"joined":  user.CreatedAt,
+			},
+		})
+	}
+
+	// Summary counts
+	var active, cancelled, pending int64
+	database.DB.Model(&models.Subscription{}).Where("plan = ? AND status = ?", "admin", "active").Count(&active)
+	database.DB.Model(&models.Subscription{}).Where("plan = ? AND status = ?", "admin", "cancelled").Count(&cancelled)
+	database.DB.Model(&models.Subscription{}).Where("plan = ? AND status = ?", "admin", "pending").Count(&pending)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"subscribers": response,
+		"summary": gin.H{
+			"total":     len(response),
+			"active":    active,
+			"cancelled": cancelled,
+			"pending":   pending,
+		},
+	})
+}
+
 // SendMessage sends messages/notifications to selected users and admins
 func SendMessage(c *gin.Context) {
 	var req struct {

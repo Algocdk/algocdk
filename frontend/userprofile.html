@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlgoCDK - User Profile</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -152,6 +153,10 @@
                     class="tab-button px-3 sm:px-4 py-3 font-medium text-sm text-gray-400 hover:text-white whitespace-nowrap">
                     <i class="fas fa-crown mr-2"></i> Admin Request
                 </button>
+                <button id="subscriptionTab"
+                    class="tab-button px-3 sm:px-4 py-3 font-medium text-sm text-gray-400 hover:text-white whitespace-nowrap">
+                    <i class="fas fa-star mr-2"></i> Subscription
+                </button>
             </div>
         </div>
 
@@ -261,8 +266,66 @@
             </div>
         </div>
 
+        <!-- Subscription Section -->
+        <div id="subscriptionSection" class="hidden fade-in">
+            <div class="bg-darker rounded-xl border border-gray-700 p-4 sm:p-6">
+                <h2 class="text-lg sm:text-xl font-bold text-white mb-2">Subscription Plan</h2>
+                <p class="text-gray-400 mb-6 text-sm">Upgrade to the Admin plan to unlock admin privileges on the platform.</p>
+
+                <!-- Current Status -->
+                <div id="subscriptionStatus" class="mb-6"><!-- loaded by JS --></div>
+
+                <!-- Plans -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Free Plan -->
+                    <div class="border border-gray-700 rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-white">Free</h3>
+                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">Lifetime</span>
+                        </div>
+                        <p class="text-2xl font-bold text-white mb-1">KSH 0</p>
+                        <p class="text-gray-400 text-xs mb-4">Forever free</p>
+                        <ul class="text-sm text-gray-400 space-y-2 mb-4">
+                            <li><i class="fas fa-check text-green-500 mr-2"></i>Access to marketplace</li>
+                            <li><i class="fas fa-check text-green-500 mr-2"></i>Trade on the platform</li>
+                            <li><i class="fas fa-check text-green-500 mr-2"></i>Buy &amp; rent bots</li>
+                        </ul>
+                        <div id="freePlanBadge" class="hidden text-center text-xs text-green-400 font-medium">✓ Current Plan</div>
+                    </div>
+
+                    <!-- Admin Plan -->
+                    <div class="border border-primary/50 rounded-xl p-5 bg-primary/5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-white">Admin</h3>
+                            <span class="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Premium</span>
+                        </div>
+                        <p class="text-2xl font-bold text-white mb-1">KSH 500</p>
+                        <p class="text-gray-400 text-xs mb-4">One-time payment</p>
+                        <ul class="text-sm text-gray-400 space-y-2 mb-4">
+                            <li><i class="fas fa-check text-primary mr-2"></i>Everything in Free</li>
+                            <li><i class="fas fa-check text-primary mr-2"></i>Create &amp; sell bots</li>
+                            <li><i class="fas fa-check text-primary mr-2"></i>Admin dashboard access</li>
+                            <li><i class="fas fa-check text-primary mr-2"></i>Premium support</li>
+                        </ul>
+                        <div id="adminPlanActions">
+                            <button id="upgradeBtn"
+                                class="w-full bg-primary hover:bg-secondary text-white py-2 rounded-lg text-sm font-medium transition-colors">
+                                <i class="fas fa-arrow-up mr-2"></i>Upgrade to Admin
+                            </button>
+                            <button id="cancelSubBtn" style="display:none"
+                                class="w-full mt-2 border border-red-500/50 text-red-400 hover:bg-red-500/10 py-2 rounded-lg text-sm font-medium transition-colors">
+                                Cancel Subscription
+                            </button>
+                            <div id="adminPlanBadge" class="hidden text-center text-xs text-primary font-medium mt-2">✓ Current Plan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Admin Request Section -->
         <div id="adminRequestSection" class="hidden fade-in">
+
             <div class="bg-darker rounded-xl border border-gray-700 p-4 sm:p-6">
                 <h2 class="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Become an Admin</h2>
                 <p class="text-gray-400 mb-6">Request admin privileges to create and sell bots on the platform</p>
@@ -524,7 +587,8 @@
         const tabs = {
             personal: document.getElementById('personalInfoSection'),
             security: document.getElementById('securitySection'),
-            adminRequest: document.getElementById('adminRequestSection')
+            adminRequest: document.getElementById('adminRequestSection'),
+            subscription: document.getElementById('subscriptionSection')
         };
 
         const tabButtons = document.querySelectorAll('.tab-button');
@@ -551,6 +615,9 @@
                 } else if (tabText.includes('admin')) {
                     tabs.adminRequest.classList.remove('hidden');
                     loadAdminRequestStatus();
+                } else if (tabText.includes('subscription')) {
+                    tabs.subscription.classList.remove('hidden');
+                    loadSubscriptionStatus();
                 }
             });
         });
@@ -612,13 +679,14 @@
                     method: 'POST',
                     body: JSON.stringify({ reason })
                 });
-                
                 showNotification('Admin request submitted successfully!', 'success');
-                loadAdminRequestStatus(); // Reload status
-                
+                loadAdminRequestStatus();
             } catch (error) {
-                console.error('Failed to submit admin request:', error);
-                showNotification('Failed to submit request: ' + error.message, 'error');
+                if (error.message && error.message.includes('subscription_required') || error.message.includes('subscribe')) {
+                    showNotification('You must subscribe to the Admin plan (KSH 500) first. Go to the Subscription tab.', 'error');
+                } else {
+                    showNotification('Failed to submit request: ' + error.message, 'error');
+                }
             }
         }
 
@@ -661,6 +729,90 @@
                 setTimeout(() => notification.remove(), 300);
             }, 5000);
         }
+
+        // ================= SUBSCRIPTION =================
+        async function loadSubscriptionStatus() {
+            try {
+                const data = await authFetch('/api/subscription/status');
+                const statusEl = document.getElementById('subscriptionStatus');
+                const upgradeBtn = document.getElementById('upgradeBtn');
+                const cancelSubBtn = document.getElementById('cancelSubBtn');
+                const freeBadge = document.getElementById('freePlanBadge');
+                const adminBadge = document.getElementById('adminPlanBadge');
+
+                if (data.plan === 'admin' && data.status === 'active') {
+                    statusEl.innerHTML = `
+                        <div class="flex items-center p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                            <i class="fas fa-star text-primary mr-3"></i>
+                            <div>
+                                <p class="text-white font-medium text-sm">Admin Plan — Active</p>
+                                <p class="text-gray-400 text-xs">Started: ${new Date(data.started_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>`;
+                    upgradeBtn.style.display = 'none';
+                    cancelSubBtn.style.display = 'block';
+                    adminBadge.classList.remove('hidden');
+                } else if (data.plan === 'admin' && data.status === 'pending') {
+                    statusEl.innerHTML = `
+                        <div class="flex items-center p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                            <i class="fas fa-clock text-yellow-400 mr-3"></i>
+                            <p class="text-yellow-400 text-sm">Payment pending — please complete payment or verify below.</p>
+                        </div>`;
+                    upgradeBtn.textContent = 'Complete Payment';
+                } else if (data.plan === 'admin' && data.status === 'cancelled') {
+                    statusEl.innerHTML = `
+                        <div class="flex items-center p-3 bg-gray-700/50 border border-gray-600 rounded-lg">
+                            <i class="fas fa-times-circle text-gray-400 mr-3"></i>
+                            <p class="text-gray-400 text-sm">Subscription cancelled on ${new Date(data.cancelled_at).toLocaleDateString()}.</p>
+                        </div>`;
+                    freeBadge.classList.remove('hidden');
+                } else {
+                    statusEl.innerHTML = `
+                        <div class="flex items-center p-3 bg-gray-700/30 border border-gray-700 rounded-lg">
+                            <i class="fas fa-info-circle text-gray-400 mr-3"></i>
+                            <p class="text-gray-400 text-sm">You are on the Free plan.</p>
+                        </div>`;
+                    freeBadge.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Failed to load subscription status:', e);
+            }
+        }
+
+        async function initializeSubscription() {
+            try {
+                const data = await authFetch('/api/subscription/initialize', { method: 'POST' });
+                if (data.authorization_url) {
+                    window.location.href = data.authorization_url;
+                }
+            } catch (e) {
+                showNotification('Failed to initialize payment: ' + e.message, 'error');
+            }
+        }
+
+        async function cancelSubscription() {
+            if (!confirm('Are you sure you want to cancel your Admin subscription?')) return;
+            try {
+                await authFetch('/api/subscription/cancel', { method: 'POST' });
+                showNotification('Subscription cancelled successfully', 'success');
+                loadSubscriptionStatus();
+            } catch (e) {
+                showNotification('Failed to cancel: ' + e.message, 'error');
+            }
+        }
+
+        // Check for subscription verify redirect on page load
+        (function checkSubscriptionVerify() {
+            const params = new URLSearchParams(window.location.search);
+            const sub = params.get('sub');
+            if (sub === 'success') {
+                showNotification('Subscription activated successfully! You are now on the Admin plan.', 'success');
+                history.replaceState({}, '', '/profile');
+            } else if (sub === 'failed') {
+                showNotification('Payment verification failed. Please try again.', 'error');
+                history.replaceState({}, '', '/profile');
+            }
+        })();
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', function () {
@@ -780,6 +932,10 @@
                 
                 await submitAdminRequest(reason);
             });
+
+            // Subscription buttons
+            document.getElementById('upgradeBtn').addEventListener('click', initializeSubscription);
+            document.getElementById('cancelSubBtn').addEventListener('click', cancelSubscription);
         });
     </script>
     <script src="/api.js"></script>

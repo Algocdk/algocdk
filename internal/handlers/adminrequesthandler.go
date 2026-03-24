@@ -60,6 +60,16 @@ func RequestAdminStatus(ctx *gin.Context) {
 		return
 	}
 
+	// Require an active admin subscription before submitting request
+	var sub models.Subscription
+	if err := database.DB.Where("user_id = ? AND plan = ? AND status = ?", userID, "admin", "active").First(&sub).Error; err != nil {
+		ctx.JSON(http.StatusPaymentRequired, gin.H{
+			"error":   "you must subscribe to the Admin plan (KSH 500) before submitting an admin request",
+			"code":    "subscription_required",
+		})
+		return
+	}
+
 	// Create admin request
 	adminRequest := models.AdminRequest{
 		UserID:    userID,
@@ -120,11 +130,16 @@ func GetPendingAdminRequests(ctx *gin.Context) {
 
 	var response []gin.H
 	for _, req := range requests {
+		// Check if this user has an active subscription
+		var sub models.Subscription
+		hasSub := database.DB.Where("user_id = ? AND plan = ? AND status = ?", req.UserID, "admin", "active").First(&sub).Error == nil
+
 		response = append(response, gin.H{
-			"id":         req.ID,
-			"reason":     req.Reason,
-			"status":     req.Status,
-			"created_at": req.CreatedAt,
+			"id":              req.ID,
+			"reason":          req.Reason,
+			"status":          req.Status,
+			"created_at":      req.CreatedAt,
+			"has_subscription": hasSub,
 			"user": gin.H{
 				"id":      req.User.ID,
 				"name":    req.User.Name,

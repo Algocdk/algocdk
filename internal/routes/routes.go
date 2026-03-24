@@ -118,6 +118,7 @@ func SetUpRouter(router *gin.Engine) {
 			superadmin.GET("/admin-requests/all", handlers.GetAllAdminRequests)
 			superadmin.POST("/admin-requests/:id/review", handlers.ReviewAdminRequest)
 			superadmin.POST("/send-message", handlers.SendMessage)
+			superadmin.GET("/subscribers", handlers.GetAllSubscribers)
 		}
 
 		admin := api.Group("/admin")
@@ -170,6 +171,17 @@ func SetUpRouter(router *gin.Engine) {
 				indicators.POST("/:id/add", handlers.AddIndicatorToUser)
 			}
 		}
+
+		// ================= SUBSCRIPTION =================
+		subGroup := api.Group("/subscription")
+		subGroup.Use(middleware.AuthMiddleware())
+		{
+			subGroup.GET("/status", handlers.GetSubscriptionStatus)
+			subGroup.POST("/initialize", handlers.InitializeSubscriptionPayment)
+			subGroup.POST("/cancel", handlers.CancelSubscription)
+		}
+		// verify is public - Paystack redirects here without JWT
+		api.GET("/subscription/verify", handlers.VerifySubscriptionPayment)
 
 		paystackGroup := api.Group("/payment")
 		{
@@ -280,6 +292,8 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/theme.css", frontendPath+"/theme.css")
 	router.StaticFile("/theme-toggle.js", frontendPath+"/theme-toggle.js")
 	router.StaticFile("/theme-enhanced.css", frontendPath+"/theme-enhanced.css")
+	router.StaticFile("/favicon.ico", frontendPath+"/favicon.svg")
+	router.StaticFile("/favicon.svg", frontendPath+"/favicon.svg")
 
 	// Serve HTML files manually
 	router.GET("/", func(c *gin.Context) {
