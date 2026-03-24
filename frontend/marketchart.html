@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Charts | AlgoCDK - Live Trading Charts</title>
 
@@ -182,6 +183,8 @@
         canvas {
             display: block;
             cursor: grab;
+            position: relative;
+            z-index: 1;
         }
 
         canvas:active {
@@ -222,34 +225,34 @@
             position: fixed;
             bottom: 10px;
             left: 10px;
-            z-index: 10;
+            z-index: 9999;
             display: flex;
             gap: 8px;
-            background: rgba(22, 27, 34, 0.9);
+            background: rgba(22, 27, 34, 0.95);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             padding: 8px;
             border-radius: 6px;
             border: 1px solid #2b2f3a;
+            pointer-events: auto;
         }
-
         .nav-link {
             color: #8b949e;
             text-decoration: none;
             padding: 6px 12px;
             border-radius: 4px;
             font-size: 12px;
-            transition: all 0.2s ease;
+            transition: color 0.2s, background 0.2s;
+            pointer-events: auto;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-
-        .nav-link:hover {
-            color: #FF4500;
-            background: rgba(255, 69, 0, 0.1);
-        }
-
-        .nav-link.active {
-            color: #FF4500;
-            background: rgba(255, 69, 0, 0.2);
-        }
+        .nav-link svg  { display: none; width: 20px; height: 20px; flex-shrink: 0; }
+        .nav-link span { display: inline; }
+        .nav-link:hover  { color: #FF4500; background: rgba(255,69,0,0.1); }
+        .nav-link.active { color: #FF4500; background: rgba(255,69,0,0.2); }
 
         /* Price Display */
         .price-display {
@@ -258,35 +261,62 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            background: rgba(22, 27, 34, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: 2px solid #2b2f3a;
+            background: linear-gradient(135deg, rgba(22, 27, 34, 0.98) 0%, rgba(30, 36, 46, 0.98) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 10px 20px 12px;
+            border-radius: 12px;
+            border: 1.5px solid #2b2f3a;
             text-align: center;
-            min-width: 250px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            min-width: 220px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255,255,255,0.04) inset;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
 
         .price-display.price-up-flash {
             border-color: #00c176;
-            box-shadow: 0 0 20px rgba(0, 193, 118, 0.4);
+            box-shadow: 0 0 0 3px rgba(0, 193, 118, 0.15), 0 8px 24px rgba(0,0,0,0.4);
         }
 
         .price-display.price-down-flash {
             border-color: #ff4d4f;
-            box-shadow: 0 0 20px rgba(255, 77, 79, 0.4);
+            box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15), 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .price-symbol-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+
+        .price-live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00c176;
+            margin-right: 5px;
+            vertical-align: middle;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
         }
 
         .current-price {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 26px;
+            font-weight: 700;
             color: #d1d4dc;
             margin-bottom: 4px;
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
-            transition: color 0.3s ease;
+            line-height: 1.1;
+            transition: color 0.2s ease;
         }
 
         .current-price.price-up {
@@ -298,18 +328,22 @@
         }
 
         .price-change {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 6px;
+            padding: 3px 8px;
+            margin-top: 2px;
         }
 
         .price-arrow {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: bold;
-            animation: bounce 0.5s ease;
+            animation: bounce 0.4s ease;
         }
 
         @keyframes bounce {
@@ -458,58 +492,70 @@
             body {
                 touch-action: pan-y pinch-zoom;
             }
-            
-            #controls {
-                display: none;
-            }
-            
-            #controls #crosshairBtn {
-                display: block;
-                position: fixed;
-                top: 50px;
-                right: 10px;
-                z-index: 100;
-            }
-            
-            .brand-header {
-                display: none;
-            }
-            
+            #controls { display: none; }
+            .brand-header { display: none; }
+            .strategy-panel { display: none; }
+            .risk-panel { display: none; }
+            #activeIndicators { display: none; }
+
+            /* top header */
+            .mobile-header { display: flex !important; }
+
+            /* price display sits inside header on mobile */
             .price-display {
-                top: 5px;
-                left: 5px;
-                right: 60px;
+                position: static;
                 transform: none;
-                padding: 4px 8px;
+                left: auto; top: auto;
+                min-width: 0; width: auto;
+                flex: 1;
+                background: none;
+                border: none;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                padding: 0;
+                border-radius: 0;
+                text-align: left;
             }
-            
-            .current-price {
-                font-size: 16px;
-            }
-            
-            .price-change {
-                font-size: 11px;
-            }
+            .price-symbol-label { font-size: 9px; margin-bottom: 1px; }
+            .current-price     { font-size: 20px; margin-bottom: 0; }
+            .price-change      { font-size: 10px; padding: 2px 6px; margin-top: 2px; display: inline-flex; background: rgba(255,255,255,0.06); border-radius: 4px; }
+        }
             
             .nav-links {
-                bottom: 5px;
-                left: 5px;
-                right: 5px;
-                padding: 4px;
-                gap: 2px;
-                justify-content: space-between;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 4px 0 env(safe-area-inset-bottom);
+                gap: 0;
+                justify-content: space-around;
+                border-radius: 0;
+                border: none;
+                border-top: 1px solid #2b2f3a;
+                background: #0e1117;
+                z-index: 9999;
+                pointer-events: auto;
+                touch-action: manipulation;
             }
-            
             .nav-link {
-                padding: 8px 4px;
-                font-size: 10px;
-                min-height: 36px;
-                display: flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 flex: 1;
+                padding: 6px 2px;
+                gap: 4px;
+                font-size: 10px;
+                min-height: 52px;
+                border-radius: 0;
                 text-align: center;
+                pointer-events: auto;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
             }
+            .nav-link svg  { display: block !important; width: 22px; height: 22px; }
+            .nav-link span { display: block !important; }
+            .nav-link::before { content: none !important; }
+            .nav-link.active { background: none; color: #FF4500; }
             
             .indicator-tag {
                 padding: 4px 8px;
@@ -533,6 +579,213 @@
             }
         }
         
+        /* Mobile Header Bar */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: #0e1117;
+            border-bottom: 1px solid #2b2f3a;
+            z-index: 9999;
+            align-items: center;
+            padding: 0 10px;
+            gap: 8px;
+        }
+        .mobile-header-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+        .mobile-header-brand {
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .mobile-header-brand .algo { color: #FF4500; }
+        .mobile-header-brand .cdk  { color: #fff; }
+        .mobile-header-tf {
+            display: flex;
+            gap: 3px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .mobile-header-tf::-webkit-scrollbar { display: none; }
+        .mobile-tf-btn {
+            background: none;
+            border: 1px solid #2b2f3a;
+            color: #8b949e;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+        .mobile-tf-btn.active {
+            background: #FF4500;
+            border-color: #FF4500;
+            color: #fff;
+        }
+        .mobile-menu-btn {
+            background: none;
+            border: 1px solid #2b2f3a;
+            color: #d1d4dc;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+
+        /* Bottom Sheet */
+        .mobile-sheet-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9998;
+        }
+        .mobile-sheet-overlay.show { display: block; }
+        .mobile-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #161b22;
+            border-top: 1px solid #2b2f3a;
+            border-radius: 16px 16px 0 0;
+            z-index: 9999;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .mobile-sheet.show { transform: translateY(0); }
+        .mobile-sheet-handle {
+            width: 36px;
+            height: 4px;
+            background: #3b3f4a;
+            border-radius: 2px;
+            margin: 10px auto 4px;
+        }
+        .mobile-sheet-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #d1d4dc;
+            padding: 8px 16px 12px;
+            border-bottom: 1px solid #2b2f3a;
+        }
+        .mobile-sheet-body {
+            padding: 12px 16px;
+        }
+        .sheet-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #8b949e;
+            margin: 12px 0 6px;
+        }
+        .sheet-section-label:first-child { margin-top: 0; }
+        .sheet-select {
+            width: 100%;
+            background: #0e1117;
+            color: #d1d4dc;
+            border: 1px solid #2b2f3a;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            min-height: 44px;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .sheet-btn-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        .sheet-btn {
+            background: #0e1117;
+            border: 1px solid #2b2f3a;
+            color: #8b949e;
+            padding: 8px 4px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            touch-action: manipulation;
+        }
+        .sheet-btn.active { background: #FF4500; border-color: #FF4500; color: #fff; }
+        .sheet-load-btn {
+            width: 100%;
+            padding: 12px;
+            background: #FF4500;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .mobile-ind-chip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #161b22;
+            border: 1px solid #2b2f3a;
+            border-radius: 8px;
+            padding: 10px 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .mobile-ind-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d1d4dc;
+        }
+        .mobile-ind-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .mobile-ind-btn {
+            background: #2b2f3a;
+            border: none;
+            border-radius: 6px;
+            color: #d1d4dc;
+            font-size: 14px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-ind-remove {
+            background: rgba(255,69,0,0.15);
+            color: #FF4500;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
         /* Mobile Tools Button - Only on Mobile */
         .mobile-tools-btn {
             display: none;
@@ -690,16 +943,46 @@
         </div>
     </div>
     
-    <!-- Mobile Tools Button -->
-    <button class="mobile-tools-btn" onclick="toggleMobileTools()">
-        <i class="fas fa-tools"></i>
-    </button>
-    
-    <!-- Mobile Tools Panel -->
-    <div class="mobile-tools-panel" id="mobileToolsPanel">
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">Market</div>
-            <select id="mobileSymbol" onchange="document.getElementById('symbol').value=this.value; document.getElementById('symbol').onchange({target:this})">
+    <!-- Mobile Header Bar -->
+    <div class="mobile-header" id="mobileHeader">
+        <div class="mobile-header-left">
+            <div class="mobile-header-brand"><span class="algo">Algo</span><span class="cdk">cdk</span></div>
+            <div class="mobile-header-tf" id="mobileTfRow">
+                <button class="mobile-tf-btn" onclick="mobileTf(60)">1m</button>
+                <button class="mobile-tf-btn" onclick="mobileTf(300)">5m</button>
+                <button class="mobile-tf-btn" onclick="mobileTf(900)">15m</button>
+                <button class="mobile-tf-btn" onclick="mobileTf(3600)">1h</button>
+                <button class="mobile-tf-btn" onclick="mobileTf(14400)">4h</button>
+                <button class="mobile-tf-btn" onclick="mobileTf(86400)">1D</button>
+            </div>
+        </div>
+        <div id="priceDisplay" class="price-display">
+            <div class="price-symbol-label"><span class="price-live-dot"></span><span id="priceSymbolLabel">LIVE</span></div>
+            <div class="current-price" id="currentPrice">--</div>
+            <div class="price-change" id="priceChange">
+                <span class="price-arrow" id="priceArrow"></span>
+                <span id="priceChangeText">--</span>
+            </div>
+        </div>
+        <button class="mobile-menu-btn" onclick="openMobileSheet()" aria-label="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Bottom Sheet Overlay -->
+    <div class="mobile-sheet-overlay" id="sheetOverlay" onclick="closeMobileSheet()"></div>
+
+    <!-- Bottom Sheet -->
+    <div class="mobile-sheet" id="mobileSheet">
+        <div class="mobile-sheet-handle"></div>
+        <div class="mobile-sheet-title">Chart Settings</div>
+        <div class="mobile-sheet-body">
+            <div class="sheet-section-label">Market</div>
+            <select class="sheet-select" id="mobileSymbol" onchange="SYMBOL=this.value;localStorage.setItem('chart_symbol',SYMBOL);updateSymbolLabel();document.getElementById('symbol').value=this.value;restart();closeMobileSheet();">
                 <option value="R_10">Volatility 10</option>
                 <option value="R_25">Volatility 25</option>
                 <option value="R_50">Volatility 50</option>
@@ -711,39 +994,25 @@
                 <option value="CRASH300N">Crash 300</option>
                 <option value="CRASH500">Crash 500</option>
                 <option value="CRASH1000">Crash 1000</option>
+                <option value="stpRNG">Step Index</option>
+                <option value="frxEURUSD">EUR/USD</option>
+                <option value="frxGBPUSD">GBP/USD</option>
+                <option value="frxUSDJPY">USD/JPY</option>
+                <option value="cryBTCUSD">BTC/USD</option>
+                <option value="cryETHUSD">ETH/USD</option>
             </select>
-        </div>
-        
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">Timeframe</div>
-            <select id="mobileTimeframe" onchange="document.getElementById('timeframe').value=this.value; document.getElementById('timeframe').onchange({target:this})">
-                <option value="10">10s</option>
-                <option value="30">30s</option>
-                <option value="60" selected>1m</option>
-                <option value="180">3m</option>
-                <option value="300">5m</option>
-                <option value="900">15m</option>
-                <option value="1800">30m</option>
-                <option value="3600">1h</option>
-                <option value="14400">4h</option>
-                <option value="86400">1D</option>
-            </select>
-        </div>
-        
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">Chart Type</div>
-            <select id="mobileChartType" onchange="document.getElementById('chartType').value=this.value; document.getElementById('chartType').onchange({target:this})">
-                <option value="candles">Candles</option>
-                <option value="line">Line</option>
-                <option value="area">Area</option>
-                <option value="bars">Bars</option>
-            </select>
-        </div>
-        
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">Indicators</div>
-            <select id="mobileIndicators" onchange="document.getElementById('indicators').value=this.value; document.getElementById('indicators').onchange({target:this}); this.value=''">
-                <option value="">Add Indicator</option>
+
+            <div class="sheet-section-label">Chart Type</div>
+            <div class="sheet-btn-row">
+                <button class="sheet-btn active" onclick="setMobileChartType('candles',this)">Candles</button>
+                <button class="sheet-btn" onclick="setMobileChartType('line',this)">Line</button>
+                <button class="sheet-btn" onclick="setMobileChartType('area',this)">Area</button>
+                <button class="sheet-btn" onclick="setMobileChartType('bars',this)">Bars</button>
+            </div>
+
+            <div class="sheet-section-label">Indicators</div>
+            <select class="sheet-select" id="mobileIndicators" onchange="if(this.value){document.getElementById('indicators').value=this.value;document.getElementById('indicators').onchange({target:this});this.value='';closeMobileSheet();}">
+                <option value="">Add Indicator...</option>
                 <option value="ma">Moving Average</option>
                 <option value="bb">Bollinger Bands</option>
                 <option value="rsi">RSI</option>
@@ -751,38 +1020,24 @@
                 <option value="stoch">Stochastic</option>
                 <option value="atr">ATR</option>
             </select>
-        </div>
-        
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">Drawing Tools</div>
-            <select id="mobileDrawingTools" onchange="document.getElementById('drawingTools').value=this.value; document.getElementById('drawingTools').onchange({target:this}); this.value=''">
-                <option value="">Select Tool</option>
+
+            <div class="sheet-section-label">Drawing Tools</div>
+            <select class="sheet-select" id="mobileDrawingTools" onchange="if(this.value){document.getElementById('drawingTools').value=this.value;document.getElementById('drawingTools').onchange({target:this});this.value='';closeMobileSheet();}">
+                <option value="">Select Tool...</option>
                 <option value="trendline">Trendline</option>
                 <option value="horizontal">Horizontal Line</option>
                 <option value="vertical">Vertical Line</option>
                 <option value="rectangle">Rectangle</option>
                 <option value="text">Text Label</option>
             </select>
+
+            <div class="sheet-section-label">My Indicators</div>
+            <button class="sheet-load-btn" id="mobileLoadBotBtn">Load My Indicator</button>
+            <div id="mobileActiveIndicators" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;"></div>
         </div>
-        
-        <div class="mobile-tools-section">
-            <div class="mobile-tools-label">My Indicators</div>
-            <button id="mobileLoadBotBtn" style="width: 100%; padding: 10px; font-size: 14px; background: #FF4500; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                <i class="fas fa-chart-line"></i> Load My Indicator
-            </button>
-        </div>
-        
-        <div id="mobileActiveIndicators" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;"></div>
     </div>
 
-    <!-- Price Display -->
-    <div class="price-display" id="priceDisplay">
-        <div class="current-price" id="currentPrice">--</div>
-        <div class="price-change" id="priceChange">
-            <span class="price-arrow" id="priceArrow"></span>
-            <span id="priceChangeText">--</span>
-        </div>
-    </div>
+
     
     <!-- Strategy Control Panel -->
     <div class="strategy-panel">
@@ -966,11 +1221,47 @@
 
     <!-- Navigation Links -->
     <div class="nav-links">
-        <a href="app" class="nav-link">Dashboard</a>
-        <a href="mybots" class="nav-link">My Bots</a>
-        <a href="botstore" class="nav-link">Marketplace</a>
-        <a href="marketchart" class="nav-link active">Charts</a>
-        <a href="support" class="nav-link">Support</a>
+        <a href="app" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span>Dashboard</span>
+        </a>
+        <a href="mybots" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="7" y="2" width="10" height="6" rx="2"/>
+                <path d="M12 8v3"/>
+                <rect x="3" y="11" width="18" height="10" rx="2"/>
+                <circle cx="9" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+                <circle cx="15" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+                <path d="M3 15h2M19 15h2"/>
+            </svg>
+            <span>My Bots</span>
+        </a>
+        <a href="botstore" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+            <span>Marketplace</span>
+        </a>
+        <a href="marketchart" class="nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                <polyline points="16 7 22 7 22 13"/>
+            </svg>
+            <span>Charts</span>
+        </a>
+        <a href="support" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            <span>Support</span>
+        </a>
     </div>
 
     <canvas id="chart"></canvas>
@@ -1126,8 +1417,9 @@
         const ctx = canvas.getContext("2d");
 
         function resize() {
+            const isMobile = window.innerWidth <= 768;
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.height = isMobile ? window.innerHeight - 56 - 58 : window.innerHeight;
         }
         resize();
         window.addEventListener("resize", resize);
@@ -1136,8 +1428,26 @@
         document.getElementById("symbol").onchange = e => {
             SYMBOL = e.target.value;
             localStorage.setItem('chart_symbol', SYMBOL);
+            updateSymbolLabel();
             restart();
         };
+
+        function updateSymbolLabel() {
+            const el = document.getElementById('priceSymbolLabel');
+            if (!el) return;
+            const names = {
+                R_10: 'VOL 10', R_25: 'VOL 25', R_50: 'VOL 50', R_75: 'VOL 75', R_100: 'VOL 100',
+                BOOM300N: 'BOOM 300', BOOM500: 'BOOM 500', BOOM1000: 'BOOM 1000',
+                CRASH300N: 'CRASH 300', CRASH500: 'CRASH 500', CRASH1000: 'CRASH 1000',
+                stpRNG: 'STEP IDX', frxEURUSD: 'EUR/USD', frxGBPUSD: 'GBP/USD',
+                frxUSDJPY: 'USD/JPY', frxAUDUSD: 'AUD/USD', frxUSDCAD: 'USD/CAD',
+                frxUSDCHF: 'USD/CHF', frxEURGBP: 'EUR/GBP', frxEURJPY: 'EUR/JPY',
+                frxGBPJPY: 'GBP/JPY', frxAUDJPY: 'AUD/JPY',
+                cryBTCUSD: 'BTC/USD', cryETHUSD: 'ETH/USD', cryLTCUSD: 'LTC/USD',
+                WLDAUD: 'AUD BASKET', WLDEUR: 'EUR BASKET', WLDGBP: 'GBP BASKET', WLDUSD: 'USD BASKET'
+            };
+            el.textContent = names[SYMBOL] || SYMBOL;
+        }
 
         const timeframeEl = document.getElementById("timeframe");
         if (timeframeEl) {
@@ -1196,7 +1506,7 @@
                     try {
                         const code = event.target.result;
                         const customIndicator = eval(`(${code})`);
-                        loadCustomIndicator(customIndicator);
+                        loadCustomIndicator(customIndicator, code);
                     } catch (error) {
                         alert('Error loading custom indicator: ' + error.message);
                     }
@@ -1604,10 +1914,10 @@
                     dragHandle = findHandle(clicked, x, y);
                     dragStartX = x;
                     dragStartY = y;
-                    objStartX1 = clicked.x1;
-                    objStartY1 = clicked.y1;
-                    objStartX2 = clicked.x2;
-                    objStartY2 = clicked.y2;
+                    objStartX1 = clicked.startIndex;
+                    objStartY1 = clicked.startPrice;
+                    objStartX2 = clicked.endIndex;
+                    objStartY2 = clicked.endPrice;
                     canvas.style.cursor = "move";
                     draw();
                 } else {
@@ -1653,8 +1963,7 @@
                 const hasWindow2 = indicators.some(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
                 if (hasWindow2) {
                     const pad = isMobile ? 40 : 70;
-                    const bottomOffset = isMobile ? 60 : 80;
-                    const availableSpace = canvas.height - mainChartHeight - pad * 2 - bottomOffset;
+                    const availableSpace = canvas.height - mainChartHeight - pad * 2 - 8;
                     window2Height = Math.max(80, Math.min(400, availableSpace));
                 }
                 
@@ -1703,7 +2012,10 @@
                 const obj = findObjectAt(x, y);
                 if (obj) {
                     const handle = findHandle(obj, x, y);
-                    canvas.style.cursor = handle === "move" ? "move" : "nwse-resize";
+                    if (handle === "move") canvas.style.cursor = "move";
+                    else if (handle === "top" || handle === "bottom") canvas.style.cursor = "ns-resize";
+                    else if (handle === "left" || handle === "right") canvas.style.cursor = "ew-resize";
+                    else canvas.style.cursor = "nwse-resize";
                 } else {
                     canvas.style.cursor = selectedTool ? "crosshair" : "grab";
                 }
@@ -1711,7 +2023,13 @@
         });
 
         // Touch interaction for mobile
+        const NAV_HEIGHT = 58;
+        function isTouchInNav(touch) {
+            return touch.clientY >= window.innerHeight - NAV_HEIGHT;
+        }
+
         canvas.addEventListener("touchstart", e => {
+            if (isTouchInNav(e.touches[0])) return; // let nav handle it
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
             const x = e.touches[0].clientX - rect.left;
@@ -1727,10 +2045,10 @@
                         dragHandle = findHandle(clicked, x, y);
                         dragStartX = x;
                         dragStartY = y;
-                        objStartX1 = clicked.x1;
-                        objStartY1 = clicked.y1;
-                        objStartX2 = clicked.x2;
-                        objStartY2 = clicked.y2;
+                        objStartX1 = clicked.startIndex;
+                        objStartY1 = clicked.startPrice;
+                        objStartX2 = clicked.endIndex;
+                        objStartY2 = clicked.endPrice;
                         draw();
                     } else {
                         selectedObject = null;
@@ -1739,9 +2057,10 @@
                     }
                 }
             }
-        });
+        }, { passive: false });
         
         canvas.addEventListener("touchmove", e => {
+            if (isTouchInNav(e.touches[0])) return;
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
             const x = e.touches[0].clientX - rect.left;
@@ -1760,14 +2079,12 @@
                     draw();
                 }
             } else if (e.touches.length === 2) {
-                // Pinch zoom
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 const distance = Math.sqrt(
                     Math.pow(touch2.clientX - touch1.clientX, 2) + 
                     Math.pow(touch2.clientY - touch1.clientY, 2)
                 );
-                
                 if (window.lastTouchDistance) {
                     const delta = distance - window.lastTouchDistance;
                     zoom += delta * 0.01;
@@ -1776,9 +2093,10 @@
                 }
                 window.lastTouchDistance = distance;
             }
-        });
+        }, { passive: false });
         
         canvas.addEventListener("touchend", e => {
+            if (e.changedTouches[0] && isTouchInNav(e.changedTouches[0])) return;
             e.preventDefault();
             if (drawingInProgress) {
                 finishDrawing();
@@ -1786,7 +2104,7 @@
             isDragging = false;
             dragHandle = null;
             window.lastTouchDistance = null;
-        });
+        }, { passive: false });
 
         // Zoom and horizontal scroll (wheel)
         canvas.addEventListener("wheel", e => {
@@ -1964,11 +2282,12 @@
                        distanceToLine(x, y, x1, y2, x2, y2) < threshold ||
                        distanceToLine(x, y, x2, y2, midX, y1) < threshold;
             } else if (obj.type === "circle") {
-                const radius = Math.abs(x2 - x1) / 2;
-                const centerX = (x1 + x2) / 2;
-                const centerY = (y1 + y2) / 2;
-                const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                return Math.abs(dist - radius) < threshold;
+                const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                const rx = Math.abs(x2 - x1) / 2 || 1, ry = Math.abs(y2 - y1) / 2 || 1;
+                const nx = (x - cx) / rx, ny = (y - cy) / ry;
+                const dist = Math.sqrt(nx * nx + ny * ny);
+                const tNorm = threshold / Math.min(rx, ry);
+                return Math.abs(dist - 1) < tNorm || dist < 1;
             } else if (obj.type === "fibonacci" || obj.type === "fibext" || obj.type === "channel" || obj.type === "pitchfork" || obj.type === "gann") {
                 const minX = Math.min(x1, x2);
                 const maxX = Math.max(x1, x2);
@@ -2008,6 +2327,45 @@
             const y1 = getYFromPrice(obj.startPrice);
             const x2 = getXFromCandleIndex(obj.endIndex);
             const y2 = getYFromPrice(obj.endPrice);
+
+            if (obj.type === "horizontal") {
+                // start handle: left side at y1; end handle: right side at y1
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            if (obj.type === "vertical") {
+                // start handle: top at x1; end handle: bottom at x1
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            if (obj.type === "circle") {
+                // 4 cardinal handles on the bounding box edges
+                const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
+                if (Math.abs(x - cx) < threshold && Math.abs(y - (cy - ry)) < threshold) return "top";
+                if (Math.abs(x - cx) < threshold && Math.abs(y - (cy + ry)) < threshold) return "bottom";
+                if (Math.abs(x - (cx - rx)) < threshold && Math.abs(y - cy) < threshold) return "left";
+                if (Math.abs(x - (cx + rx)) < threshold && Math.abs(y - cy) < threshold) return "right";
+                return "move";
+            }
+            if (obj.type === "rectangle") {
+                // 4 corner handles
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y1) < threshold) return "topright";
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y2) < threshold) return "bottomleft";
+                return "move";
+            }
+            if (obj.type === "triangle") {
+                const midX = (x1 + x2) / 2;
+                if (Math.abs(x - midX) < threshold && Math.abs(y - y1) < threshold) return "apex";
+                if (Math.abs(x - x1) < threshold && Math.abs(y - y2) < threshold) return "start";
+                if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
+                return "move";
+            }
+            // default: trendline, ray, arrow, fibonacci, channel, pitchfork, gann, text
             if (Math.abs(x - x1) < threshold && Math.abs(y - y1) < threshold) return "start";
             if (Math.abs(x - x2) < threshold && Math.abs(y - y2) < threshold) return "end";
             return "move";
@@ -2016,26 +2374,63 @@
         function updateObjectHandle(obj, handle, x, y) {
             const newIndex = getCandleIndexFromX(x);
             const newPrice = getPriceFromY(y);
-            
-            if (handle === "start") {
-                obj.startIndex = newIndex;
-                obj.startPrice = newPrice;
-                if (obj.type === "horizontal") {
-                    obj.endPrice = newPrice;
-                }
-            } else if (handle === "end") {
-                obj.endIndex = newIndex;
-                obj.endPrice = newPrice;
-                if (obj.type === "horizontal") {
-                    obj.startPrice = newPrice;
-                }
-            } else if (handle === "move") {
-                const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
-                const deltaPrice = newPrice - getPriceFromY(dragStartY);
+            const deltaIndex = newIndex - getCandleIndexFromX(dragStartX);
+            const deltaPrice = newPrice - getPriceFromY(dragStartY);
+
+            if (handle === "move") {
                 obj.startIndex = objStartX1 + deltaIndex;
                 obj.startPrice = objStartY1 + deltaPrice;
-                obj.endIndex = objStartX2 + deltaIndex;
-                obj.endPrice = objStartY2 + deltaPrice;
+                obj.endIndex   = objStartX2 + deltaIndex;
+                obj.endPrice   = objStartY2 + deltaPrice;
+            } else if (obj.type === "horizontal") {
+                // only Y matters; keep both prices in sync
+                obj.startPrice = newPrice;
+                obj.endPrice   = newPrice;
+                if (handle === "start") obj.startIndex = newIndex;
+                else                   obj.endIndex   = newIndex;
+            } else if (obj.type === "vertical") {
+                // only X matters; keep both indices in sync
+                obj.startIndex = newIndex;
+                obj.endIndex   = newIndex;
+                if (handle === "start") obj.startPrice = newPrice;
+                else                   obj.endPrice   = newPrice;
+            } else if (obj.type === "circle") {
+                // cardinal handles resize the bounding box
+                const cx = (getXFromCandleIndex(objStartX1) + getXFromCandleIndex(objStartX2)) / 2;
+                const cy = (getYFromPrice(objStartY1) + getYFromPrice(objStartY2)) / 2;
+                if (handle === "top") {
+                    obj.startPrice = newPrice;
+                    obj.endPrice   = getPriceFromY(2 * cy - y);
+                } else if (handle === "bottom") {
+                    obj.endPrice   = newPrice;
+                    obj.startPrice = getPriceFromY(2 * cy - y);
+                } else if (handle === "left") {
+                    obj.startIndex = newIndex;
+                    obj.endIndex   = getCandleIndexFromX(2 * cx - x);
+                } else if (handle === "right") {
+                    obj.endIndex   = newIndex;
+                    obj.startIndex = getCandleIndexFromX(2 * cx - x);
+                }
+            } else if (obj.type === "rectangle") {
+                if (handle === "start")      { obj.startIndex = newIndex; obj.startPrice = newPrice; }
+                else if (handle === "end")   { obj.endIndex   = newIndex; obj.endPrice   = newPrice; }
+                else if (handle === "topright")   { obj.endIndex   = newIndex; obj.startPrice = newPrice; }
+                else if (handle === "bottomleft") { obj.startIndex = newIndex; obj.endPrice   = newPrice; }
+            } else if (obj.type === "triangle") {
+                if (handle === "apex")  {
+                    // apex is midX, y1 — move only the Y of start
+                    obj.startPrice = newPrice;
+                } else if (handle === "start") {
+                    obj.startIndex = newIndex;
+                    obj.endPrice   = newPrice;
+                } else if (handle === "end") {
+                    obj.endIndex = newIndex;
+                    obj.endPrice = newPrice;
+                }
+            } else {
+                // trendline, ray, arrow, fibonacci, channel, pitchfork, gann, text
+                if (handle === "start") { obj.startIndex = newIndex; obj.startPrice = newPrice; }
+                else                   { obj.endIndex   = newIndex; obj.endPrice   = newPrice; }
             }
             saveDrawings();
         }
@@ -2102,11 +2497,11 @@
                     ctx.closePath();
                     ctx.stroke();
                 } else if (obj.type === "circle") {
-                    const radius = Math.abs(x2 - x1) / 2;
-                    const centerX = (x1 + x2) / 2;
-                    const centerY = (y1 + y2) / 2;
+                    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                    const rx = Math.abs(x2 - x1) / 2 || 1;
+                    const ry = Math.abs(y2 - y1) / 2 || 1;
                     ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                     ctx.stroke();
                 } else if (obj.type === "fibonacci") {
                     const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
@@ -2180,42 +2575,68 @@
                 }
                 
                 if (obj === selectedObject) {
-                    ctx.fillStyle = "#00FF00";
-                    ctx.strokeStyle = "#FFFFFF";
-                    ctx.lineWidth = 2;
-                    
-                    // Draw handles for all types
-                    ctx.beginPath();
-                    ctx.arc(x1, y1, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    if (obj.type !== "horizontal" && obj.type !== "vertical") {
+                    ctx.setLineDash([]);
+
+                    function drawHandle(hx, hy) {
+                        ctx.fillStyle = "#00FF00";
+                        ctx.strokeStyle = "#FFFFFF";
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
-                        ctx.arc(x2, y2, 6, 0, Math.PI * 2);
+                        ctx.arc(hx, hy, 6, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
                     }
-                    
-                    // Draw selection box for complex shapes
-                    if (obj.type === "rectangle" || obj.type === "text" || obj.type === "triangle" || obj.type === "circle") {
-                        ctx.strokeStyle = "#00FF00";
-                        ctx.lineWidth = 1;
+
+                    if (obj.type === "circle") {
+                        const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+                        const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
+                        // bounding box dashes
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
                         ctx.setLineDash([5, 5]);
-                        if (obj.type === "rectangle") {
-                            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-                        } else if (obj.type === "text") {
-                            ctx.font = "14px Arial";
-                            const metrics = ctx.measureText(obj.text);
-                            ctx.strokeRect(x1 - 5, y1 - 20, metrics.width + 10, 25);
-                        } else if (obj.type === "triangle" || obj.type === "circle") {
-                            const minX = Math.min(x1, x2);
-                            const maxX = Math.max(x1, x2);
-                            const minY = Math.min(y1, y2);
-                            const maxY = Math.max(y1, y2);
-                            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-                        }
+                        ctx.strokeRect(cx - rx, cy - ry, rx * 2, ry * 2);
                         ctx.setLineDash([]);
+                        // 4 cardinal handles
+                        drawHandle(cx, cy - ry);
+                        drawHandle(cx, cy + ry);
+                        drawHandle(cx - rx, cy);
+                        drawHandle(cx + rx, cy);
+                    } else if (obj.type === "rectangle") {
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                        ctx.setLineDash([]);
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
+                        drawHandle(x2, y1);
+                        drawHandle(x1, y2);
+                    } else if (obj.type === "triangle") {
+                        const midX = (x1 + x2) / 2;
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(Math.min(x1,x2), Math.min(y1,y2), Math.abs(x2-x1), Math.abs(y2-y1));
+                        ctx.setLineDash([]);
+                        drawHandle(midX, y1); // apex
+                        drawHandle(x1, y2);   // bottom-left
+                        drawHandle(x2, y2);   // bottom-right
+                    } else if (obj.type === "horizontal") {
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y1);
+                    } else if (obj.type === "vertical") {
+                        drawHandle(x1, y1);
+                        drawHandle(x1, y2);
+                    } else if (obj.type === "text") {
+                        ctx.font = "14px Arial";
+                        const metrics = ctx.measureText(obj.text);
+                        ctx.strokeStyle = "#00FF00"; ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(x1 - 5, y1 - 20, metrics.width + 10, 25);
+                        ctx.setLineDash([]);
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
+                    } else {
+                        // trendline, ray, arrow, fibonacci, channel, pitchfork, gann
+                        drawHandle(x1, y1);
+                        drawHandle(x2, y2);
                     }
                 }
             });
@@ -2294,7 +2715,20 @@
         }
         
         function removeIndicator(id) {
-            indicators = indicators.filter(ind => ind.id !== id);
+            const ind = indicators.find(i => i.id === id);
+            if (ind && ind.type && ind.type.startsWith('custom_')) {
+                // Check if any other indicator still uses this custom type
+                const stillUsed = indicators.some(i => i.id !== id && i.type === ind.type);
+                if (!stillUsed) {
+                    customIndicators.delete(ind.type);
+                    try {
+                        const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                        delete codeStore[ind.type];
+                        localStorage.setItem('custom_indicator_codes', JSON.stringify(codeStore));
+                    } catch (e) {}
+                }
+            }
+            indicators = indicators.filter(i => i.id !== id);
             saveIndicators();
             updateIndicatorTags();
             draw();
@@ -2312,6 +2746,7 @@
         }
         
         function updateIndicatorTags() {
+            // Desktop
             const container = document.getElementById("activeIndicators");
             container.innerHTML = "";
             indicators.forEach(ind => {
@@ -2353,6 +2788,40 @@
                 wrapper.appendChild(tag);
                 wrapper.appendChild(menu);
                 container.appendChild(wrapper);
+            });
+
+            // Mobile sheet — touch-friendly chips
+            const mobileContainer = document.getElementById("mobileActiveIndicators");
+            if (!mobileContainer) return;
+            mobileContainer.innerHTML = "";
+            if (indicators.length === 0) {
+                mobileContainer.innerHTML = '<span style="font-size:12px;color:#8b949e;">No active indicators</span>';
+                return;
+            }
+            indicators.forEach(ind => {
+                const chip = document.createElement("div");
+                chip.className = "mobile-ind-chip";
+                chip.innerHTML = `
+                    <span class="mobile-ind-name" data-id="${ind.id}">${getIndicatorDisplayName(ind)}</span>
+                    <span class="mobile-ind-actions">
+                        <button class="mobile-ind-btn" data-id="${ind.id}" data-action="settings" title="Settings">⚙️</button>
+                        <button class="mobile-ind-btn" data-id="${ind.id}" data-action="color" title="Color">🎨</button>
+                        <button class="mobile-ind-btn mobile-ind-remove" data-id="${ind.id}" data-action="remove" title="Remove">✕</button>
+                    </span>
+                `;
+                chip.querySelectorAll('.mobile-ind-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const id = parseInt(btn.dataset.id);
+                        const action = btn.dataset.action;
+                        const target = indicators.find(i => i.id === id);
+                        if (!target) return;
+                        if (action === 'remove') removeIndicator(id);
+                        else if (action === 'settings') { closeMobileSheet(); showIndicatorSettings(target); }
+                        else if (action === 'color') { closeMobileSheet(); changeIndicatorColor(target); }
+                    };
+                });
+                mobileContainer.appendChild(chip);
             });
         }
         
@@ -2458,11 +2927,21 @@
         
         function loadIndicators() {
             try {
+                // First restore any custom indicator code into the Map
+                try {
+                    const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                    Object.entries(codeStore).forEach(([id, code]) => {
+                        try {
+                            const customInd = eval(`(${code})`);
+                            if (customInd) customIndicators.set(id, customInd);
+                        } catch (e) { console.error('Failed to restore custom indicator', id, e); }
+                    });
+                } catch (e) { console.error('Failed to load custom indicator codes:', e); }
+
                 const key = `chart_indicators_${SYMBOL}_${TIMEFRAME}`;
                 const saved = localStorage.getItem(key);
                 if (saved) {
                     indicators = JSON.parse(saved);
-                    console.log('Loaded indicators from localStorage:', indicators.length);
                     
                     if (indicators.length > 0) {
                         indicatorIdCounter = Math.max(...indicators.map(i => i.id)) + 1;
@@ -2470,13 +2949,16 @@
                     
                     // Reattach custom objects from customIndicators Map
                     indicators.forEach(ind => {
-                        if (ind.type && ind.type.startsWith('user_')) {
+                        if (ind.type && (ind.type.startsWith('user_') || ind.type.startsWith('custom_'))) {
                             const customInd = customIndicators.get(ind.type);
-                            console.log('Reattaching', ind.type, 'found in Map:', !!customInd, 'has calculate:', customInd ? typeof customInd.calculate : 'N/A');
-                            if (customInd) {
-                                ind.custom = customInd;
-                            }
+                            if (customInd) ind.custom = customInd;
                         }
+                    });
+
+                    // Drop any custom indicators whose code is no longer available
+                    indicators = indicators.filter(ind => {
+                        const isCustom = ind.type && (ind.type.startsWith('user_') || ind.type.startsWith('custom_'));
+                        return !isCustom || !!ind.custom;
                     });
                     
                     updateIndicatorTags();
@@ -2670,7 +3152,7 @@
             try {
                 const code = document.getElementById('customIndicatorCode').value;
                 const customIndicator = eval(`(${code})`);
-                loadCustomIndicator(customIndicator);
+                loadCustomIndicator(customIndicator, code);
                 cancelCustomIndicator();
             } catch (error) {
                 alert('Error in custom indicator code: ' + error.message);
@@ -2682,7 +3164,7 @@
             document.getElementById('customIndicatorButtons').style.display = 'none';
         }
         
-        function loadCustomIndicator(indicator) {
+        function loadCustomIndicator(indicator, rawCode) {
             if (!indicator.name || !indicator.calculate || !indicator.draw) {
                 alert('Invalid indicator format. Must have name, calculate, and draw functions.');
                 return;
@@ -2690,6 +3172,15 @@
             
             const id = 'custom_' + indicator.name.toLowerCase().replace(/\s+/g, '_');
             customIndicators.set(id, indicator);
+
+            // Persist the raw JS code so it survives page refresh
+            if (rawCode) {
+                try {
+                    const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                    codeStore[id] = rawCode;
+                    localStorage.setItem('custom_indicator_codes', JSON.stringify(codeStore));
+                } catch (e) { console.error('Failed to save custom indicator code:', e); }
+            }
             
             const params = { 
                 window: indicator.window || 1,
@@ -2858,8 +3349,8 @@
             if (hasWindow2Indicators) {
                 const defaultHeight = isMobile ? 100 : 180;
                 const actualWindow2Height = window2Height || defaultHeight;
-                const bottomOffset = isMobile ? 60 : 80; // Reduced gap
-                indicatorPanelHeight = actualWindow2Height + bottomOffset;
+                const handleHeight = 8;
+                indicatorPanelHeight = actualWindow2Height + handleHeight;
             }
             
             // Use custom main chart height if set, otherwise calculate automatically
@@ -3157,8 +3648,8 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const oscH = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80; // Reduced gap
-            const oscY = canvas.height - oscH - bottomOffset;
+            const handleHeight = 8;
+            const oscY = pad + (mainChartHeight || (canvas.height - pad * 2 - oscH - handleHeight)) + handleHeight;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
             const isFirstOscillator = window2Indicators[0]?.id === indicator.id;
@@ -3175,20 +3666,6 @@
                 ctx.strokeStyle = "#30363d";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(pad, oscY, canvas.width - pad * 2, oscH);
-                
-                // Separator bar with gradient
-                const sepGradient = ctx.createLinearGradient(0, oscY - 4, 0, oscY + 4);
-                sepGradient.addColorStop(0, "#FF4500");
-                sepGradient.addColorStop(0.5, "#FF6347");
-                sepGradient.addColorStop(1, "#FF4500");
-                ctx.fillStyle = sepGradient;
-                ctx.fillRect(pad, oscY - 4, canvas.width - pad * 2, 8);
-                
-                // Resize handle icon
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 10px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("⋮⋮⋮", canvas.width / 2, oscY + 1);
                 
                 window.window2Bounds = { x: pad, y: oscY, width: canvas.width - pad * 2, height: oscH };
                 
@@ -3304,28 +3781,7 @@
             ctx.fillText(name, pad + 5, labelY);
         }
         
-        function drawMACD(macd, start, visible, spacing, pad, dataLength) {
-            const isMobile = window.innerWidth <= 768;
-            const defaultHeight = isMobile ? 100 : 180;
-            const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80;
-            const y = canvas.height - h - bottomOffset;
-            
-            // Background
-            ctx.fillStyle = "#161b22";
-            ctx.fillRect(pad, y, canvas.width - pad * 2, h);
-            
-            // Border
-            ctx.strokeStyle = "#2b2f3a";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(pad, y, canvas.width - pad * 2, h);
-            
-            // Resize handle at top
-            ctx.fillStyle = "#FF4500";
-            ctx.fillRect(pad, y - 2, canvas.width - pad * 2, 4);
-            
-            // Store window2 bounds for resize detection
-            window.window2Bounds = { x: pad, y: y, width: canvas.width - pad * 2, height: h };
+        function drawMACD_unused(macd, start, visible, spacing, pad, dataLength) { return; // removed duplicate
             
             const visibleMacd = macd.macd.slice(start, start + visible);
             const visibleSignal = macd.signal.slice(start, start + visible);
@@ -3466,8 +3922,7 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80;
-            const y = canvas.height - h - bottomOffset;
+            const y = pad + (mainChartHeight || (canvas.height - pad * 2 - h - 8)) + 8;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
             const isFirstOscillator = window2Indicators[0]?.id === indicator.id;
@@ -3478,8 +3933,6 @@
                 ctx.strokeStyle = "#2b2f3a";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(pad, y, canvas.width - pad * 2, h);
-                ctx.fillStyle = "#FF4500";
-                ctx.fillRect(pad, y - 2, canvas.width - pad * 2, 4);
                 window.window2Bounds = { x: pad, y: y, width: canvas.width - pad * 2, height: h };
             }
             
@@ -3951,24 +4404,34 @@
         }
         
         /* ================= MOBILE TOOLS ================= */
-        function toggleMobileTools() {
-            const panel = document.getElementById('mobileToolsPanel');
-            panel.classList.toggle('show');
+        function openMobileSheet() {
+            document.getElementById('mobileSheet').classList.add('show');
+            document.getElementById('sheetOverlay').classList.add('show');
         }
-        
-        // Close mobile tools when clicking outside
-        document.addEventListener('click', (e) => {
-            const panel = document.getElementById('mobileToolsPanel');
-            const btn = document.querySelector('.mobile-tools-btn');
-            if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-                panel.classList.remove('show');
-            }
-        });
+        function closeMobileSheet() {
+            document.getElementById('mobileSheet').classList.remove('show');
+            document.getElementById('sheetOverlay').classList.remove('show');
+        }
+        function mobileTf(tf) {
+            TIMEFRAME = tf;
+            localStorage.setItem('chart_timeframe', tf);
+            document.querySelectorAll('.mobile-tf-btn').forEach(b => b.classList.toggle('active', b.textContent === ({60:'1m',300:'5m',900:'15m',3600:'1h',14400:'4h',86400:'1D'}[tf])));
+            restart();
+        }
+        function setMobileChartType(type, btn) {
+            chartType = type;
+            localStorage.setItem('chart_type', type);
+            document.querySelectorAll('.sheet-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('chartType').value = type;
+            draw();
+        }
         
         async function initializeEventHandlers() {
             // Set saved values in dropdowns
             const symbolEl = document.getElementById('symbol');
             if (symbolEl) symbolEl.value = SYMBOL;
+            updateSymbolLabel();
             
             const timeframeEl = document.getElementById('timeframe');
             if (timeframeEl) timeframeEl.value = TIMEFRAME;
@@ -4027,7 +4490,7 @@
                         if (index >= 0 && index < indicators.length) {
                             await applyIndicatorToChart(indicators[index]);
                             // Close mobile tools panel
-                            document.getElementById('mobileToolsPanel').classList.remove('show');
+                            closeMobileSheet();
                         }
                     }
                 };

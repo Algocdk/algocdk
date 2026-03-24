@@ -120,11 +120,16 @@ func GetPendingAdminRequests(ctx *gin.Context) {
 
 	var response []gin.H
 	for _, req := range requests {
+		// Check if this user has an active subscription
+		var sub models.Subscription
+		hasSub := database.DB.Where("user_id = ? AND plan = ? AND status = ?", req.UserID, "admin", "active").First(&sub).Error == nil
+
 		response = append(response, gin.H{
-			"id":         req.ID,
-			"reason":     req.Reason,
-			"status":     req.Status,
-			"created_at": req.CreatedAt,
+			"id":              req.ID,
+			"reason":          req.Reason,
+			"status":          req.Status,
+			"created_at":      req.CreatedAt,
+			"has_subscription": hasSub,
 			"user": gin.H{
 				"id":      req.User.ID,
 				"name":    req.User.Name,
@@ -219,18 +224,8 @@ func ReviewAdminRequest(ctx *gin.Context) {
 	}
 
 	if payload.Action == "approve" {
-		// Promote user to admin
-		user.Role = "Admin"
-		user.Membership = "Premium"
+		// Mark as approved — role upgrade happens after subscription payment
 		user.UpgradeRequestStatus = "approved"
-
-		// Create admin record
-		admin := models.Admin{
-			PersonID:  user.ID,
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		database.DB.Create(&admin)
 	} else {
 		user.UpgradeRequestStatus = "rejected"
 	}

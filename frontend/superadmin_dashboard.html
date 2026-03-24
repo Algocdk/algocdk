@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SuperAdmin Dashboard - AlgoCDK</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -187,6 +188,11 @@
                     <i class="fas fa-crown mr-3"></i>
                     Admin Requests
                     <span id="adminRequestsBadge" class="ml-auto bg-warning px-2 py-1 rounded-full text-xs">0</span>
+                </a>
+                <a href="#subscribers" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('subscribers');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
+                    <i class="fas fa-star mr-3"></i>
+                    Subscribers
+                    <span id="subscribersBadge" class="ml-auto bg-success px-2 py-1 rounded-full text-xs">0</span>
                 </a>
                 <a href="#bots" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('bots');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-robot mr-3"></i>
@@ -674,6 +680,62 @@
                 </div>
             </div>
 
+            <!-- Subscribers View -->
+            <div id="subscribersView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold">Active Subscribers</h3>
+                        <button onclick="loadSubscribers()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium mb-1 text-sm text-gray-400">Active</h4>
+                            <p class="text-2xl font-bold text-success" id="activeSubsCount">0</p>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium mb-1 text-sm text-gray-400">Cancelled</h4>
+                            <p class="text-2xl font-bold text-danger" id="cancelledSubsCount">0</p>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-medium mb-1 text-sm text-gray-400">Pending Payment</h4>
+                            <p class="text-2xl font-bold text-warning" id="pendingSubsCount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex space-x-2 mb-4">
+                        <button onclick="filterSubscribers('all')" id="subFilterAll" class="px-4 py-2 rounded-lg bg-primary text-white text-sm">All</button>
+                        <button onclick="filterSubscribers('active')" id="subFilterActive" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">Active</button>
+                        <button onclick="filterSubscribers('cancelled')" id="subFilterCancelled" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">Cancelled</button>
+                        <button onclick="filterSubscribers('pending')" id="subFilterPending" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">Pending</button>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-700 text-left text-sm text-gray-400">
+                                    <th class="py-3 px-4">User</th>
+                                    <th class="py-3 px-4">Email</th>
+                                    <th class="py-3 px-4">Role</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4">Amount</th>
+                                    <th class="py-3 px-4">Started</th>
+                                    <th class="py-3 px-4">Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscribersTableBody">
+                                <tr><td colspan="7" class="text-center py-8"><div class="loading-spinner mx-auto"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings View -->
             <div id="settingsView" class="view-content hidden">
                 <div class="bg-gray-800 rounded-xl p-6">
@@ -787,6 +849,7 @@
                 users: 'Users Management',
                 admins: 'Admins Management',
                 'admin-requests': 'Admin Requests',
+                subscribers: 'Subscribers',
                 bots: 'Bots Management',
                 sales: 'Sales Overview',
                 analytics: 'Platform Analytics',
@@ -811,6 +874,9 @@
             if (view === 'sales') {
                 console.log('Switching to sales view, rendering chart...');
                 setTimeout(() => renderSalesChartStandalone(), 300);
+            }
+            if (view === 'subscribers') {
+                loadSubscribers();
             }
         }
         
@@ -1194,6 +1260,73 @@
             } catch (error) {
                 console.error('Error rendering chart:', error);
             }
+        }
+
+        // ===== SUBSCRIBERS =====
+        let allSubscribersData = [];
+
+        async function loadSubscribers() {
+            try {
+                const response = await fetch('/api/superadmin/subscribers', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await response.json();
+                allSubscribersData = data.subscribers || [];
+
+                const s = data.summary || {};
+                document.getElementById('activeSubsCount').textContent = s.active || 0;
+                document.getElementById('cancelledSubsCount').textContent = s.cancelled || 0;
+                document.getElementById('pendingSubsCount').textContent = s.pending || 0;
+                document.getElementById('subscribersBadge').textContent = s.active || 0;
+
+                renderSubscribersTable(allSubscribersData);
+            } catch (e) {
+                console.error('Failed to load subscribers:', e);
+            }
+        }
+
+        function filterSubscribers(status) {
+            ['all','active','cancelled','pending'].forEach(s => {
+                document.getElementById('subFilter' + s.charAt(0).toUpperCase() + s.slice(1)).className =
+                    'px-4 py-2 rounded-lg text-sm ' + (s === status ? 'bg-primary text-white' : 'bg-gray-700 hover:bg-gray-600');
+            });
+            const filtered = status === 'all' ? allSubscribersData : allSubscribersData.filter(s => s.status === status);
+            renderSubscribersTable(filtered);
+        }
+
+        function renderSubscribersTable(subscribers) {
+            const tbody = document.getElementById('subscribersTableBody');
+            if (!subscribers || subscribers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400">No subscribers found</td></tr>`;
+                return;
+            }
+            const statusColors = { active: 'text-success', cancelled: 'text-danger', pending: 'text-warning' };
+            tbody.innerHTML = subscribers.map(s => `
+                <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+                    <td class="py-3 px-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3 text-sm font-bold">
+                                ${(s.user?.name || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-medium">${s.user?.name || 'Unknown'}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-400 text-sm">${s.user?.email || '-'}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded text-xs ${
+                            s.user?.role === 'Admin' ? 'bg-primary/20 text-primary' : 'bg-gray-600 text-gray-300'
+                        }">${s.user?.role || 'user'}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="font-medium ${statusColors[s.status] || 'text-gray-400'} capitalize">
+                            <i class="fas fa-circle text-xs mr-1"></i>${s.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-success font-medium">KSH ${(s.amount || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4 text-gray-400 text-sm">${s.started_at ? new Date(s.started_at).toLocaleDateString() : '-'}</td>
+                    <td class="py-3 px-4 text-gray-500 text-xs font-mono">${s.reference || '-'}</td>
+                </tr>
+            `).join('');
         }
 
         function logout() {
