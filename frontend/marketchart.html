@@ -258,35 +258,62 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            background: rgba(22, 27, 34, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: 2px solid #2b2f3a;
+            background: linear-gradient(135deg, rgba(22, 27, 34, 0.98) 0%, rgba(30, 36, 46, 0.98) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 10px 20px 12px;
+            border-radius: 12px;
+            border: 1.5px solid #2b2f3a;
             text-align: center;
-            min-width: 250px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            min-width: 220px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255,255,255,0.04) inset;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
 
         .price-display.price-up-flash {
             border-color: #00c176;
-            box-shadow: 0 0 20px rgba(0, 193, 118, 0.4);
+            box-shadow: 0 0 0 3px rgba(0, 193, 118, 0.15), 0 8px 24px rgba(0,0,0,0.4);
         }
 
         .price-display.price-down-flash {
             border-color: #ff4d4f;
-            box-shadow: 0 0 20px rgba(255, 77, 79, 0.4);
+            box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15), 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .price-symbol-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+
+        .price-live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00c176;
+            margin-right: 5px;
+            vertical-align: middle;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
         }
 
         .current-price {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 26px;
+            font-weight: 700;
             color: #d1d4dc;
             margin-bottom: 4px;
             font-family: 'Courier New', monospace;
             letter-spacing: 1px;
-            transition: color 0.3s ease;
+            line-height: 1.1;
+            transition: color 0.2s ease;
         }
 
         .current-price.price-up {
@@ -298,18 +325,22 @@
         }
 
         .price-change {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 6px;
+            padding: 3px 8px;
+            margin-top: 2px;
         }
 
         .price-arrow {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: bold;
-            animation: bounce 0.5s ease;
+            animation: bounce 0.4s ease;
         }
 
         @keyframes bounce {
@@ -476,18 +507,35 @@
             }
             
             .price-display {
-                top: 5px;
-                left: 5px;
-                right: 60px;
-                transform: none;
-                padding: 4px 8px;
+                top: 6px;
+                left: 50%;
+                transform: translateX(-50%);
+                right: auto;
+                padding: 8px 14px 10px;
+                min-width: 0;
+                width: calc(100vw - 120px);
+                max-width: 280px;
+                border-radius: 10px;
             }
-            
+
+            .price-symbol-label {
+                font-size: 9px;
+                letter-spacing: 1px;
+                margin-bottom: 2px;
+            }
+
             .current-price {
-                font-size: 16px;
+                font-size: 20px;
+                letter-spacing: 0.5px;
             }
             
             .price-change {
+                font-size: 10px;
+                padding: 2px 6px;
+                gap: 4px;
+            }
+
+            .price-arrow {
                 font-size: 11px;
             }
             
@@ -699,7 +747,7 @@
     <div class="mobile-tools-panel" id="mobileToolsPanel">
         <div class="mobile-tools-section">
             <div class="mobile-tools-label">Market</div>
-            <select id="mobileSymbol" onchange="document.getElementById('symbol').value=this.value; document.getElementById('symbol').onchange({target:this})">
+            <select id="mobileSymbol" onchange="document.getElementById('symbol').value=this.value; SYMBOL=this.value; localStorage.setItem('chart_symbol',SYMBOL); updateSymbolLabel(); restart();">
                 <option value="R_10">Volatility 10</option>
                 <option value="R_25">Volatility 25</option>
                 <option value="R_50">Volatility 50</option>
@@ -777,6 +825,7 @@
 
     <!-- Price Display -->
     <div class="price-display" id="priceDisplay">
+        <div class="price-symbol-label"><span class="price-live-dot"></span><span id="priceSymbolLabel">LIVE</span></div>
         <div class="current-price" id="currentPrice">--</div>
         <div class="price-change" id="priceChange">
             <span class="price-arrow" id="priceArrow"></span>
@@ -1136,8 +1185,26 @@
         document.getElementById("symbol").onchange = e => {
             SYMBOL = e.target.value;
             localStorage.setItem('chart_symbol', SYMBOL);
+            updateSymbolLabel();
             restart();
         };
+
+        function updateSymbolLabel() {
+            const el = document.getElementById('priceSymbolLabel');
+            if (!el) return;
+            const names = {
+                R_10: 'VOL 10', R_25: 'VOL 25', R_50: 'VOL 50', R_75: 'VOL 75', R_100: 'VOL 100',
+                BOOM300N: 'BOOM 300', BOOM500: 'BOOM 500', BOOM1000: 'BOOM 1000',
+                CRASH300N: 'CRASH 300', CRASH500: 'CRASH 500', CRASH1000: 'CRASH 1000',
+                stpRNG: 'STEP IDX', frxEURUSD: 'EUR/USD', frxGBPUSD: 'GBP/USD',
+                frxUSDJPY: 'USD/JPY', frxAUDUSD: 'AUD/USD', frxUSDCAD: 'USD/CAD',
+                frxUSDCHF: 'USD/CHF', frxEURGBP: 'EUR/GBP', frxEURJPY: 'EUR/JPY',
+                frxGBPJPY: 'GBP/JPY', frxAUDJPY: 'AUD/JPY',
+                cryBTCUSD: 'BTC/USD', cryETHUSD: 'ETH/USD', cryLTCUSD: 'LTC/USD',
+                WLDAUD: 'AUD BASKET', WLDEUR: 'EUR BASKET', WLDGBP: 'GBP BASKET', WLDUSD: 'USD BASKET'
+            };
+            el.textContent = names[SYMBOL] || SYMBOL;
+        }
 
         const timeframeEl = document.getElementById("timeframe");
         if (timeframeEl) {
@@ -4071,6 +4138,7 @@
             // Set saved values in dropdowns
             const symbolEl = document.getElementById('symbol');
             if (symbolEl) symbolEl.value = SYMBOL;
+            updateSymbolLabel();
             
             const timeframeEl = document.getElementById('timeframe');
             if (timeframeEl) timeframeEl.value = TIMEFRAME;
