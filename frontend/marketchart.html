@@ -1653,8 +1653,7 @@
                 const hasWindow2 = indicators.some(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
                 if (hasWindow2) {
                     const pad = isMobile ? 40 : 70;
-                    const bottomOffset = isMobile ? 60 : 80;
-                    const availableSpace = canvas.height - mainChartHeight - pad * 2 - bottomOffset;
+                    const availableSpace = canvas.height - mainChartHeight - pad * 2 - 8;
                     window2Height = Math.max(80, Math.min(400, availableSpace));
                 }
                 
@@ -2999,8 +2998,8 @@
             if (hasWindow2Indicators) {
                 const defaultHeight = isMobile ? 100 : 180;
                 const actualWindow2Height = window2Height || defaultHeight;
-                const bottomOffset = isMobile ? 60 : 80; // Reduced gap
-                indicatorPanelHeight = actualWindow2Height + bottomOffset;
+                const handleHeight = 8;
+                indicatorPanelHeight = actualWindow2Height + handleHeight;
             }
             
             // Use custom main chart height if set, otherwise calculate automatically
@@ -3298,8 +3297,8 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const oscH = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80; // Reduced gap
-            const oscY = canvas.height - oscH - bottomOffset;
+            const handleHeight = 8;
+            const oscY = pad + (mainChartHeight || (canvas.height - pad * 2 - oscH - handleHeight)) + handleHeight;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
             const isFirstOscillator = window2Indicators[0]?.id === indicator.id;
@@ -3316,20 +3315,6 @@
                 ctx.strokeStyle = "#30363d";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(pad, oscY, canvas.width - pad * 2, oscH);
-                
-                // Separator bar with gradient
-                const sepGradient = ctx.createLinearGradient(0, oscY - 4, 0, oscY + 4);
-                sepGradient.addColorStop(0, "#FF4500");
-                sepGradient.addColorStop(0.5, "#FF6347");
-                sepGradient.addColorStop(1, "#FF4500");
-                ctx.fillStyle = sepGradient;
-                ctx.fillRect(pad, oscY - 4, canvas.width - pad * 2, 8);
-                
-                // Resize handle icon
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 10px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("⋮⋮⋮", canvas.width / 2, oscY + 1);
                 
                 window.window2Bounds = { x: pad, y: oscY, width: canvas.width - pad * 2, height: oscH };
                 
@@ -3445,28 +3430,7 @@
             ctx.fillText(name, pad + 5, labelY);
         }
         
-        function drawMACD(macd, start, visible, spacing, pad, dataLength) {
-            const isMobile = window.innerWidth <= 768;
-            const defaultHeight = isMobile ? 100 : 180;
-            const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80;
-            const y = canvas.height - h - bottomOffset;
-            
-            // Background
-            ctx.fillStyle = "#161b22";
-            ctx.fillRect(pad, y, canvas.width - pad * 2, h);
-            
-            // Border
-            ctx.strokeStyle = "#2b2f3a";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(pad, y, canvas.width - pad * 2, h);
-            
-            // Resize handle at top
-            ctx.fillStyle = "#FF4500";
-            ctx.fillRect(pad, y - 2, canvas.width - pad * 2, 4);
-            
-            // Store window2 bounds for resize detection
-            window.window2Bounds = { x: pad, y: y, width: canvas.width - pad * 2, height: h };
+        function drawMACD_unused(macd, start, visible, spacing, pad, dataLength) { return; // removed duplicate
             
             const visibleMacd = macd.macd.slice(start, start + visible);
             const visibleSignal = macd.signal.slice(start, start + visible);
@@ -3607,8 +3571,7 @@
             const isMobile = window.innerWidth <= 768;
             const defaultHeight = isMobile ? 100 : 180;
             const h = window2Height || defaultHeight;
-            const bottomOffset = isMobile ? 60 : 80;
-            const y = canvas.height - h - bottomOffset;
+            const y = pad + (mainChartHeight || (canvas.height - pad * 2 - h - 8)) + 8;
             
             const window2Indicators = indicators.filter(ind => ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type));
             const isFirstOscillator = window2Indicators[0]?.id === indicator.id;
@@ -3619,8 +3582,6 @@
                 ctx.strokeStyle = "#2b2f3a";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(pad, y, canvas.width - pad * 2, h);
-                ctx.fillStyle = "#FF4500";
-                ctx.fillRect(pad, y - 2, canvas.width - pad * 2, 4);
                 window.window2Bounds = { x: pad, y: y, width: canvas.width - pad * 2, height: h };
             }
             
