@@ -1196,7 +1196,7 @@
                     try {
                         const code = event.target.result;
                         const customIndicator = eval(`(${code})`);
-                        loadCustomIndicator(customIndicator);
+                        loadCustomIndicator(customIndicator, code);
                     } catch (error) {
                         alert('Error loading custom indicator: ' + error.message);
                     }
@@ -2400,7 +2400,20 @@
         }
         
         function removeIndicator(id) {
-            indicators = indicators.filter(ind => ind.id !== id);
+            const ind = indicators.find(i => i.id === id);
+            if (ind && ind.type && ind.type.startsWith('custom_')) {
+                // Check if any other indicator still uses this custom type
+                const stillUsed = indicators.some(i => i.id !== id && i.type === ind.type);
+                if (!stillUsed) {
+                    customIndicators.delete(ind.type);
+                    try {
+                        const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                        delete codeStore[ind.type];
+                        localStorage.setItem('custom_indicator_codes', JSON.stringify(codeStore));
+                    } catch (e) {}
+                }
+            }
+            indicators = indicators.filter(i => i.id !== id);
             saveIndicators();
             updateIndicatorTags();
             draw();
@@ -2564,11 +2577,21 @@
         
         function loadIndicators() {
             try {
+                // First restore any custom indicator code into the Map
+                try {
+                    const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                    Object.entries(codeStore).forEach(([id, code]) => {
+                        try {
+                            const customInd = eval(`(${code})`);
+                            if (customInd) customIndicators.set(id, customInd);
+                        } catch (e) { console.error('Failed to restore custom indicator', id, e); }
+                    });
+                } catch (e) { console.error('Failed to load custom indicator codes:', e); }
+
                 const key = `chart_indicators_${SYMBOL}_${TIMEFRAME}`;
                 const saved = localStorage.getItem(key);
                 if (saved) {
                     indicators = JSON.parse(saved);
-                    console.log('Loaded indicators from localStorage:', indicators.length);
                     
                     if (indicators.length > 0) {
                         indicatorIdCounter = Math.max(...indicators.map(i => i.id)) + 1;
@@ -2576,13 +2599,16 @@
                     
                     // Reattach custom objects from customIndicators Map
                     indicators.forEach(ind => {
-                        if (ind.type && ind.type.startsWith('user_')) {
+                        if (ind.type && (ind.type.startsWith('user_') || ind.type.startsWith('custom_'))) {
                             const customInd = customIndicators.get(ind.type);
-                            console.log('Reattaching', ind.type, 'found in Map:', !!customInd, 'has calculate:', customInd ? typeof customInd.calculate : 'N/A');
-                            if (customInd) {
-                                ind.custom = customInd;
-                            }
+                            if (customInd) ind.custom = customInd;
                         }
+                    });
+
+                    // Drop any custom indicators whose code is no longer available
+                    indicators = indicators.filter(ind => {
+                        const isCustom = ind.type && (ind.type.startsWith('user_') || ind.type.startsWith('custom_'));
+                        return !isCustom || !!ind.custom;
                     });
                     
                     updateIndicatorTags();
@@ -2776,7 +2802,7 @@
             try {
                 const code = document.getElementById('customIndicatorCode').value;
                 const customIndicator = eval(`(${code})`);
-                loadCustomIndicator(customIndicator);
+                loadCustomIndicator(customIndicator, code);
                 cancelCustomIndicator();
             } catch (error) {
                 alert('Error in custom indicator code: ' + error.message);
@@ -2788,7 +2814,7 @@
             document.getElementById('customIndicatorButtons').style.display = 'none';
         }
         
-        function loadCustomIndicator(indicator) {
+        function loadCustomIndicator(indicator, rawCode) {
             if (!indicator.name || !indicator.calculate || !indicator.draw) {
                 alert('Invalid indicator format. Must have name, calculate, and draw functions.');
                 return;
@@ -2796,6 +2822,15 @@
             
             const id = 'custom_' + indicator.name.toLowerCase().replace(/\s+/g, '_');
             customIndicators.set(id, indicator);
+
+            // Persist the raw JS code so it survives page refresh
+            if (rawCode) {
+                try {
+                    const codeStore = JSON.parse(localStorage.getItem('custom_indicator_codes') || '{}');
+                    codeStore[id] = rawCode;
+                    localStorage.setItem('custom_indicator_codes', JSON.stringify(codeStore));
+                } catch (e) { console.error('Failed to save custom indicator code:', e); }
+            }
             
             const params = { 
                 window: indicator.window || 1,
