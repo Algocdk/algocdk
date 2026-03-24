@@ -60,6 +60,16 @@ func InitializeSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	// Require an approved admin request before subscribing
+	var adminReq models.AdminRequest
+	if err := database.DB.Where("user_id = ? AND status = ?", userID, "approved").First(&adminReq).Error; err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "your admin request must be approved before subscribing",
+			"code":  "request_not_approved",
+		})
+		return
+	}
+
 	reference := fmt.Sprintf("SUB_%d_%d", userID, time.Now().Unix())
 
 	payload := map[string]interface{}{
@@ -172,7 +182,17 @@ func VerifySubscriptionPayment(c *gin.Context) {
 	})
 	database.DB.Model(&models.User{}).Where("id = ?", sub.UserID).Update("membership", "Premium")
 
-	// Redirect back to profile with success
+	// Promote to Admin only if their admin request was approved
+	var adminReq models.AdminRequest
+	if database.DB.Where("user_id = ? AND status = ?", sub.UserID, "approved").First(&adminReq).Error == nil {
+		var user models.User
+		if database.DB.First(&user, sub.UserID).Error == nil && user.Role != "Admin" && user.Role != "superadmin" {
+			admin := models.Admin{PersonID: sub.UserID, CreatedAt: now, UpdatedAt: now}
+			database.DB.Create(&admin)
+			database.DB.Model(&user).Update("role", "Admin")
+		}
+	}
+
 	c.Redirect(http.StatusFound, "/profile?sub=success")
 }
 

@@ -60,16 +60,6 @@ func RequestAdminStatus(ctx *gin.Context) {
 		return
 	}
 
-	// Require an active admin subscription before submitting request
-	var sub models.Subscription
-	if err := database.DB.Where("user_id = ? AND plan = ? AND status = ?", userID, "admin", "active").First(&sub).Error; err != nil {
-		ctx.JSON(http.StatusPaymentRequired, gin.H{
-			"error":   "you must subscribe to the Admin plan (KSH 500) before submitting an admin request",
-			"code":    "subscription_required",
-		})
-		return
-	}
-
 	// Create admin request
 	adminRequest := models.AdminRequest{
 		UserID:    userID,
@@ -234,18 +224,8 @@ func ReviewAdminRequest(ctx *gin.Context) {
 	}
 
 	if payload.Action == "approve" {
-		// Promote user to admin
-		user.Role = "Admin"
-		user.Membership = "Premium"
+		// Mark as approved — role upgrade happens after subscription payment
 		user.UpgradeRequestStatus = "approved"
-
-		// Create admin record
-		admin := models.Admin{
-			PersonID:  user.ID,
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		database.DB.Create(&admin)
 	} else {
 		user.UpgradeRequestStatus = "rejected"
 	}

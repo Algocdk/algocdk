@@ -272,6 +272,12 @@
                 <h2 class="text-lg sm:text-xl font-bold text-white mb-2">Subscription Plan</h2>
                 <p class="text-gray-400 mb-6 text-sm">Upgrade to the Admin plan to unlock admin privileges on the platform.</p>
 
+                <!-- Locked notice (shown when no approved request) -->
+                <div id="subscriptionLocked" class="hidden mb-6 flex items-center p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <i class="fas fa-lock text-yellow-400 mr-3"></i>
+                    <p class="text-yellow-300 text-sm">You must submit an admin request and get it approved before you can subscribe.</p>
+                </div>
+
                 <!-- Current Status -->
                 <div id="subscriptionStatus" class="mb-6"><!-- loaded by JS --></div>
 
@@ -644,6 +650,10 @@
                         statusIcon = 'fas fa-times-circle';
                         statusText = 'Rejected';
                     }
+
+                    const subscribeNowBtn = request.status === 'approved'
+                        ? `<button onclick="document.getElementById('subscriptionTab').click()" class="mt-3 bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"><i class="fas fa-star mr-2"></i>Subscribe Now (KSH 500)</button>`
+                        : '';
                     
                     statusContainer.innerHTML = `
                         <div class="border border-gray-700 rounded-lg p-4">
@@ -654,6 +664,7 @@
                             <p class="text-gray-400 text-sm mb-2">Submitted: ${new Date(request.created_at).toLocaleDateString()}</p>
                             <p class="text-gray-300 text-sm">Reason: ${request.reason}</p>
                             ${request.review_notes ? `<p class="text-gray-400 text-sm mt-2">Review Notes: ${request.review_notes}</p>` : ''}
+                            ${subscribeNowBtn}
                         </div>
                     `;
                     formContainer.classList.add('hidden');
@@ -675,18 +686,14 @@
         // Submit admin request
         async function submitAdminRequest(reason) {
             try {
-                const response = await authFetch('/api/user/request-admin', {
+                await authFetch('/api/user/request-admin', {
                     method: 'POST',
                     body: JSON.stringify({ reason })
                 });
-                showNotification('Admin request submitted successfully!', 'success');
+                showNotification('Admin request submitted successfully! Await superadmin approval.', 'success');
                 loadAdminRequestStatus();
             } catch (error) {
-                if (error.message && error.message.includes('subscription_required') || error.message.includes('subscribe')) {
-                    showNotification('You must subscribe to the Admin plan (KSH 500) first. Go to the Subscription tab.', 'error');
-                } else {
-                    showNotification('Failed to submit request: ' + error.message, 'error');
-                }
+                showNotification('Failed to submit request: ' + error.message, 'error');
             }
         }
 
@@ -734,11 +741,25 @@
         async function loadSubscriptionStatus() {
             try {
                 const data = await authFetch('/api/subscription/status');
+                const reqData = await authFetch('/api/user/admin-request-status');
                 const statusEl = document.getElementById('subscriptionStatus');
                 const upgradeBtn = document.getElementById('upgradeBtn');
                 const cancelSubBtn = document.getElementById('cancelSubBtn');
                 const freeBadge = document.getElementById('freePlanBadge');
                 const adminBadge = document.getElementById('adminPlanBadge');
+                const lockedEl = document.getElementById('subscriptionLocked');
+
+                const isApproved = reqData.has_request && reqData.request.status === 'approved';
+
+                if (!isApproved && !(data.plan === 'admin' && data.status === 'active')) {
+                    lockedEl.classList.remove('hidden');
+                    upgradeBtn.disabled = true;
+                    upgradeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    lockedEl.classList.add('hidden');
+                    upgradeBtn.disabled = false;
+                    upgradeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
 
                 if (data.plan === 'admin' && data.status === 'active') {
                     statusEl.innerHTML = `
