@@ -38,9 +38,9 @@ func InitiateDerivOAuth(c *gin.Context) {
 	fmt.Printf("DEBUG: Generated OAuth URL: %s\n", oauthURL)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
+		"success":   true,
 		"oauth_url": oauthURL,
-		"user_id": userID,
+		"user_id":   userID,
 	})
 }
 

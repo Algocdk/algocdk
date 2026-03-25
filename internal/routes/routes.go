@@ -15,14 +15,13 @@ import (
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.DBMiddleware()) // Add DB to context
-	// Serve user sites statically
-	router.Static("/sites", "./sites")
+	// NOTE: /sites is NOT served statically - all access goes through ViewSiteHandler
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
 	api.GET("/marketplace", handlers.MarketplaceHandler)
 	router.GET("/api/paystack/callback", paystack.HandleCallbackRedirect)
 	router.SetTrustedProxies(nil)
-	router.GET("/bots/:id", handlers.ServeBotHandler)
+	router.GET("/bots/:id", middleware.AuthMiddleware(), handlers.ServeBotHandler)
 	{
 		auth := api.Group("/auth")
 		{
@@ -179,6 +178,8 @@ func SetUpRouter(router *gin.Engine) {
 			subGroup.GET("/status", handlers.GetSubscriptionStatus)
 			subGroup.POST("/initialize", handlers.InitializeSubscriptionPayment)
 			subGroup.POST("/cancel", handlers.CancelSubscription)
+			// History only needs auth — not AdminOnly — so expired admins can still view and renew
+			subGroup.GET("/history", handlers.GetAdminSubscriptionHistory)
 		}
 		// verify is public - Paystack redirects here without JWT
 		api.GET("/subscription/verify", handlers.VerifySubscriptionPayment)
@@ -277,7 +278,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/assets", frontendPath)
 	router.Static("/js", frontendPath)
 	router.Static("/images", frontendPath+"/images")
-	router.Static("/uploads", "./uploads")
+	// NOTE: /uploads is NOT served statically - bot files are served through authenticated ServeBotHandler
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
 	router.StaticFile("/token-refresh-manager.js", frontendPath+"/token-refresh-manager.js")

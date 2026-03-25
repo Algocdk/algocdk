@@ -14,7 +14,53 @@ import (
 	"github.com/keyadaniel56/algocdk/internal/models"
 )
 
+var paystackClient = &http.Client{Timeout: 10 * time.Second}
+
 const AdminSubscriptionAmount = 500.0 // KSH 500
+
+// GetAdminSubscriptionHistory returns the subscription record for the authenticated admin
+func GetAdminSubscriptionHistory(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var subs []models.Subscription
+	database.DB.Where("user_id = ?", userID).Find(&subs)
+
+	// Sort in Go to avoid SQLite date format issues with raw-inserted records
+	for i := 0; i < len(subs)-1; i++ {
+		for j := i + 1; j < len(subs); j++ {
+			if subs[j].CreatedAt.After(subs[i].CreatedAt) {
+				subs[i], subs[j] = subs[j], subs[i]
+			}
+		}
+	}
+
+	var current *models.Subscription
+	var daysRemaining int
+	for i := range subs {
+		if subs[i].Status == "active" {
+			current = &subs[i]
+			if !subs[i].ExpiresAt.IsZero() {
+				days := int(time.Until(subs[i].ExpiresAt).Hours() / 24)
+				if days < 0 {
+					days = 0
+				}
+				daysRemaining = days
+			}
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"subscriptions":  subs,
+		"current":        current,
+		"days_remaining": daysRemaining,
+		"total":          len(subs),
+	})
+}
 
 // GetSubscriptionStatus returns the current user's subscription info
 func GetSubscriptionStatus(c *gin.Context) {
@@ -53,11 +99,13 @@ func InitializeSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
-	// Block if already on active admin plan
+	// Block if already on active non-expired admin plan
 	var existing models.Subscription
 	if err := database.DB.Where("user_id = ? AND plan = ? AND status = ?", userID, "admin", "active").First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "you already have an active admin subscription"})
-		return
+		if existing.ExpiresAt.After(time.Now()) {
+			c.JSON(http.StatusConflict, gin.H{"error": "you already have an active admin subscription"})
+			return
+		}
 	}
 
 	// Require an approved admin request before subscribing
@@ -73,10 +121,10 @@ func InitializeSubscriptionPayment(c *gin.Context) {
 	reference := fmt.Sprintf("SUB_%d_%d", userID, time.Now().Unix())
 
 	payload := map[string]interface{}{
-		"email":     user.Email,
-		"amount":    int(AdminSubscriptionAmount * 100), // Paystack uses kobo/cents
-		"reference": reference,
-		"currency":  "KES",
+		"email":        user.Email,
+		"amount":       int(AdminSubscriptionAmount * 100), // Paystack uses kobo/cents
+		"reference":    reference,
+		"currency":     "KES",
 		"callback_url": os.Getenv("BASE_URL") + "/api/subscription/verify?reference=" + reference,
 	}
 
@@ -85,7 +133,7 @@ func InitializeSubscriptionPayment(c *gin.Context) {
 	req.Header.Add("Authorization", "Bearer "+os.Getenv("PAYSTACK_SECRET_KEY"))
 	req.Header.Add("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := paystackClient
 	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "payment initialization failed"})
@@ -156,7 +204,7 @@ func VerifySubscriptionPayment(c *gin.Context) {
 	req, _ := http.NewRequest("GET", "https://api.paystack.co/transaction/verify/"+reference, nil)
 	req.Header.Add("Authorization", "Bearer "+os.Getenv("PAYSTACK_SECRET_KEY"))
 
-	client := &http.Client{}
+	client := paystackClient
 	resp, err := client.Do(req)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/profile?sub=failed")
@@ -177,10 +225,14 @@ func VerifySubscriptionPayment(c *gin.Context) {
 	}
 
 	now := time.Now()
+	expiresAt := now.AddDate(0, 1, 0) // 30 days (1 month)
 	database.DB.Model(&sub).Updates(map[string]interface{}{
-		"status": "active", "started_at": now, "updated_at": now,
+		"status": "active", "started_at": now, "expires_at": expiresAt, "updated_at": now,
 	})
-	database.DB.Model(&models.User{}).Where("id = ?", sub.UserID).Update("membership", "Premium")
+	database.DB.Model(&models.User{}).Where("id = ?", sub.UserID).Updates(map[string]interface{}{
+		"membership":          "Premium",
+		"subscription_expiry": expiresAt,
+	})
 
 	// Promote to Admin only if their admin request was approved
 	var adminReq models.AdminRequest

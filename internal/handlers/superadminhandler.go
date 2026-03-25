@@ -449,7 +449,7 @@ func DeleteUser(ctx *gin.Context) {
 func GetAllUsers(ctx *gin.Context) {
 	var users []models.User
 
-	if err := database.DB.Find(&users).Error; err != nil {
+	if err := database.DB.Select("id, name, email, role, country, membership, created_at, updated_at").Find(&users).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
 		return
 	}
@@ -470,7 +470,7 @@ func GetUserByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var user models.User
 
-	if err := database.DB.First(&user, id).Error; err != nil {
+	if err := database.DB.Select("id, name, email, role, country, membership, created_at, updated_at").First(&user, id).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -672,7 +672,12 @@ func UpdateAdmin(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid password strength"})
 			return
 		}
-		admin.Password = input.Password
+		hashed, err := utils.HashPassword(input.Password)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+			return
+		}
+		admin.Password = hashed
 	}
 	if err := database.DB.Save(&admin).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update admin"})
@@ -737,7 +742,8 @@ func UpdateAdminPassword(ctx *gin.Context) {
 	var admin models.User
 
 	if payload.Password == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "the password field is reuired in order to update"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "the password field is required in order to update"})
+		return
 	}
 	if !utils.IsValidPassword(payload.Password) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid password strength"})
@@ -747,16 +753,17 @@ func UpdateAdminPassword(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Admin not found"})
 		return
 	}
+	hashedPassword, err := utils.HashPassword(payload.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+	admin.Password = hashedPassword
 	if err := database.DB.Save(&admin).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user password"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "updated succesfully",
-		"data": gin.H{
-			"user": admin,
-		},
-	})
+	ctx.JSON(http.StatusOK, gin.H{"message": "updated successfully"})
 }
 
 // GetBotsHandler godoc
@@ -1285,10 +1292,11 @@ func RecordTransaction(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, transaction)
 }
 
-// GetAllSubscribers returns all users with an admin subscription
+// GetAllSubscribers returns all users with an active or cancelled admin subscription
 func GetAllSubscribers(ctx *gin.Context) {
 	var subs []models.Subscription
-	if err := database.DB.Where("plan = ?", "admin").Order("created_at DESC").Find(&subs).Error; err != nil {
+	// Only show active and cancelled — pending means payment was never completed
+	if err := database.DB.Where("plan = ? AND status IN ?", "admin", []string{"active", "cancelled", "expired"}).Order("created_at DESC").Find(&subs).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch subscribers"})
 		return
 	}
@@ -1303,6 +1311,7 @@ func GetAllSubscribers(ctx *gin.Context) {
 			"status":          sub.Status,
 			"amount":          sub.Amount,
 			"started_at":      sub.StartedAt,
+			"expires_at":      sub.ExpiresAt,
 			"cancelled_at":    sub.CancelledAt,
 			"reference":       sub.Reference,
 			"user": gin.H{

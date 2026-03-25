@@ -19,7 +19,11 @@ COPY --from=builder /app/frontend ./frontend
 COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/swagger-ui ./swagger-ui
 
-RUN mkdir -p uploads sites
+RUN mkdir -p uploads sites && \
+    adduser -D -u 1001 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 3000
 

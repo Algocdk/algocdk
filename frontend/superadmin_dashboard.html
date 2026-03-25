@@ -725,11 +725,12 @@
                                     <th class="py-3 px-4">Status</th>
                                     <th class="py-3 px-4">Amount</th>
                                     <th class="py-3 px-4">Started</th>
+                                    <th class="py-3 px-4">Expires</th>
                                     <th class="py-3 px-4">Reference</th>
                                 </tr>
                             </thead>
                             <tbody id="subscribersTableBody">
-                                <tr><td colspan="7" class="text-center py-8"><div class="loading-spinner mx-auto"></div></td></tr>
+                                <tr><td colspan="8" class="text-center py-8"><div class="loading-spinner mx-auto"></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1297,11 +1298,21 @@
         function renderSubscribersTable(subscribers) {
             const tbody = document.getElementById('subscribersTableBody');
             if (!subscribers || subscribers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400">No subscribers found</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">No subscribers found</td></tr>`;
                 return;
             }
-            const statusColors = { active: 'text-success', cancelled: 'text-danger', pending: 'text-warning' };
-            tbody.innerHTML = subscribers.map(s => `
+            const fmtDate = d => {
+                if (!d) return '-';
+                const dt = new Date(d);
+                return dt.getFullYear() > 2000 ? dt.toLocaleDateString() : '-';
+            };
+            const statusColors = { active: 'text-success', cancelled: 'text-danger', expired: 'text-warning' };
+            tbody.innerHTML = subscribers.map(s => {
+                const expiresAt = s.expires_at ? new Date(s.expires_at) : null;
+                const isExpired = expiresAt && expiresAt.getFullYear() > 2000 && expiresAt < new Date();
+                const displayStatus = isExpired && s.status === 'active' ? 'expired' : s.status;
+                const daysLeft = expiresAt && !isExpired ? Math.ceil((expiresAt - new Date()) / 86400000) : 0;
+                return `
                 <tr class="border-b border-gray-700 hover:bg-gray-700/50">
                     <td class="py-3 px-4">
                         <div class="flex items-center">
@@ -1318,15 +1329,19 @@
                         }">${s.user?.role || 'user'}</span>
                     </td>
                     <td class="py-3 px-4">
-                        <span class="font-medium ${statusColors[s.status] || 'text-gray-400'} capitalize">
-                            <i class="fas fa-circle text-xs mr-1"></i>${s.status}
+                        <span class="font-medium ${statusColors[displayStatus] || 'text-gray-400'} capitalize">
+                            <i class="fas fa-circle text-xs mr-1"></i>${displayStatus}
                         </span>
                     </td>
-                    <td class="py-3 px-4 text-success font-medium">KSH ${(s.amount || 0).toLocaleString()}</td>
-                    <td class="py-3 px-4 text-gray-400 text-sm">${s.started_at ? new Date(s.started_at).toLocaleDateString() : '-'}</td>
+                    <td class="py-3 px-4 text-success font-medium">KES ${(s.amount || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4 text-gray-400 text-sm">${fmtDate(s.started_at)}</td>
+                    <td class="py-3 px-4 text-sm ${ isExpired ? 'text-danger' : daysLeft <= 7 ? 'text-warning' : 'text-success' }">
+                        ${fmtDate(s.expires_at)}
+                        ${!isExpired && daysLeft > 0 ? `<span class="text-xs text-gray-400 ml-1">(${daysLeft}d)</span>` : ''}
+                    </td>
                     <td class="py-3 px-4 text-gray-500 text-xs font-mono">${s.reference || '-'}</td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         }
 
         function logout() {
@@ -1495,6 +1510,7 @@
             
             // Load initial admin requests count
             loadAllRequests();
+            loadPendingRequests();
             
             // Close mobile sidebar when clicking outside
             document.addEventListener('click', (e) => {

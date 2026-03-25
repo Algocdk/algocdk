@@ -341,8 +341,12 @@ func UpdateProfile(ctx *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/user/delete_account/{id} [delete]
 func DeleteAccountHandler(ctx *gin.Context) {
-	id := ctx.Param("id")
-	if err := database.DB.Delete(&models.User{}, id).Error; err != nil {
+	userID := ctx.GetUint("user_id")
+	if userID == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	if err := database.DB.Delete(&models.User{}, userID).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete account"})
 		return
 	}
@@ -543,8 +547,7 @@ func ForgotPasswordHandler(ctx *gin.Context) {
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
-	resetLink := fmt.Sprintf("https://yourfrontend.com/reset-password?token=%s",
-		token)
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", os.Getenv("BASE_URL"), token)
 
 	go utils.SendResetEmail(user.Email, resetLink)
 	ctx.JSON(http.StatusOK, gin.H{

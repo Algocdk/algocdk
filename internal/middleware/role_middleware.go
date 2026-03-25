@@ -3,13 +3,14 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/keyadaniel56/algocdk/internal/database"
 	"github.com/keyadaniel56/algocdk/internal/models"
 )
 
-// AdminOnly ensures the authenticated user has an admin role
+// AdminOnly ensures the authenticated user has an admin role AND an active subscription
 func AdminOnly() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		userIDInterface, exists := ctx.Get("user_id")
@@ -40,7 +41,35 @@ func AdminOnly() gin.HandlerFunc {
 			return
 		}
 
-		// Set admin_id for handlers that need it
+		// Check subscription is active and not expired
+		var sub models.Subscription
+		if err := database.DB.Where("user_id = ? AND plan = ?", userID, "admin").First(&sub).Error; err != nil {
+			ctx.JSON(http.StatusPaymentRequired, gin.H{
+				"error": "subscription required",
+				"code":  "NO_SUBSCRIPTION",
+			})
+			ctx.Abort()
+			return
+		}
+
+		if sub.Status != "active" || (!sub.ExpiresAt.IsZero() && sub.ExpiresAt.Before(time.Now())) {
+			// Auto-mark as expired in DB if still showing active
+			if sub.Status == "active" {
+				database.DB.Model(&sub).Updates(map[string]interface{}{
+					"status":     "expired",
+					"updated_at": time.Now(),
+				})
+				database.DB.Model(&models.User{}).Where("id = ?", userID).Update("membership", "freemium")
+			}
+			ctx.JSON(http.StatusPaymentRequired, gin.H{
+				"error":      "subscription expired",
+				"code":       "SUBSCRIPTION_EXPIRED",
+				"expires_at": sub.ExpiresAt,
+			})
+			ctx.Abort()
+			return
+		}
+
 		ctx.Set("admin_id", userID)
 		ctx.Next()
 	}
