@@ -418,6 +418,14 @@ func ScreenShareWebSocket(c *gin.Context) {
 			}
 			database.DB.Create(&chatMsg)
 
+			// Create broadcast message with user info included
+			broadcastMsg := map[string]interface{}{
+				"type":     "chat",
+				"user_id":  user.ID,
+				"username": user.Name,
+				"message":  msg.Message,
+			}
+
 			// Broadcast to all
 			if room.adminConn != nil {
 				go func() {
@@ -427,7 +435,7 @@ func ScreenShareWebSocket(c *gin.Context) {
 						}
 					}()
 					room.adminMutex.Lock()
-					room.adminConn.WriteJSON(msg)
+					room.adminConn.WriteJSON(broadcastMsg)
 					room.adminMutex.Unlock()
 				}()
 			}
@@ -439,7 +447,7 @@ func ScreenShareWebSocket(c *gin.Context) {
 						}
 					}()
 					vc.mutex.Lock()
-					vc.conn.WriteJSON(msg)
+					vc.conn.WriteJSON(broadcastMsg)
 					vc.mutex.Unlock()
 				}(viewerConn)
 			}
