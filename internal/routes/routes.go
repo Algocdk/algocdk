@@ -387,6 +387,12 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/public-sites", func(c *gin.Context) {
 		c.File(frontendPath + "/public-sites.html")
 	})
+
+	// Site files - serve static sites from ./sites directory
+	router.Static("/sites", "./sites")
+
+	// Site viewer route (must be after static to handle direct file access)
+	router.GET("/site/:slug", handlers.ViewSiteHandler)
 	router.GET("/deriv-oauth", func(c *gin.Context) {
 		c.File(frontendPath + "/deriv-oauth.html")
 	})
@@ -413,8 +419,6 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/offline.html", frontendPath+"/offline.html")
 	router.Static("/icons", frontendPath+"/icons")
 
-	// Site viewer route
-	router.GET("/site/:slug", handlers.ViewSiteHandler)
 	// SPA fallback
 	// router.NoRoute(func(c *gin.Context) {
 	// 	c.File(frontendPath + "/index.html")
