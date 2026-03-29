@@ -3,13 +3,20 @@
   "short_name": "Algocdk",
   "description": "Advanced charting platform for traders & investors with AI-powered signals",
   "start_url": "/app.html",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#0A0E1A",
   "theme_color": "#FF4500",
-  "orientation": "any",
-  "scope": "/",
   "lang": "en",
+  "dir": "ltr",
   "categories": ["finance", "utilities", "productivity"],
+  "iarc_rating_id": "",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-192x192.svg",
@@ -24,10 +31,10 @@
       "purpose": "any"
     },
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -35,20 +42,27 @@
       "name": "Open Trading",
       "short_name": "Trading",
       "description": "Open the trading interface",
-      "url": "/app.html?view=trading"
+      "url": "/app.html?view=trading",
+      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
     },
     {
       "name": "AI Signals",
       "short_name": "Signals",
       "description": "View AI trading signals",
-      "url": "/app.html?view=signals"
+      "url": "/app.html?view=signals",
+      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
     },
     {
       "name": "My Bots",
       "short_name": "Bots",
       "description": "Manage your trading bots",
-      "url": "/app.html?view=bots"
+      "url": "/app.html?view=bots",
+      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
     }
   ],
-  "prefer_related_applications": false
+  "related_applications": [],
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 480
+  }
 }

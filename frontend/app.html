@@ -2,11 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0A0E1A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Algocdk">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Algocdk Trading">
+    <meta name="msapplication-TileColor" content="#0A0E1A">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="HandheldFriendly" content="true">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
+    <link rel="mask-icon" href="/icons/icon-maskable.svg" color="#FF4500">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
     <title>Algocdk Trading Platform</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    
+    <!-- PWA Manager -->
+    <script src="/pwa-manager.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -28,11 +55,86 @@
         }
     </script>
     <style>
+        /* PWA Mobile App-Like Styles */
+        :root {
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-left: env(safe-area-inset-left, 0px);
+            --safe-area-right: env(safe-area-inset-right, 0px);
+        }
+        
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #0D1421;
             color: #E2E8F0;
             overflow: hidden;
+            /* PWA safe area handling */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+        }
+        
+        /* PWA Installed Mode */
+        body.pwa-installed,
+        body.pwa-standalone {
+            overscroll-behavior-y: contain;
+        }
+        
+        /* Touch optimization */
+        button, a, [role="button"] {
+            -webkit-tap-highlight-color: rgba(255, 69, 0, 0.1);
+            touch-action: manipulation;
+        }
+        
+        @media (hover: none) {
+            button:active, a:active, [role="button"]:active {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+        
+        /* Safe area padding helpers */
+        .safe-area-top {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+        }
+        
+        /* Notch-aware layout */
+        .notch-aware {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        /* Home indicator spacing */
+        .home-indicator-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* App-like shadows */
+        .app-shadow {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Animations */
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .animate-scaleIn {
+            animation: scaleIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1);
         }
         
         /* Mobile First - Complete Redesign */
@@ -47,13 +149,17 @@
             /* Mobile navigation */
             nav {
                 padding: 8px 12px !important;
+                padding-top: max(8px, env(safe-area-inset-top)) !important;
+                padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
                 z-index: 1000 !important;
-                background: #0A0E1A !important;
-                border-bottom: 1px solid #374151 !important;
+                background: rgba(10, 14, 26, 0.95) !important;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(55, 65, 81, 0.5) !important;
             }
             
             nav .flex {

@@ -2,9 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0A0E1A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Algocdk">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Algocdk">
+    <meta name="msapplication-TileColor" content="#0A0E1A">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Favicon -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
+    <link rel="mask-icon" href="/icons/icon-maskable.svg" color="#FF4500">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Title -->
     <title>Algocdk - Charting Platform for Traders & Investors</title>
+    
+    <!-- PWA Manager -->
+    <script src="/pwa-manager.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -26,6 +51,102 @@
         }
     </script>
     <style>
+        /* PWA Mobile App-Like Styles */
+        :root {
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-left: env(safe-area-inset-left, 0px);
+            --safe-area-right: env(safe-area-inset-right, 0px);
+            --status-bar-height: 44px;
+            --home-indicator-height: 34px;
+        }
+        
+        /* App-like body styles for mobile - FIX: Allow scrolling */
+        @media (max-width: 768px) {
+            html {
+                height: 100%;
+                overflow: hidden;
+            }
+            
+            body {
+                height: 100%;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: auto;
+                padding-top: var(--safe-area-top) !important;
+                padding-bottom: var(--safe-area-bottom) !important;
+                padding-left: var(--safe-area-left) !important;
+                padding-right: var(--safe-area-right) !important;
+            }
+            
+            /* Prevent pull-to-refresh only when installed as PWA */
+            .pwa-standalone body,
+            body.pwa-installed {
+                overscroll-behavior-y: contain;
+            }
+        }
+        
+        /* iOS status bar handling */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            .ios-status-bar {
+                padding-top: env(safe-area-inset-top);
+            }
+        }
+        
+        /* Touch optimization for app-like feel */
+        button, a, [role="button"] {
+            -webkit-tap-highlight-color: rgba(255, 69, 0, 0.1);
+            touch-action: manipulation;
+        }
+        
+        /* Active state for touch */
+        @media (hover: none) {
+            button:active, a:active, [role="button"]:active {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+        
+        /* App-like scroll behavior */
+        .scroll-container {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        /* Safe area padding for bottom elements */
+        .safe-area-bottom {
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+        }
+        
+        /* Notch-aware layout */
+        .notch-aware {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        /* Home indicator spacing on iPhone X+ */
+        .home-indicator-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* App-like shadows */
+        .app-shadow {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .app-shadow-lg {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* App-like border radius */
+        .app-rounded {
+            border-radius: 12px;
+        }
+        
+        .app-rounded-lg {
+            border-radius: 16px;
+        }
+        
+        /* Animation keyframes */
         @keyframes slideDown {
             from { transform: translateY(-100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -42,9 +163,19 @@
             0% { transform: scale(1); opacity: 0.6; }
             100% { transform: scale(7); opacity: 0; }
         }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
         .animate-slideDown { animation: slideDown 0.6s ease-out; }
         .animate-fadeInUp { animation: fadeInUp 0.8s ease-out; }
         .animate-fadeInRight { animation: fadeInRight 0.9s ease-out 0.2s both; }
+        .animate-slideUp { animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .animate-scaleIn { animation: scaleIn 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
         .hero-bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; }
         .hero-bg-slide.active { opacity: 1; }
         .hero-bg-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(13, 17, 23, 0.88) 0%, rgba(13, 17, 23, 0.82) 100%); }
@@ -86,11 +217,15 @@
         #mobileCta {
             display: none;
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #0d1117;
-            border-top: 1px solid #21262d;
-            padding: 10px 16px env(safe-area-inset-bottom);
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
             z-index: 1500;
             gap: 10px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
         #mobileCta a {
             flex: 1; text-align: center; padding: 12px 8px;
