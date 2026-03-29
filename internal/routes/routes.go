@@ -278,7 +278,8 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/assets", frontendPath)
 	router.Static("/js", frontendPath)
 	router.Static("/images", frontendPath+"/images")
-	// NOTE: /uploads is NOT served statically - bot files are served through authenticated ServeBotHandler
+	// Serve uploads directory for user-uploaded images
+	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
 	router.StaticFile("/token-refresh-manager.js", frontendPath+"/token-refresh-manager.js")
