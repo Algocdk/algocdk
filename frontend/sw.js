@@ -12,9 +12,9 @@ const STATIC_ASSETS = [
   '/app.html',
   '/manifest.json',
   '/favicon.svg',
-  '/icons/icon-192x192.svg',
-  '/icons/icon-512x512.svg',
-  '/icons/icon-maskable.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/icon-maskable.png',
   '/offline.html',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'

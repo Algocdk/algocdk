@@ -2,10 +2,10 @@
   "name": "Algocdk Trading Platform",
   "short_name": "Algocdk",
   "description": "Advanced charting platform for traders & investors with AI-powered signals",
-  "start_url": "/app.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["standalone"],
   "orientation": "any",
   "background_color": "#0A0E1A",
   "theme_color": "#FF4500",
@@ -19,21 +19,21 @@
   },
   "icons": [
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.svg",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.svg",
+      "src": "/icons/icon-maskable.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -43,26 +43,23 @@
       "short_name": "Trading",
       "description": "Open the trading interface",
       "url": "/app.html?view=trading",
-      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
+      "icons": [{"src": "/icons/icon-192x192.png", "sizes": "192x192"}]
     },
     {
       "name": "AI Signals",
       "short_name": "Signals",
       "description": "View AI trading signals",
       "url": "/app.html?view=signals",
-      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
+      "icons": [{"src": "/icons/icon-192x192.png", "sizes": "192x192"}]
     },
     {
       "name": "My Bots",
       "short_name": "Bots",
       "description": "Manage your trading bots",
       "url": "/app.html?view=bots",
-      "icons": [{"src": "/icons/icon-192x192.svg", "sizes": "192x192"}]
+      "icons": [{"src": "/icons/icon-192x192.png", "sizes": "192x192"}]
     }
   ],
   "related_applications": [],
-  "handle_links": "preferred",
-  "edge_side_panel": {
-    "preferred_width": 480
-  }
+  "handle_links": "preferred"
 }

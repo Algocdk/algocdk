@@ -406,6 +406,13 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/indicator-loader.js", frontendPath+"/indicator-loader.js")
 	router.StaticFile("/indicator-renderer.js", frontendPath+"/indicator-renderer.js")
 
+	// PWA Files
+	router.StaticFile("/manifest.json", frontendPath+"/manifest.json")
+	router.StaticFile("/pwa-manager.js", frontendPath+"/pwa-manager.js")
+	router.StaticFile("/sw.js", frontendPath+"/sw.js")
+	router.StaticFile("/offline.html", frontendPath+"/offline.html")
+	router.Static("/icons", frontendPath+"/icons")
+
 	// Site viewer route
 	router.GET("/site/:slug", handlers.ViewSiteHandler)
 	// SPA fallback

@@ -1,6 +1,7 @@
 // PWA Manager v2 - Enhanced PWA Installation & App-like Experience
 class PWAManager {
   constructor() {
+    console.log('[PWA] Initializing PWA Manager...');
     this.deferredPrompt = null;
     this.updateAvailable = false;
     this.isInstalled = false;
@@ -9,6 +10,8 @@ class PWAManager {
   }
 
   init() {
+    console.log('[PWA] Running init...');
+    
     // Check standalone mode first
     this.checkStandaloneMode();
     
@@ -158,9 +161,7 @@ class PWAManager {
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     if (dismissed) {
       const threeDays = 3 * 24 * 60 * 60 * 1000;
-      if (Date.now() - parseInt(dismissed) < threeDays) {
-        return false;
-      }
+      if (Date.now() - parseInt(dismissed) < threeDays) return false;
     }
     
     return true;
@@ -168,7 +169,8 @@ class PWAManager {
 
   async installApp() {
     if (!this.deferredPrompt) {
-      // If no deferred prompt, try alternative install methods
+      // beforeinstallprompt hasn't fired yet
+      // Show desktop instructions
       this.showManualInstallInstructions();
       return false;
     }
@@ -198,19 +200,11 @@ class PWAManager {
   }
 
   showManualInstallInstructions() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
+    // Desktop Chrome installation instructions only
+    const title = 'Install App (Desktop)';
+    const message = 'To install on desktop Chrome:\n\n1. Look for the install icon (⬇️) in the address bar\n2. Click it to install\n\nOr:\n1. Press Ctrl+Shift+I to open DevTools\n2. Go to Application tab\n3. Click "Install" under PWA';
     
-    let message = '';
-    if (isIOS) {
-      message = 'To install on iOS:\n1. Tap the Share button (square with arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add"';
-    } else if (isAndroid) {
-      message = 'To install on Android:\n1. Tap the menu (3 dots)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install"';
-    } else {
-      message = 'To install on desktop:\n1. Click the install icon in your browser\'s address bar\n2. Or use Ctrl+Shift+I to open DevTools and install from there';
-    }
-    
-    this.showToast(message, 'info');
+    this.showToast(`${title}\n\n${message}`, 'info');
   }
 
   showInstallBanner() {
@@ -222,7 +216,7 @@ class PWAManager {
     banner.innerHTML = `
       <div class="pwa-banner-content">
         <div class="pwa-banner-icon">
-          <img src="/icons/icon-192x192.svg" alt="Algocdk" onerror="this.style.display='none'">
+          <img src="/icons/icon-192x192.png" alt="Algocdk" onerror="this.src='/icons/icon-192x192.svg'">
         </div>
         <div class="pwa-banner-text">
           <div class="pwa-banner-title">Install Algocdk</div>
@@ -566,38 +560,6 @@ class PWAManager {
       
       .pwa-toast.info {
         background: #3B82F6;
-      }
-      
-      /* App-like loading indicator */
-      .pwa-loading {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #0A0E1A;
-        z-index: 100001;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s;
-      }
-      
-      .pwa-loading.visible {
-        opacity: 1;
-        pointer-events: all;
-      }
-      
-      .pwa-loading-spinner {
-        width: 48px;
-        height: 48px;
-        border: 3px solid rgba(255, 69, 0, 0.2);
-        border-top-color: #FF4500;
-        border-radius: 50%;
-        animation: pwa-spin 1s linear infinite;
-      }
-      
-      @keyframes pwa-spin {
-        to { transform: rotate(360deg); }
       }
       
       /* Responsive adjustments for install banner */
