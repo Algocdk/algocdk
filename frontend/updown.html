@@ -34,7 +34,7 @@ body{background:#0D1421;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 #pane2Label{position:absolute;top:5px;left:8px;font-size:10px;color:#64748b;z-index:10;pointer-events:none;background:rgba(10,14,26,.7);padding:1px 5px;border-radius:3px}
 #resizeBar{height:5px;background:#1E293B;cursor:ns-resize;flex-shrink:0;transition:background .2s}
 #resizeBar:hover{background:#FF4500}
-#drawCanvas{position:absolute;top:0;left:0;pointer-events:none;z-index:50}
+#drawCanvas{position:absolute;top:0;left:0;pointer-events:none;z-index:100}
 #drawCanvas.drawing{pointer-events:all;cursor:crosshair}
 #ohlcBar{position:absolute;top:6px;left:8px;z-index:30;font-size:11px;pointer-events:none;display:flex;gap:10px;background:rgba(10,14,26,.6);padding:2px 8px;border-radius:4px}
 .ohlc-item{display:flex;gap:3px;align-items:center}
@@ -429,6 +429,8 @@ const PANE2_INDS = new Set(['rsi','macd','stoch','volume','atr','cci','willr','m
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initCanvas();
+  // Re-sync canvas size after chart renders
+  setTimeout(() => { resizeCanvas(); redrawCanvas(); }, 300);
   initResizeBar();
   connectWebSocket();
   updateCalculations();
@@ -1329,17 +1331,35 @@ function initCanvas() {
   drawCanvas = document.getElementById('drawCanvas');
   drawCtx = drawCanvas.getContext('2d');
   resizeCanvas();
+  // Mouse events
   drawCanvas.addEventListener('mousedown', onDrawDown);
   drawCanvas.addEventListener('mousemove', onDrawMove);
   drawCanvas.addEventListener('mouseup',   onDrawUp);
+  drawCanvas.addEventListener('mouseleave', e => { if (drawingIP) { onDrawUp(e); } });
   drawCanvas.addEventListener('contextmenu', e => { e.preventDefault(); cancelDraw(); });
+  // Touch events for mobile
+  drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDrawDown(touchToMouse(e)); }, { passive: false });
+  drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMove(touchToMouse(e)); }, { passive: false });
+  drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawUp(touchToMouse(e));   }, { passive: false });
+}
+function touchToMouse(e) {
+  const t = e.touches[0] || e.changedTouches[0];
+  return { clientX: t.clientX, clientY: t.clientY };
 }
 function resizeCanvas() {
-  const el = document.getElementById('mainChart');
-  drawCanvas.width  = el.offsetWidth  || 800;
-  drawCanvas.height = el.offsetHeight || 400;
-  drawCanvas.style.width  = drawCanvas.width  + 'px';
-  drawCanvas.style.height = drawCanvas.height + 'px';
+  const wrap = document.getElementById('chartWrap');
+  const mainEl = document.getElementById('mainChart');
+  if (!wrap || !mainEl) return;
+  const w = mainEl.offsetWidth  || wrap.clientWidth  || 800;
+  const h = mainEl.offsetHeight || 400;
+  if (w === 0 || h === 0) return; // skip if not yet laid out
+  drawCanvas.width  = w;
+  drawCanvas.height = h;
+  drawCanvas.style.width  = w + 'px';
+  drawCanvas.style.height = h + 'px';
+  // Position canvas to overlay exactly the mainChart element
+  drawCanvas.style.top  = mainEl.offsetTop  + 'px';
+  drawCanvas.style.left = mainEl.offsetLeft + 'px';
 }
 function setDrawTool(tool, btn) {
   drawTool = tool;

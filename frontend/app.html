@@ -289,22 +289,12 @@
             
             /* Mobile tools button */
             #mobileToolsBtn {
-                display: block !important;
-                position: fixed !important;
-                bottom: 50vh !important;
-                right: 8px !important;
-                z-index: 150 !important;
-                background: #FF4500 !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 50% !important;
-                width: 48px !important;
-                height: 48px !important;
-                font-size: 20px !important;
-                box-shadow: 0 4px 12px rgba(255,69,0,0.4) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             
-            /* Show controls when mobile panel is active */
+            /* Show controls when mobile panel is active - legacy, kept for compat */
             body.mobile-tools-active #drawingTool,
             body.mobile-tools-active #drawingColor,
             body.mobile-tools-active #lineStyle,
@@ -314,7 +304,7 @@
             body.mobile-tools-active #alertBtn,
             body.mobile-tools-active #screenshotBtn,
             body.mobile-tools-active #indicators {
-                display: inline-block !important;
+                display: none !important;
             }
             
             /* Hide chart info panel on mobile */
@@ -447,7 +437,24 @@
             #mobileToolsBtn {
                 display: none !important;
             }
+            #mobileToolsSheet, #mobileSheetBackdrop { display: none !important; }
         }
+
+        .mob-ind-btn {
+            background: #1E293B;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            transition: background .15s, border-color .15s;
+            width: 100%;
+        }
+        .mob-ind-btn:active { background: #FF4500 !important; border-color: #FF4500 !important; color: #fff !important; }
+
         
         @media (min-width: 769px) and (max-width: 1024px) {
             .w-80:first-child {
@@ -1477,7 +1484,7 @@
         let SYMBOL = localStorage.getItem('currentSymbol') || "R_100";
         let TIMEFRAME = parseInt(localStorage.getItem('currentTimeframe')) || 60;
         const MAX_CANDLES = 5000;
-        const DERIV_APP_ID = '1089'; // public demo app ID
+        const DERIV_APP_ID = '63623'; // Deriv app ID
 
         /* ================= STATE ================= */
         let candles = [];
@@ -1733,11 +1740,15 @@
         });
 
         /* ================= WS ================= */
+        let _connectRetries = 0;
+        const _maxRetries = 5;
+
         function connect() {
             if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
             ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
             ws.onopen = () => {
+                _connectRetries = 0; // reset on successful connect
                 ws.send(JSON.stringify({
                     ticks_history: SYMBOL,
                     style: "candles",
@@ -1761,9 +1772,31 @@
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
                 if (d.error) {
-                    console.error('Deriv API Error:', d.error);
+                    const code = d.error.code || '';
+                    // Ignore non-critical subscription errors
+                    if (code === 'AlreadySubscribed') return;
+                    console.warn('Deriv API Error:', d.error);
                     hideLoading();
-                    showNotification(`Error loading ${SYMBOL}: ${d.error.message}`, 'error');
+                    // Transient server errors — retry silently up to _maxRetries times
+                    const isTransient = code === 'InternalServerError' ||
+                        d.error.message.toLowerCase().includes('sorry') ||
+                        d.error.message.toLowerCase().includes('error occurred') ||
+                        d.error.message.toLowerCase().includes('processing your request');
+                    if (isTransient && _connectRetries < _maxRetries) {
+                        _connectRetries++;
+                        const delay = Math.min(1000 * _connectRetries, 5000);
+                        console.warn(`Transient error, retrying in ${delay}ms (attempt ${_connectRetries}/${_maxRetries})...`);
+                        setTimeout(() => {
+                            if (ws) { ws.onclose = null; ws.close(); }
+                            connect();
+                        }, delay);
+                        return;
+                    }
+                    // Only surface the error to the user after retries are exhausted
+                    if (_connectRetries >= _maxRetries) {
+                        showNotification(`Error loading ${SYMBOL}: ${d.error.message}`, 'error');
+                        _connectRetries = 0;
+                    }
                     return;
                 }
 
@@ -1810,6 +1843,7 @@
         }
 
         function restart() {
+            _connectRetries = 0;
             if (ws) ws.close();
             candles = [];
             currentCandle = null;
@@ -3358,7 +3392,7 @@ async function initializeAccountDisplay() {
 
 
         
-        const DERIV_APP_ID = '63623'; // Your Deriv app ID
+        // DERIV_APP_ID already declared above (63623)
         let tokenRefreshInterval = null;
         
         // Refresh tokens every 30 minutes
@@ -4751,12 +4785,38 @@ async function initializeAccountDisplay() {
         
         /* ================= MOBILE TOOLS ================= */
         function toggleMobileTools() {
-            document.body.classList.toggle('mobile-tools-active');
-            const btn = document.getElementById('mobileToolsBtn');
-            const isActive = document.body.classList.contains('mobile-tools-active');
-            btn.innerHTML = isActive ? '<i class="fas fa-times"></i>' : '<i class="fas fa-tools"></i>';
-            btn.style.background = isActive ? '#FF4444' : '#FF4500';
+            const sheet = document.getElementById('mobileToolsSheet');
+            const backdrop = document.getElementById('mobileSheetBackdrop');
+            const isOpen = sheet.style.display !== 'none';
+            if (isOpen) {
+                closeMobileToolsSheet();
+            } else {
+                sheet.style.display = 'block';
+                backdrop.style.display = 'block';
+                const btn = document.getElementById('mobileToolsBtn');
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+                btn.style.background = '#FF4444';
+            }
         }
+
+        function closeMobileToolsSheet() {
+            document.getElementById('mobileToolsSheet').style.display = 'none';
+            document.getElementById('mobileSheetBackdrop').style.display = 'none';
+            const btn = document.getElementById('mobileToolsBtn');
+            btn.innerHTML = '<i class="fas fa-tools"></i>';
+            btn.style.background = '#FF4500';
+        }
+
+        function addIndicatorMobile(type) {
+            // Trigger the same addIndicator logic used by the desktop select
+            const select = document.getElementById('indicators');
+            if (select) {
+                select.value = type;
+                select.dispatchEvent(new Event('change'));
+            }
+            closeMobileToolsSheet();
+        }
+
         
         /* ================= MARKET WATCH TOGGLE ================= */
         function toggleMarketWatch() {
@@ -4885,6 +4945,90 @@ async function initializeAccountDisplay() {
     <script src="/api.js"></script>
     <script src="/token-refresh-manager.js"></script>
     <script src="/offline-detector.js"></script>
+
+    <!-- Mobile FAB Tools Button — outside all stacking contexts -->
+    <button id="mobileToolsBtn" onclick="toggleMobileTools()" title="Toggle Tools"
+        style="display:none;position:fixed;bottom:calc(50vh);right:8px;z-index:1500;
+               background:#FF4500;color:#fff;border:none;border-radius:50%;
+               width:48px;height:48px;font-size:20px;cursor:pointer;
+               box-shadow:0 4px 12px rgba(255,69,0,.5);">
+        <i class="fas fa-tools"></i>
+    </button>
+
+    <!-- Mobile sheet backdrop -->
+    <div id="mobileSheetBackdrop" onclick="closeMobileToolsSheet()"
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1600;"></div>
+
+    <!-- Mobile Tools Bottom Sheet -->
+    <div id="mobileToolsSheet"
+        style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1700;
+               background:#0f1923;border-top:2px solid #FF4500;
+               border-radius:16px 16px 0 0;padding:16px 16px 32px;
+               max-height:82vh;overflow-y:auto;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:15px;font-weight:700;color:#fff">
+                <i class="fas fa-tools" style="color:#FF4500;margin-right:8px"></i>Chart Tools
+            </span>
+            <button onclick="closeMobileToolsSheet()"
+                style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Indicators -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Add Indicator
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="addIndicatorMobile('sma20')"  class="mob-ind-btn">SMA 20</button>
+                <button onclick="addIndicatorMobile('sma50')"  class="mob-ind-btn">SMA 50</button>
+                <button onclick="addIndicatorMobile('sma100')" class="mob-ind-btn">SMA 100</button>
+                <button onclick="addIndicatorMobile('ema20')"  class="mob-ind-btn">EMA 20</button>
+                <button onclick="addIndicatorMobile('ema50')"  class="mob-ind-btn">EMA 50</button>
+                <button onclick="addIndicatorMobile('bb')"     class="mob-ind-btn">Bollinger Bands</button>
+                <button onclick="addIndicatorMobile('rsi')"    class="mob-ind-btn">RSI</button>
+                <button onclick="addIndicatorMobile('macd')"   class="mob-ind-btn">MACD</button>
+                <button onclick="addIndicatorMobile('stoch')"  class="mob-ind-btn">Stochastic</button>
+                <button onclick="addIndicatorMobile('atr')"    class="mob-ind-btn">ATR</button>
+            </div>
+        </div>
+
+        <!-- Chart Type -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Chart Type
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="setChartType('candles');closeMobileToolsSheet()" class="mob-ind-btn"><i class="fas fa-chart-bar" style="margin-right:5px"></i>Candles</button>
+                <button onclick="setChartType('line');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-chart-line" style="margin-right:5px"></i>Line</button>
+                <button onclick="setChartType('area');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-mountain" style="margin-right:5px"></i>Area</button>
+                <button onclick="setChartType('bars');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-align-left" style="margin-right:5px"></i>Bars</button>
+            </div>
+        </div>
+
+        <!-- Drawing Tools -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Drawing Tools
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="setDrawingTool('line');closeMobileToolsSheet()"       class="mob-ind-btn"><i class="fas fa-slash" style="margin-right:5px"></i>Trend Line</button>
+                <button onclick="setDrawingTool('horizontal');closeMobileToolsSheet()" class="mob-ind-btn"><i class="fas fa-minus" style="margin-right:5px"></i>H. Line</button>
+                <button onclick="setDrawingTool('vertical');closeMobileToolsSheet()"   class="mob-ind-btn"><i class="fas fa-grip-lines-vertical" style="margin-right:5px"></i>V. Line</button>
+                <button onclick="setDrawingTool('rectangle');closeMobileToolsSheet()"  class="mob-ind-btn"><i class="far fa-square" style="margin-right:5px"></i>Rectangle</button>
+                <button onclick="setDrawingTool('fibonacci');closeMobileToolsSheet()"  class="mob-ind-btn">Fibonacci</button>
+                <button onclick="clearAllDrawings();closeMobileToolsSheet()" class="mob-ind-btn" style="color:#f87171;"><i class="fas fa-eraser" style="margin-right:5px"></i>Clear All</button>
+            </div>
+        </div>
+
+        <!-- Misc -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="toggleAlerts();closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-bell" style="margin-right:5px;color:#fbbf24"></i>Alerts</button>
+            <button onclick="takeScreenshot();closeMobileToolsSheet()"  class="mob-ind-btn"><i class="fas fa-camera" style="margin-right:5px"></i>Screenshot</button>
+        </div>
+    </div>
 </body>
 
 </html>
