@@ -1998,6 +1998,20 @@
         }
 
 
+        // Redirect to /app if token is still valid
+        (function() {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt_token');
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    if (payload.exp && payload.exp * 1000 > Date.now()) {
+                        window.location.replace('/app');
+                        return;
+                    }
+                } catch (e) {}
+            }
+        })();
+
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', () => {
             window.marketSlideshow = new MarketSlideshow();
