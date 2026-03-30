@@ -1209,7 +1209,7 @@
             <!-- Strategy -->
             <div style="margin-bottom:16px;">
                 <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;margin-bottom:8px;">Strategy</div>
-                <select class="sheet-select" id="mobileStrategySelect" onchange="document.getElementById('strategySelect').value=this.value;document.getElementById('strategySelect').dispatchEvent(new Event('change'));" style="margin-bottom:10px;">
+                <select class="sheet-select" id="mobileStrategySelect" onchange="applyStrategy(this.value);document.getElementById('strategySelect').value=this.value;" style="margin-bottom:10px;">
                     <option value="">— No Strategy —</option>
                     <option value="ma_cross">MA Crossover</option>
                     <option value="rsi_reversal">RSI Reversal</option>
@@ -3644,10 +3644,265 @@
                 return;
             }
 
-            // Responsive padding based on screen size
             const isMobile = window.innerWidth <= 768;
-            const pad = isMobile ? 40 : 70;
-            const w = canvas.width - pad * 2;
+            const pad = isMobile ? 44 : 72;
+            const rightPad = isMobile ? 60 : 80; // wider right for price axis
+            const w = canvas.width - pad - rightPad;
+
+            const hasWindow2Indicators = indicators.some(ind => 
+                ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type)
+            );
+            
+            let indicatorPanelHeight = 0;
+            if (hasWindow2Indicators) {
+                const defaultHeight = isMobile ? 100 : 180;
+                const actualWindow2Height = window2Height || defaultHeight;
+                indicatorPanelHeight = actualWindow2Height + 8;
+            }
+            
+            let h;
+            if (mainChartHeight) {
+                h = mainChartHeight;
+            } else {
+                h = canvas.height - pad * 2 - indicatorPanelHeight;
+            }
+
+            // ── Background ──────────────────────────────────────────────
+            ctx.fillStyle = '#0A0E1A';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // ── Candle spacing ───────────────────────────────────────────
+            const baseCandleSpacing = isMobile ? 4 : 6;
+            const candleSpacing = baseCandleSpacing * zoom;
+            const visible = Math.floor(w / candleSpacing);
+            const start = Math.max(0, data.length - visible - Math.floor(offset));
+            const view = data.slice(start, start + visible);
+
+            const max = Math.max(...view.map(c => c.high));
+            const min = Math.min(...view.map(c => c.low));
+            const range = max - min || 1;
+            // Add 5% padding top/bottom
+            const paddedMin = min - range * 0.05;
+            const paddedMax = max + range * 0.05;
+            const paddedRange = paddedMax - paddedMin;
+            const y = p => pad + h - ((p - paddedMin) / paddedRange) * h;
+
+            // ── Grid ─────────────────────────────────────────────────────
+            const labelCount = isMobile ? 4 : 6;
+            for (let i = 0; i <= labelCount; i++) {
+                const gy = pad + (h / labelCount) * i;
+                ctx.strokeStyle = '#0c1220';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad, gy);
+                ctx.lineTo(pad + w, gy);
+                ctx.stroke();
+            }
+
+            // Vertical grid lines (time)
+            const vGridInterval = Math.max(1, Math.floor(visible / (isMobile ? 4 : 6)));
+            for (let i = 0; i < view.length; i += vGridInterval) {
+                const x = pad + i * candleSpacing + candleSpacing / 2;
+                ctx.strokeStyle = '#0c1220';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, pad);
+                ctx.lineTo(x, pad + h);
+                ctx.stroke();
+            }
+
+            // ── Right price axis panel ────────────────────────────────────
+            ctx.fillStyle = '#0A0E1A';
+            ctx.fillRect(pad + w, 0, rightPad, canvas.height);
+            ctx.strokeStyle = '#1E293B';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad + w, 0);
+            ctx.lineTo(pad + w, canvas.height);
+            ctx.stroke();
+
+            // ── Price labels ──────────────────────────────────────────────
+            const decimals = isMobile ? 3 : 5;
+            ctx.font = isMobile ? '10px Arial' : '11px Arial';
+            ctx.textAlign = 'left';
+            for (let i = 0; i <= labelCount; i++) {
+                const price = paddedMin + (paddedRange * (labelCount - i) / labelCount);
+                const gy = pad + (h / labelCount) * i;
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(price.toFixed(decimals), pad + w + 6, gy + 4);
+            }
+
+            // ── Time labels ───────────────────────────────────────────────
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = isMobile ? '9px Arial' : '11px Arial';
+            ctx.textAlign = 'center';
+            const timeInterval = Math.max(1, Math.floor(visible / (isMobile ? 4 : 6)));
+            view.forEach((c, i) => {
+                if (i % timeInterval !== 0) return;
+                const x = pad + i * candleSpacing + candleSpacing / 2;
+                const date = new Date(c.time * 1000);
+                let label;
+                if (TIMEFRAME >= 86400) {
+                    label = date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+                } else if (TIMEFRAME >= 3600) {
+                    label = date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    label = date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+                }
+                ctx.fillText(label, x, pad + h + 14);
+            });
+
+            // ── Resize handle ─────────────────────────────────────────────
+            const handleY = pad + h;
+            ctx.fillStyle = '#1E293B';
+            ctx.fillRect(pad, handleY - 3, w, 5);
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(pad + w / 2 - 16, handleY - 1, 32, 2);
+            window.mainChartResizeHandle = { x: pad, y: handleY - 3, width: w, height: 5 };
+
+            // ── Draw candles ──────────────────────────────────────────────
+            drawChart(view, pad, candleSpacing, y, h);
+
+            // ── Current price line ────────────────────────────────────────
+            const latestCandle = currentCandle || view[view.length - 1];
+            if (latestCandle) {
+                const lp = latestCandle.close;
+                const priceY = y(lp);
+                const isUp = lp >= latestCandle.open;
+                const lineColor = isUp ? '#00c176' : '#ff4d4f';
+
+                // Dashed line
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = lineColor + '99';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad, priceY);
+                ctx.lineTo(pad + w, priceY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Price label on right axis
+                const priceText = lp.toFixed(decimals);
+                ctx.font = `bold ${isMobile ? 10 : 11}px "Courier New"`;
+                const tw = ctx.measureText(priceText).width;
+                const lbW = tw + 10;
+                const lbH = isMobile ? 16 : 18;
+                const lbX = pad + w + 1;
+                const lbY = priceY - lbH / 2;
+
+                ctx.fillStyle = lineColor;
+                ctx.beginPath();
+                ctx.roundRect ? ctx.roundRect(lbX, lbY, lbW, lbH, 3) : ctx.rect(lbX, lbY, lbW, lbH);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'left';
+                ctx.fillText(priceText, lbX + 5, priceY + 4);
+            }
+
+            // ── Volume bars ───────────────────────────────────────────────
+            if (showVolume) drawVolume(view, pad, candleSpacing, h, pad);
+
+            // ── Market regime ─────────────────────────────────────────────
+            if (showRegime) drawMarketRegime(data);
+
+            // ── Indicators ────────────────────────────────────────────────
+            if (indicators.length > 0) {
+                const fullData = [...candles];
+                if (currentCandle) fullData.push(currentCandle);
+                indicators.forEach(ind => {
+                    ctx.strokeStyle = ind.color;
+                    ctx.lineWidth = 1.5;
+                    if (ind.type === 'ma') {
+                        const ma = ind.maType === 'SMA' ?
+                            calculateSMA(fullData, ind.params.period) :
+                            calculateEMA(fullData, ind.params.period);
+                        drawLine(ma.slice(start, start + visible), candleSpacing, y, pad);
+                    } else if (ind.type === 'bb') {
+                        const bb = calculateBB(fullData, ind.params.period, ind.params.std);
+                        drawBB(bb.slice(start, start + visible), candleSpacing, y, ind.color, pad);
+                    } else if (ind.type === 'rsi') {
+                        const rsi = calculateRSI(fullData, ind.params.period);
+                        drawOscillator(rsi.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'RSI');
+                    } else if (ind.type === 'macd') {
+                        const macd = calculateMACD(fullData, ind.params.fast, ind.params.slow, ind.params.signal);
+                        drawMACD(macd, start, visible, candleSpacing, pad, view.length, ind);
+                    } else if (ind.type === 'stoch') {
+                        const stoch = calculateStochastic(fullData, ind.params.k, ind.params.d);
+                        drawOscillator(stoch.k.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'Stochastic', stoch.d.slice(start, start + visible));
+                    } else if (ind.type === 'atr') {
+                        const atr = calculateATR(fullData, ind.params.period);
+                        drawOscillator(atr.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'ATR');
+                    } else if (ind.type.startsWith('custom_') && ind.custom) {
+                        try {
+                            const result = ind.custom.calculate(fullData, ind.params);
+                            if (result && result.length) {
+                                ctx.lineWidth = 1;
+                                if (ind.params?.window === 1) {
+                                    ind.custom.draw(ctx, result.slice(start, start + visible), pad, candleSpacing, y, ind.params);
+                                } else {
+                                    drawOscillator(result.slice(start, start + visible), candleSpacing, pad, view.length, ind, ind.custom.name || 'Custom');
+                                }
+                            }
+                        } catch(e) { console.error('Custom indicator error:', e); }
+                    } else if (ind.type.startsWith('user_') && ind.custom) {
+                        try {
+                            const result = ind.custom.calculate(fullData, ind.params);
+                            if (result && result.length) {
+                                ctx.lineWidth = 1;
+                                if (ind.params?.window === 1) {
+                                    ind.custom.draw(ctx, result.slice(start, start + visible), pad, candleSpacing, y, ind.params);
+                                } else {
+                                    drawOscillator(result.slice(start, start + visible), candleSpacing, pad, view.length, ind, ind.custom.name || 'Custom');
+                                }
+                            }
+                        } catch(e) { console.error('User indicator error:', e); }
+                    }
+                });
+            }
+
+            // ── MA Crossover strategy lines ───────────────────────────────
+            if (activeStrategy === 'ma_cross') {
+                const fullData = [...candles];
+                if (currentCandle) fullData.push(currentCandle);
+                const params = strategyParams.ma_cross;
+                ctx.strokeStyle = '#00c176';
+                ctx.lineWidth = 1.5;
+                const fastMA = params.maType === 'SMA' ? calculateSMA(fullData, params.fastPeriod) : calculateEMA(fullData, params.fastPeriod);
+                drawLine(fastMA.slice(start, start + visible), candleSpacing, y, pad);
+                ctx.strokeStyle = '#ff4d4f';
+                ctx.lineWidth = 1.5;
+                const slowMA = params.maType === 'SMA' ? calculateSMA(fullData, params.slowPeriod) : calculateEMA(fullData, params.slowPeriod);
+                drawLine(slowMA.slice(start, start + visible), candleSpacing, y, pad);
+                for (let i = 1; i < visible; i++) {
+                    const idx = start + i;
+                    if (fastMA[idx] && slowMA[idx] && fastMA[idx-1] && slowMA[idx-1]) {
+                        const x = pad + i * candleSpacing + candleSpacing / 2;
+                        if (fastMA[idx-1] <= slowMA[idx-1] && fastMA[idx] > slowMA[idx]) {
+                            ctx.fillStyle = '#00c176';
+                            ctx.beginPath(); ctx.arc(x, y(fastMA[idx]), 5, 0, Math.PI * 2); ctx.fill();
+                            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                        }
+                        if (fastMA[idx-1] >= slowMA[idx-1] && fastMA[idx] < slowMA[idx]) {
+                            ctx.fillStyle = '#ff4d4f';
+                            ctx.beginPath(); ctx.arc(x, y(fastMA[idx]), 5, 0, Math.PI * 2); ctx.fill();
+                            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            // ── Watermark ─────────────────────────────────────────────────
+            drawLogo();
+
+            // ── Strategy signals ──────────────────────────────────────────
+            if (activeStrategy && strategySignals.length > 0) drawStrategySignals();
+
+            // ── Drawings ──────────────────────────────────────────────────
+            drawObjects();
+
+            // ── Crosshair ─────────────────────────────────────────────────
+            drawCrosshair();
+        }
             
             // Check if we have window 2 indicators (RSI, MACD, Stoch, ATR)
             const hasWindow2Indicators = indicators.some(ind => 
@@ -3670,242 +3925,6 @@
             } else {
                 h = canvas.height - pad * 2 - indicatorPanelHeight;
             }
-            console.log('Main chart height:', h, 'Indicator panel height:', indicatorPanelHeight, 'Total canvas:', canvas.height);
-            
-            // Draw main chart resize handle with gradient
-            const handleY = pad + h;
-            const handleHeight = 8;
-            const handleGradient = ctx.createLinearGradient(0, handleY - handleHeight / 2, 0, handleY + handleHeight / 2);
-            handleGradient.addColorStop(0, "#FF4500");
-            handleGradient.addColorStop(0.5, "#FF6347");
-            handleGradient.addColorStop(1, "#FF4500");
-            ctx.fillStyle = handleGradient;
-            ctx.fillRect(pad, handleY - handleHeight / 2, w, handleHeight);
-            
-            // Store handle bounds for interaction
-            window.mainChartResizeHandle = { x: pad, y: handleY - handleHeight / 2, width: w, height: handleHeight };
-            
-            // Draw resize icon
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 10px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("⋮⋮⋮", canvas.width / 2, handleY + 1);
-
-            // Responsive candle spacing
-            const baseCandleSpacing = isMobile ? 4 : 6;
-            const candleSpacing = baseCandleSpacing * zoom;
-            const visible = Math.floor(w / candleSpacing);
-            const start = Math.max(0, data.length - visible - Math.floor(offset));
-            const view = data.slice(start, start + visible);
-
-            const max = Math.max(...view.map(c => c.high));
-            const min = Math.min(...view.map(c => c.low));
-            const range = max - min || 1;
-            const y = p => pad + h - ((p - min) / range) * h;
-
-            // Grid
-            ctx.strokeStyle = "#1f2430";
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= 5; i++) {
-                const gy = pad + (h / 5) * i;
-                ctx.beginPath();
-                ctx.moveTo(pad, gy);
-                ctx.lineTo(canvas.width - pad, gy);
-                ctx.stroke();
-            }
-
-            // Draw candles
-            drawChart(view, pad, candleSpacing, y, h);
-            
-            // Draw current price line
-            if (currentCandle) {
-                const currentPrice = currentCandle.close;
-                const priceY = y(currentPrice);
-                
-                // Horizontal price line
-                ctx.setLineDash([5, 5]);
-                ctx.strokeStyle = currentPrice >= currentCandle.open ? '#00c176' : '#ff4d4f';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(pad, priceY);
-                ctx.lineTo(canvas.width - pad, priceY);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                
-                // Price label box
-                const priceText = currentPrice.toFixed(5);
-                ctx.font = 'bold 12px Arial';
-                const textWidth = ctx.measureText(priceText).width;
-                const labelX = canvas.width - pad - textWidth - 16;
-                const labelY = priceY - 12;
-                
-                ctx.fillStyle = currentPrice >= currentCandle.open ? '#00c176' : '#ff4d4f';
-                ctx.fillRect(labelX, labelY, textWidth + 12, 20);
-                
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'left';
-                ctx.fillText(priceText, labelX + 6, priceY + 4);
-            }
-            
-            // Draw volume bars
-            if (showVolume) {
-                drawVolume(view, pad, candleSpacing, h, pad);
-            }
-            
-            // Draw market regime
-            if (showRegime) {
-                drawMarketRegime(data);
-            }
-            
-            // Draw indicators
-            if (indicators.length > 0) {
-                console.log('Drawing indicators, count:', indicators.length);
-                const fullData = [...candles];
-                if (currentCandle) fullData.push(currentCandle);
-                
-                indicators.forEach(ind => {
-                    console.log('Processing indicator:', ind.type);
-                    ctx.strokeStyle = ind.color;
-                    ctx.lineWidth = 2;
-                    
-                    if (ind.type === 'ma') {
-                        const ma = ind.maType === 'SMA' ? 
-                            calculateSMA(fullData, ind.params.period) : 
-                            calculateEMA(fullData, ind.params.period);
-                        drawLine(ma.slice(start, start + visible), candleSpacing, y, pad);
-                    }
-                    else if (ind.type === 'bb') {
-                        const bb = calculateBB(fullData, ind.params.period, ind.params.std);
-                        drawBB(bb.slice(start, start + visible), candleSpacing, y, ind.color, pad);
-                    }
-                    else if (ind.type === 'rsi') {
-                        const rsi = calculateRSI(fullData, ind.params.period);
-                        console.log('Drawing RSI, values:', rsi.slice(start, start + visible).filter(v => v !== null).length);
-                        drawOscillator(rsi.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'RSI');
-                    }
-                    else if (ind.type === 'macd') {
-                        const macd = calculateMACD(fullData, ind.params.fast, ind.params.slow, ind.params.signal);
-                        drawMACD(macd, start, visible, candleSpacing, pad, view.length, ind);
-                    }
-                    else if (ind.type === 'stoch') {
-                        const stoch = calculateStochastic(fullData, ind.params.k, ind.params.d);
-                        drawOscillator(stoch.k.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'Stochastic', stoch.d.slice(start, start + visible));
-                    }
-                    else if (ind.type === 'atr') {
-                        const atr = calculateATR(fullData, ind.params.period);
-                        drawOscillator(atr.slice(start, start + visible), candleSpacing, pad, view.length, ind, 'ATR');
-                    }
-                    else if (ind.type.startsWith('custom_') && ind.custom) {
-                        try {
-                            const result = ind.custom.calculate(fullData, ind.params);
-                            const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
-                            ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
-                        } catch (error) {
-                            console.error('Custom indicator error:', error);
-                            indicators = indicators.filter(i => i.id !== ind.id);
-                            updateIndicatorTags();
-                        }
-                    }
-                    else if (ind.type.startsWith('user_') && ind.custom) {
-                        try {
-                            const result = ind.custom.calculate(fullData, ind.params);
-                            const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
-                            ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
-                        } catch (error) {
-                            console.error('User indicator error:', error);
-                            indicators = indicators.filter(i => i.id !== ind.id);
-                            updateIndicatorTags();
-                        }
-                    }
-                    else if (ind.type.startsWith('user_')) {
-                        // Indicator loaded from localStorage but custom object not available yet
-                        // Try to get it from customIndicators Map
-                        const customInd = customIndicators.get(ind.type);
-                        if (customInd) {
-                            ind.custom = customInd;
-                            try {
-                                const result = customInd.calculate(fullData, ind.params);
-                                const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
-                                customInd.draw(ctx, visibleResult, pad, candleSpacing, y, ind.params);
-                            } catch (error) {
-                                console.error('User indicator error:', error);
-                            }
-                        }
-                    }
-                });
-            }
-            
-            // Draw strategy MAs if MA crossover is active
-            if (activeStrategy === 'ma_cross') {
-                const fullData = [...candles];
-                if (currentCandle) fullData.push(currentCandle);
-                const params = strategyParams.ma_cross;
-                
-                // Fast MA
-                ctx.strokeStyle = '#00c176';
-                ctx.lineWidth = 2;
-                const fastMA = params.maType === 'SMA' ? 
-                    calculateSMA(fullData, params.fastPeriod) : 
-                    calculateEMA(fullData, params.fastPeriod);
-                drawLine(fastMA.slice(start, start + visible), candleSpacing, y, pad);
-                
-                // Slow MA
-                ctx.strokeStyle = '#ff4d4f';
-                ctx.lineWidth = 2;
-                const slowMA = params.maType === 'SMA' ? 
-                    calculateSMA(fullData, params.slowPeriod) : 
-                    calculateEMA(fullData, params.slowPeriod);
-                drawLine(slowMA.slice(start, start + visible), candleSpacing, y, pad);
-                
-                // Draw crossover points
-                for (let i = 1; i < visible; i++) {
-                    const idx = start + i;
-                    if (fastMA[idx] && slowMA[idx] && fastMA[idx-1] && slowMA[idx-1]) {
-                        const x = pad + i * candleSpacing + candleSpacing / 2;
-                        
-                        // Bullish crossover
-                        if (fastMA[idx-1] <= slowMA[idx-1] && fastMA[idx] > slowMA[idx]) {
-                            ctx.fillStyle = '#00c176';
-                            ctx.beginPath();
-                            ctx.arc(x, y(fastMA[idx]), 6, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.strokeStyle = '#ffffff';
-                            ctx.lineWidth = 2;
-                            ctx.stroke();
-                        }
-                        
-                        // Bearish crossover
-                        if (fastMA[idx-1] >= slowMA[idx-1] && fastMA[idx] < slowMA[idx]) {
-                            ctx.fillStyle = '#ff4d4f';
-                            ctx.beginPath();
-                            ctx.arc(x, y(fastMA[idx]), 6, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.strokeStyle = '#ffffff';
-                            ctx.lineWidth = 2;
-                            ctx.stroke();
-                        }
-                    }
-                }
-            }
-
-            // Draw price labels
-            drawPriceLabels(min, max, range, pad, h);
-            
-            // Draw logo watermark
-            drawLogo();
-            
-            // Draw strategy signals
-            if (activeStrategy && strategySignals.length > 0) {
-                drawStrategySignals();
-            }
-            
-            // Draw drawing objects
-            drawObjects();
-            
-            // Draw crosshair last (on top of everything)
-            drawCrosshair();
-        }
-        
         function drawLine(values, spacing, yFunc, pad) {
             ctx.beginPath();
             let first = true;
@@ -4364,39 +4383,21 @@
         }
 
         function drawPriceLabels(min, max, range, pad, h) {
-            const isMobile = window.innerWidth <= 768;
-            ctx.fillStyle = "#8b949e";
-            ctx.font = isMobile ? "9px Arial" : "11px Arial";
-            ctx.textAlign = "right";
-            
-            const labelCount = isMobile ? 3 : 5;
-            for (let i = 0; i <= labelCount; i++) {
-                const price = min + (range * i / labelCount);
-                const y = pad + h - (i * h / labelCount);
-                const decimals = isMobile ? 3 : 5;
-                ctx.fillText(price.toFixed(decimals), canvas.width - pad + 5, y + 4);
-            }
-            
-            ctx.textAlign = "left";
+            // handled inline in draw()
         }
         
         function drawLogo() {
             ctx.save();
-            ctx.globalAlpha = 0.5;
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.font = "bold 28px Arial";
-            
-            const x = 100;
-            const y = 80;
-            
-            ctx.fillStyle = "#FF4500";
-            ctx.fillText("Algo", x, y);
-            
-            const algoWidth = ctx.measureText("Algo").width;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText("cdk", x + algoWidth, y);
-            
+            ctx.globalAlpha = 0.06;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 48px Arial';
+            const cx = (canvas.width - (window.innerWidth <= 768 ? 60 : 80)) / 2;
+            const cy = canvas.height / 2;
+            ctx.fillStyle = '#FF4500';
+            ctx.fillText('Algo', cx - ctx.measureText('cdk').width / 2, cy);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('cdk', cx + ctx.measureText('Algo').width / 2, cy);
             ctx.restore();
         }
         
@@ -4741,6 +4742,57 @@
             draw();
         }
         
+        function applyStrategy(value) {
+            activeStrategy = value;
+            if (activeStrategy) {
+                localStorage.setItem('chart_strategy', activeStrategy);
+            } else {
+                localStorage.removeItem('chart_strategy');
+            }
+
+            const setStatus = (state) => {
+                ['strategyStatus','sbStrategyStatus','mobileStrategyStatus'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (id === 'strategyStatus') el.className = `status-dot status-${state}`;
+                    else el.className = `sb-status-pill ${state}`;
+                });
+                ['strategyStatusText','sbStrategyStatusText','mobileStrategyStatusText'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = state === 'running' ? 'Running' : 'Paused';
+                });
+            };
+
+            if (activeStrategy === 'custom') {
+                document.getElementById('customStrategyFile').click();
+            } else if (activeStrategy) {
+                let data = [...candles];
+                if (currentCandle) data.push(currentCandle);
+                strategySignals = generateStrategySignals(activeStrategy, data);
+                updateStrategyMetrics();
+                setStatus('running');
+                const indicator = document.getElementById('strategyIndicator');
+                const indicatorText = document.getElementById('strategyIndicatorText');
+                if (indicator && indicatorText) {
+                    indicator.style.display = 'block';
+                    const params = strategyParams[activeStrategy];
+                    if (activeStrategy === 'ma_cross') {
+                        indicatorText.textContent = `${params.maType} ${params.fastPeriod}/${params.slowPeriod} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                    } else if (activeStrategy === 'rsi_reversal') {
+                        indicatorText.textContent = `RSI(${params.period}) ${params.oversold}/${params.overbought} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
+                    } else {
+                        indicatorText.textContent = activeStrategy.replace('_', ' ').toUpperCase();
+                    }
+                }
+            } else {
+                strategySignals = [];
+                setStatus('paused');
+                const indicator = document.getElementById('strategyIndicator');
+                if (indicator) indicator.style.display = 'none';
+            }
+            draw();
+        }
+
         async function initializeEventHandlers() {
             // Set saved values in dropdowns
             const symbolEl = document.getElementById('symbol');
@@ -4823,15 +4875,7 @@
                     // Generate signals after candles load — defer until data is ready
                     const restoreStrategy = () => {
                         if (candles.length >= 20) {
-                            let data = [...candles];
-                            if (currentCandle) data.push(currentCandle);
-                            strategySignals = generateStrategySignals(activeStrategy, data);
-                            updateStrategyMetrics();
-                            const sbSt = document.getElementById('sbStrategyStatus');
-                            const sbStTxt = document.getElementById('sbStrategyStatusText');
-                            if (sbSt) sbSt.className = 'sb-status-pill running';
-                            if (sbStTxt) sbStTxt.textContent = 'Running';
-                            draw();
+                            applyStrategy(savedStrategy);
                         } else {
                             setTimeout(restoreStrategy, 500);
                         }
@@ -4840,53 +4884,9 @@
                 }
 
                 strategySelect.addEventListener('change', e => {
-                    activeStrategy = e.target.value;
-                    // Persist selection
-                    if (activeStrategy) {
-                        localStorage.setItem('chart_strategy', activeStrategy);
-                    } else {
-                        localStorage.removeItem('chart_strategy');
-                    }
-                    if (activeStrategy === 'custom') {
-                        // Trigger file upload for custom strategy
-                        document.getElementById('customStrategyFile').click();
-                    } else if (activeStrategy) {
-                        let data = [...candles];
-                        if (currentCandle) data.push(currentCandle);
-                        strategySignals = generateStrategySignals(activeStrategy, data);
-                        updateStrategyMetrics();
-                        document.getElementById('strategyStatus').className = 'status-dot status-running';
-                        document.getElementById('strategyStatusText').textContent = 'Running';
-                        const sbSt = document.getElementById('sbStrategyStatus');
-                        const sbStTxt = document.getElementById('sbStrategyStatusText');
-                        if (sbSt) { sbSt.className = 'sb-status-pill running'; }
-                        if (sbStTxt) sbStTxt.textContent = 'Running';
-                        
-                        // Show strategy indicator
-                        const indicator = document.getElementById('strategyIndicator');
-                        const indicatorText = document.getElementById('strategyIndicatorText');
-                        if (indicator && indicatorText) {
-                            indicator.style.display = 'block';
-                            const params = strategyParams[activeStrategy];
-                            if (activeStrategy === 'ma_cross') {
-                                indicatorText.textContent = `${params.maType} ${params.fastPeriod}/${params.slowPeriod} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
-                            } else if (activeStrategy === 'rsi_reversal') {
-                                indicatorText.textContent = `RSI(${params.period}) ${params.oversold}/${params.overbought} | SL:${params.stopLossPct}% TP:${params.takeProfitPct}%`;
-                            } else {
-                                indicatorText.textContent = activeStrategy.replace('_', ' ').toUpperCase();
-                            }
-                        }
-                    } else {
-                        strategySignals = [];
-                        document.getElementById('strategyStatus').className = 'status-dot status-paused';
-                        document.getElementById('strategyStatusText').textContent = 'Paused';
-                        document.getElementById('strategyIndicator').style.display = 'none';
-                        const sbSt2 = document.getElementById('sbStrategyStatus');
-                        const sbStTxt2 = document.getElementById('sbStrategyStatusText');
-                        if (sbSt2) { sbSt2.className = 'sb-status-pill paused'; }
-                        if (sbStTxt2) sbStTxt2.textContent = 'Paused';
-                    }
-                    draw();
+                    applyStrategy(e.target.value);
+                    const mSel = document.getElementById('mobileStrategySelect');
+                    if (mSel) mSel.value = e.target.value;
                 });
             }
             
@@ -5045,7 +5045,7 @@
                 case 'line':
                     ctx.setLineDash([]);
                     ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#00c176';
+                    ctx.strokeStyle = '#3B82F6';
                     ctx.beginPath();
                     let started = false;
                     view.forEach((c, i) => {
@@ -5065,8 +5065,8 @@
                     ctx.setLineDash([]);
                     ctx.lineWidth = 2;
                     const gradient = ctx.createLinearGradient(0, pad, 0, pad + h);
-                    gradient.addColorStop(0, 'rgba(0, 193, 118, 0.3)');
-                    gradient.addColorStop(1, 'rgba(0, 193, 118, 0.05)');
+                    gradient.addColorStop(0, 'rgba(59,130,246,0.28)');
+                    gradient.addColorStop(1, 'rgba(59,130,246,0)');
                     
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
@@ -5079,7 +5079,7 @@
                     ctx.closePath();
                     ctx.fill();
                     
-                    ctx.strokeStyle = '#00c176';
+                    ctx.strokeStyle = '#3B82F6';
                     ctx.beginPath();
                     view.forEach((c, i) => {
                         const x = pad + i * candleSpacing + candleSpacing / 2;
@@ -5119,38 +5119,59 @@
                         const x = pad + i * candleSpacing + candleSpacing / 2;
                         const up = c.close >= c.open;
                         const isLast = i === view.length - 1;
-                        
-                        ctx.setLineDash([]);
-                        ctx.lineWidth = 1;
-                        ctx.strokeStyle = ctx.fillStyle = up ? '#00c176' : '#ff4d4f';
+                        const isDoji = Math.abs(c.close - c.open) < (c.high - c.low) * 0.1;
 
-                        // Draw wick
+                        const bodyWidth = Math.max(2, candleSpacing * 0.65);
+                        const bodyTop = Math.min(yFunc(c.open), yFunc(c.close));
+                        const bodyBottom = Math.max(yFunc(c.open), yFunc(c.close));
+                        const bodyHeight = Math.max(1, bodyBottom - bodyTop);
+
+                        const bullColor = '#26a69a';
+                        const bearColor = '#ef5350';
+                        const dojiColor = '#94a3b8';
+
+                        ctx.setLineDash([]);
+
+                        // Wick
+                        ctx.strokeStyle = isDoji ? dojiColor : (up ? bullColor : bearColor);
+                        ctx.lineWidth = 1;
                         ctx.beginPath();
                         ctx.moveTo(x, yFunc(c.high));
+                        ctx.lineTo(x, bodyTop);
+                        ctx.moveTo(x, bodyBottom);
                         ctx.lineTo(x, yFunc(c.low));
                         ctx.stroke();
 
-                        // Draw body
-                        const bodyWidth = Math.max(2, candleSpacing * 0.6);
-                        const bodyHeight = Math.max(1, Math.abs(yFunc(c.close) - yFunc(c.open)));
-                        
-                        ctx.fillRect(
-                            x - bodyWidth / 2,
-                            Math.min(yFunc(c.open), yFunc(c.close)),
-                            bodyWidth,
-                            bodyHeight
-                        );
-                        
-                        // Highlight last candle (live)
+                        // Body
+                        if (isDoji) {
+                            // Doji — just a horizontal line
+                            ctx.strokeStyle = dojiColor;
+                            ctx.lineWidth = 1.5;
+                            ctx.beginPath();
+                            ctx.moveTo(x - bodyWidth / 2, yFunc(c.close));
+                            ctx.lineTo(x + bodyWidth / 2, yFunc(c.close));
+                            ctx.stroke();
+                        } else if (up) {
+                            // Bullish — hollow body with border
+                            ctx.strokeStyle = bullColor;
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+                            ctx.fillStyle = candleSpacing > 5 ? 'rgba(38,166,154,0.25)' : bullColor;
+                            ctx.fillRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+                        } else {
+                            // Bearish — filled body
+                            ctx.fillStyle = bearColor;
+                            ctx.fillRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+                        }
+
+                        // Live candle glow
                         if (isLast) {
-                            ctx.strokeStyle = up ? '#00ff88' : '#ff6666';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(
-                                x - bodyWidth / 2 - 1,
-                                Math.min(yFunc(c.open), yFunc(c.close)) - 1,
-                                bodyWidth + 2,
-                                bodyHeight + 2
-                            );
+                            ctx.shadowColor = up ? bullColor : bearColor;
+                            ctx.shadowBlur = 6;
+                            ctx.strokeStyle = up ? bullColor : bearColor;
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(x - bodyWidth / 2 - 1, bodyTop - 1, bodyWidth + 2, bodyHeight + 2);
+                            ctx.shadowBlur = 0;
                         }
                     });
             }
