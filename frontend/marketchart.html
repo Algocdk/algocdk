@@ -1196,26 +1196,58 @@
                 </div>
             </div>
 
-            <!-- Drawing Tools -->
+            <!-- Active Indicators with edit/remove -->
             <div style="margin-bottom:16px;">
-                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;margin-bottom:8px;">Drawing Tools</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-                    <button onclick="document.getElementById('drawingTools').value='trendline';document.getElementById('drawingTools').onchange({target:{value:'trendline'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">↗ Trend</button>
-                    <button onclick="document.getElementById('drawingTools').value='horizontal';document.getElementById('drawingTools').onchange({target:{value:'horizontal'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">— Horiz</button>
-                    <button onclick="document.getElementById('drawingTools').value='vertical';document.getElementById('drawingTools').onchange({target:{value:'vertical'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">| Vert</button>
-                    <button onclick="document.getElementById('drawingTools').value='rectangle';document.getElementById('drawingTools').onchange({target:{value:'rectangle'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">▭ Rect</button>
-                    <button onclick="document.getElementById('drawingTools').value='text';document.getElementById('drawingTools').onchange({target:{value:'text'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">T Text</button>
-                    <button onclick="if(typeof clearAllDrawings==='function')clearAllDrawings();closeMobileSheet();" style="background:rgba(255,69,0,0.1);border:1px solid rgba(255,69,0,0.3);color:#FF4500;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">✕ Clear</button>
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;margin-bottom:8px;">Active Indicators</div>
+                <div id="mobileActiveIndicators" style="display:flex;flex-direction:column;gap:8px;">
+                    <span style="font-size:12px;color:#3a4a60;font-style:italic;padding:8px 0;">None active</span>
                 </div>
             </div>
 
-            <!-- Active Indicators -->
-            <div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;">Active Indicators</div>
+            <div style="height:1px;background:#1a2035;margin-bottom:16px;"></div>
+
+            <!-- Strategy -->
+            <div style="margin-bottom:16px;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;margin-bottom:8px;">Strategy</div>
+                <select class="sheet-select" id="mobileStrategySelect" onchange="document.getElementById('strategySelect').value=this.value;document.getElementById('strategySelect').dispatchEvent(new Event('change'));" style="margin-bottom:10px;">
+                    <option value="">— No Strategy —</option>
+                    <option value="ma_cross">MA Crossover</option>
+                    <option value="rsi_reversal">RSI Reversal</option>
+                    <option value="breakout">Breakout</option>
+                    <option value="custom">Custom Strategy</option>
+                </select>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 14px;margin-bottom:10px;">
+                    <span style="font-size:12px;color:#5a7090;">Status</span>
+                    <span class="sb-status-pill paused" id="mobileStrategyStatus">
+                        <span class="sb-status-dot"></span>
+                        <span id="mobileStrategyStatusText">Paused</span>
+                    </span>
                 </div>
-                <div id="mobileActiveIndicators" style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="font-size:12px;color:#3a4a60;font-style:italic;">None active</span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Win Rate</div>
+                        <div style="font-size:16px;font-weight:800;color:#00c176;" id="mobileWinRate">0%</div>
+                    </div>
+                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Profit Factor</div>
+                        <div style="font-size:16px;font-weight:800;color:#e6edf3;" id="mobilePF">0.00</div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('editStrategyBtn').click();closeMobileSheet();" style="width:100%;padding:12px;background:#FF4500;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">&#9881; Edit Parameters</button>
+            </div>
+
+            <div style="height:1px;background:#1a2035;margin-bottom:16px;"></div>
+
+            <!-- Drawing Tools -->
+            <div style="margin-bottom:8px;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a6080;margin-bottom:8px;">Drawing Tools</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+                    <button onclick="document.getElementById('drawingTools').value='trendline';document.getElementById('drawingTools').onchange({target:{value:'trendline'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">&#8599; Trend</button>
+                    <button onclick="document.getElementById('drawingTools').value='horizontal';document.getElementById('drawingTools').onchange({target:{value:'horizontal'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">&#8212; Horiz</button>
+                    <button onclick="document.getElementById('drawingTools').value='vertical';document.getElementById('drawingTools').onchange({target:{value:'vertical'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">| Vert</button>
+                    <button onclick="document.getElementById('drawingTools').value='rectangle';document.getElementById('drawingTools').onchange({target:{value:'rectangle'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">&#9645; Rect</button>
+                    <button onclick="document.getElementById('drawingTools').value='text';document.getElementById('drawingTools').onchange({target:{value:'text'}});closeMobileSheet();" style="background:#161b22;border:1px solid #1e2433;color:#d1d4dc;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">T Text</button>
+                    <button onclick="if(typeof clearAllDrawings==='function')clearAllDrawings();closeMobileSheet();" style="background:rgba(255,69,0,0.1);border:1px solid rgba(255,69,0,0.3);color:#FF4500;padding:10px 4px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">&#10005; Clear</button>
                 </div>
             </div>
 
@@ -1568,6 +1600,11 @@
             rsi_reversal: { period: 14, oversold: 30, overbought: 70, stopLossPct: 1, takeProfitPct: 3 },
             breakout: { period: 20, atrMultiplier: 2, stopLossPct: 1.5, takeProfitPct: 3 }
         };
+        // Restore saved params
+        try {
+            const savedParams = localStorage.getItem('chart_strategy_params');
+            if (savedParams) Object.assign(strategyParams, JSON.parse(savedParams));
+        } catch(e) {}
         
         // Custom strategy
         let customStrategy = null;
@@ -3060,26 +3097,29 @@
                 }
             }
 
-            // Mobile sheet — touch-friendly chips
+            // Mobile sheet — touch-friendly cards
             const mobileContainer = document.getElementById("mobileActiveIndicators");
             if (!mobileContainer) return;
             mobileContainer.innerHTML = "";
             if (indicators.length === 0) {
-                mobileContainer.innerHTML = '<span style="font-size:12px;color:#8b949e;">No active indicators</span>';
+                mobileContainer.innerHTML = '<span style="font-size:12px;color:#3a4a60;font-style:italic;padding:8px 0;">None active</span>';
                 return;
             }
             indicators.forEach(ind => {
-                const chip = document.createElement("div");
-                chip.className = "mobile-ind-chip";
-                chip.innerHTML = `
-                    <span class="mobile-ind-name" data-id="${ind.id}">${getIndicatorDisplayName(ind)}</span>
-                    <span class="mobile-ind-actions">
-                        <button class="mobile-ind-btn" data-id="${ind.id}" data-action="settings" title="Settings">⚙️</button>
-                        <button class="mobile-ind-btn" data-id="${ind.id}" data-action="color" title="Color">🎨</button>
-                        <button class="mobile-ind-btn mobile-ind-remove" data-id="${ind.id}" data-action="remove" title="Remove">✕</button>
-                    </span>
+                const card = document.createElement("div");
+                card.style.cssText = "display:flex;align-items:center;justify-content:space-between;background:#161b22;border:1px solid #1e2433;border-radius:10px;padding:10px 12px;";
+                card.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="width:10px;height:10px;border-radius:50%;background:${ind.color || '#FF4500'};flex-shrink:0;"></span>
+                        <span style="font-size:13px;font-weight:700;color:#e6edf3;">${getIndicatorDisplayName(ind)}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <button data-id="${ind.id}" data-action="settings" style="background:#1e2d45;border:none;color:#8b949e;width:34px;height:34px;border-radius:8px;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;">&#9881;</button>
+                        <button data-id="${ind.id}" data-action="color" style="background:#1e2d45;border:none;color:#8b949e;width:34px;height:34px;border-radius:8px;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;">&#9679;</button>
+                        <button data-id="${ind.id}" data-action="remove" style="background:rgba(255,69,0,0.12);border:1px solid rgba(255,69,0,0.2);color:#FF4500;width:34px;height:34px;border-radius:8px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;">&#10005;</button>
+                    </div>
                 `;
-                chip.querySelectorAll('.mobile-ind-btn').forEach(btn => {
+                card.querySelectorAll('button').forEach(btn => {
                     btn.onclick = (e) => {
                         e.stopPropagation();
                         const id = parseInt(btn.dataset.id);
@@ -3091,7 +3131,7 @@
                         else if (action === 'color') { closeMobileSheet(); changeIndicatorColor(target); }
                     };
                 });
-                mobileContainer.appendChild(chip);
+                mobileContainer.appendChild(card);
             });
         }
         
@@ -4518,7 +4558,7 @@
         }
         
         function generateStrategySignals(strategy, data) {
-            if (!strategy || data.length < 50) return [];
+            if (!strategy || data.length < 20) return [];
             
             // Check if custom strategy
             if (strategy === 'custom' && customStrategy) {
@@ -4625,6 +4665,10 @@
             // Update UI
             document.getElementById('strategyWinRate').textContent = `${strategyMetrics.winRate}%`;
             document.getElementById('strategyPF').textContent = strategyMetrics.profitFactor;
+            const mWR = document.getElementById('mobileWinRate');
+            const mPF = document.getElementById('mobilePF');
+            if (mWR) mWR.textContent = `${strategyMetrics.winRate}%`;
+            if (mPF) mPF.textContent = strategyMetrics.profitFactor;
             
             // Update risk metrics
             riskMetrics.drawdown = (Math.random() * 15).toFixed(1);
@@ -4769,8 +4813,40 @@
             // Strategy selector
             const strategySelect = document.getElementById('strategySelect');
             if (strategySelect) {
+                // Restore saved strategy
+                const savedStrategy = localStorage.getItem('chart_strategy');
+                if (savedStrategy) {
+                    strategySelect.value = savedStrategy;
+                    activeStrategy = savedStrategy;
+                    const mobileStratSel = document.getElementById('mobileStrategySelect');
+                    if (mobileStratSel) mobileStratSel.value = savedStrategy;
+                    // Generate signals after candles load — defer until data is ready
+                    const restoreStrategy = () => {
+                        if (candles.length >= 20) {
+                            let data = [...candles];
+                            if (currentCandle) data.push(currentCandle);
+                            strategySignals = generateStrategySignals(activeStrategy, data);
+                            updateStrategyMetrics();
+                            const sbSt = document.getElementById('sbStrategyStatus');
+                            const sbStTxt = document.getElementById('sbStrategyStatusText');
+                            if (sbSt) sbSt.className = 'sb-status-pill running';
+                            if (sbStTxt) sbStTxt.textContent = 'Running';
+                            draw();
+                        } else {
+                            setTimeout(restoreStrategy, 500);
+                        }
+                    };
+                    setTimeout(restoreStrategy, 800);
+                }
+
                 strategySelect.addEventListener('change', e => {
                     activeStrategy = e.target.value;
+                    // Persist selection
+                    if (activeStrategy) {
+                        localStorage.setItem('chart_strategy', activeStrategy);
+                    } else {
+                        localStorage.removeItem('chart_strategy');
+                    }
                     if (activeStrategy === 'custom') {
                         // Trigger file upload for custom strategy
                         document.getElementById('customStrategyFile').click();
@@ -4879,6 +4955,8 @@
                     if (currentCandle) data.push(currentCandle);
                     strategySignals = generateStrategySignals(activeStrategy, data);
                     updateStrategyMetrics();
+                    // Persist updated params
+                    try { localStorage.setItem('chart_strategy_params', JSON.stringify(strategyParams)); } catch(e) {}
                     draw();
                 }
             };
