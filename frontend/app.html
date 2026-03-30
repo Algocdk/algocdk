@@ -2,11 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0A0E1A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Algocdk">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Algocdk Trading">
+    <meta name="msapplication-TileColor" content="#0A0E1A">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="HandheldFriendly" content="true">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="mask-icon" href="/icons/icon-maskable.svg" color="#FF4500">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
     <title>Algocdk Trading Platform</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    
+    <!-- PWA Manager -->
+    <script src="/pwa-manager.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -28,11 +55,86 @@
         }
     </script>
     <style>
+        /* PWA Mobile App-Like Styles */
+        :root {
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-left: env(safe-area-inset-left, 0px);
+            --safe-area-right: env(safe-area-inset-right, 0px);
+        }
+        
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #0D1421;
             color: #E2E8F0;
             overflow: hidden;
+            /* PWA safe area handling */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+        }
+        
+        /* PWA Installed Mode */
+        body.pwa-installed,
+        body.pwa-standalone {
+            overscroll-behavior-y: contain;
+        }
+        
+        /* Touch optimization */
+        button, a, [role="button"] {
+            -webkit-tap-highlight-color: rgba(255, 69, 0, 0.1);
+            touch-action: manipulation;
+        }
+        
+        @media (hover: none) {
+            button:active, a:active, [role="button"]:active {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+        
+        /* Safe area padding helpers */
+        .safe-area-top {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+        }
+        
+        /* Notch-aware layout */
+        .notch-aware {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        /* Home indicator spacing */
+        .home-indicator-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* App-like shadows */
+        .app-shadow {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Animations */
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .animate-scaleIn {
+            animation: scaleIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1);
         }
         
         /* Mobile First - Complete Redesign */
@@ -47,13 +149,17 @@
             /* Mobile navigation */
             nav {
                 padding: 8px 12px !important;
+                padding-top: max(8px, env(safe-area-inset-top)) !important;
+                padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
                 z-index: 1000 !important;
-                background: #0A0E1A !important;
-                border-bottom: 1px solid #374151 !important;
+                background: rgba(10, 14, 26, 0.95) !important;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(55, 65, 81, 0.5) !important;
             }
             
             nav .flex {
@@ -183,22 +289,12 @@
             
             /* Mobile tools button */
             #mobileToolsBtn {
-                display: block !important;
-                position: fixed !important;
-                bottom: 50vh !important;
-                right: 8px !important;
-                z-index: 150 !important;
-                background: #FF4500 !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 50% !important;
-                width: 48px !important;
-                height: 48px !important;
-                font-size: 20px !important;
-                box-shadow: 0 4px 12px rgba(255,69,0,0.4) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             
-            /* Show controls when mobile panel is active */
+            /* Show controls when mobile panel is active - legacy, kept for compat */
             body.mobile-tools-active #drawingTool,
             body.mobile-tools-active #drawingColor,
             body.mobile-tools-active #lineStyle,
@@ -208,7 +304,7 @@
             body.mobile-tools-active #alertBtn,
             body.mobile-tools-active #screenshotBtn,
             body.mobile-tools-active #indicators {
-                display: inline-block !important;
+                display: none !important;
             }
             
             /* Hide chart info panel on mobile */
@@ -341,7 +437,24 @@
             #mobileToolsBtn {
                 display: none !important;
             }
+            #mobileToolsSheet, #mobileSheetBackdrop { display: none !important; }
         }
+
+        .mob-ind-btn {
+            background: #1E293B;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            transition: background .15s, border-color .15s;
+            width: 100%;
+        }
+        .mob-ind-btn:active { background: #FF4500 !important; border-color: #FF4500 !important; color: #fff !important; }
+
         
         @media (min-width: 769px) and (max-width: 1024px) {
             .w-80:first-child {
@@ -1371,6 +1484,7 @@
         let SYMBOL = localStorage.getItem('currentSymbol') || "R_100";
         let TIMEFRAME = parseInt(localStorage.getItem('currentTimeframe')) || 60;
         const MAX_CANDLES = 5000;
+        const DERIV_APP_ID = '63623'; // Deriv app ID
 
         /* ================= STATE ================= */
         let candles = [];
@@ -1409,11 +1523,17 @@
 
         function resize() {
             const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            // only resize if container has real dimensions
+            if (w > 0 && h > 0) {
+                canvas.width = w;
+                canvas.height = h;
+            }
         }
-        resize();
-        window.addEventListener("resize", resize);
+        // defer first resize until layout is complete
+        requestAnimationFrame(() => { resize(); draw(); });
+        window.addEventListener("resize", () => { resize(); draw(); });
 
         /* ================= MARKET DATA ================= */
         function initMarketData() {
@@ -1531,6 +1651,7 @@
 
         /* ================= BACKGROUND PRICE UPDATES ================= */
         function startBackgroundUpdates() {
+            if (backgroundWs && (backgroundWs.readyState === WebSocket.OPEN || backgroundWs.readyState === WebSocket.CONNECTING)) return;
             backgroundWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
             
             backgroundWs.onopen = () => {
@@ -1539,6 +1660,9 @@
                     backgroundWs.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
                 });
             };
+
+            backgroundWs.onerror = (e) => console.warn('Background WS error', e);
+            backgroundWs.onclose = () => setTimeout(startBackgroundUpdates, 3000);
             
             backgroundWs.onmessage = e => {
                 const d = JSON.parse(e.data);
@@ -1616,10 +1740,15 @@
         });
 
         /* ================= WS ================= */
+        let _connectRetries = 0;
+        const _maxRetries = 5;
+
         function connect() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
             ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
             ws.onopen = () => {
+                _connectRetries = 0; // reset on successful connect
                 ws.send(JSON.stringify({
                     ticks_history: SYMBOL,
                     style: "candles",
@@ -1630,12 +1759,44 @@
                 ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
             };
 
+            ws.onerror = (e) => {
+                console.warn('Chart WS error', e);
+                hideLoading();
+            };
+
+            ws.onclose = () => {
+                console.warn('Chart WS closed, reconnecting in 3s...');
+                setTimeout(connect, 3000);
+            };
+
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
                 if (d.error) {
-                    console.error('Deriv API Error:', d.error);
+                    const code = d.error.code || '';
+                    // Ignore non-critical subscription errors
+                    if (code === 'AlreadySubscribed') return;
+                    console.warn('Deriv API Error:', d.error);
                     hideLoading();
-                    showNotification(`Error loading ${SYMBOL}: ${d.error.message}`, 'error');
+                    // Transient server errors — retry silently up to _maxRetries times
+                    const isTransient = code === 'InternalServerError' ||
+                        d.error.message.toLowerCase().includes('sorry') ||
+                        d.error.message.toLowerCase().includes('error occurred') ||
+                        d.error.message.toLowerCase().includes('processing your request');
+                    if (isTransient && _connectRetries < _maxRetries) {
+                        _connectRetries++;
+                        const delay = Math.min(1000 * _connectRetries, 5000);
+                        console.warn(`Transient error, retrying in ${delay}ms (attempt ${_connectRetries}/${_maxRetries})...`);
+                        setTimeout(() => {
+                            if (ws) { ws.onclose = null; ws.close(); }
+                            connect();
+                        }, delay);
+                        return;
+                    }
+                    // Only surface the error to the user after retries are exhausted
+                    if (_connectRetries >= _maxRetries) {
+                        showNotification(`Error loading ${SYMBOL}: ${d.error.message}`, 'error');
+                        _connectRetries = 0;
+                    }
                     return;
                 }
 
@@ -1671,11 +1832,18 @@
                 market.price = price;
                 market.change = price - oldPrice;
                 market.changePercent = ((price - oldPrice) / oldPrice) * 100;
-                populateMarketList();
+                // throttle DOM updates — max once per 500ms
+                if (!updateMarketPrice._timer) {
+                    updateMarketPrice._timer = setTimeout(() => {
+                        updateMarketPrice._timer = null;
+                        populateMarketList();
+                    }, 500);
+                }
             }
         }
 
         function restart() {
+            _connectRetries = 0;
             if (ws) ws.close();
             candles = [];
             currentCandle = null;
@@ -3224,7 +3392,7 @@ async function initializeAccountDisplay() {
 
 
         
-        const DERIV_APP_ID = '63623'; // Your Deriv app ID
+        // DERIV_APP_ID already declared above (63623)
         let tokenRefreshInterval = null;
         
         // Refresh tokens every 30 minutes
@@ -4617,12 +4785,38 @@ async function initializeAccountDisplay() {
         
         /* ================= MOBILE TOOLS ================= */
         function toggleMobileTools() {
-            document.body.classList.toggle('mobile-tools-active');
-            const btn = document.getElementById('mobileToolsBtn');
-            const isActive = document.body.classList.contains('mobile-tools-active');
-            btn.innerHTML = isActive ? '<i class="fas fa-times"></i>' : '<i class="fas fa-tools"></i>';
-            btn.style.background = isActive ? '#FF4444' : '#FF4500';
+            const sheet = document.getElementById('mobileToolsSheet');
+            const backdrop = document.getElementById('mobileSheetBackdrop');
+            const isOpen = sheet.style.display !== 'none';
+            if (isOpen) {
+                closeMobileToolsSheet();
+            } else {
+                sheet.style.display = 'block';
+                backdrop.style.display = 'block';
+                const btn = document.getElementById('mobileToolsBtn');
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+                btn.style.background = '#FF4444';
+            }
         }
+
+        function closeMobileToolsSheet() {
+            document.getElementById('mobileToolsSheet').style.display = 'none';
+            document.getElementById('mobileSheetBackdrop').style.display = 'none';
+            const btn = document.getElementById('mobileToolsBtn');
+            btn.innerHTML = '<i class="fas fa-tools"></i>';
+            btn.style.background = '#FF4500';
+        }
+
+        function addIndicatorMobile(type) {
+            // Trigger the same addIndicator logic used by the desktop select
+            const select = document.getElementById('indicators');
+            if (select) {
+                select.value = type;
+                select.dispatchEvent(new Event('change'));
+            }
+            closeMobileToolsSheet();
+        }
+
         
         /* ================= MARKET WATCH TOGGLE ================= */
         function toggleMarketWatch() {
@@ -4751,6 +4945,90 @@ async function initializeAccountDisplay() {
     <script src="/api.js"></script>
     <script src="/token-refresh-manager.js"></script>
     <script src="/offline-detector.js"></script>
+
+    <!-- Mobile FAB Tools Button — outside all stacking contexts -->
+    <button id="mobileToolsBtn" onclick="toggleMobileTools()" title="Toggle Tools"
+        style="display:none;position:fixed;bottom:calc(50vh);right:8px;z-index:1500;
+               background:#FF4500;color:#fff;border:none;border-radius:50%;
+               width:48px;height:48px;font-size:20px;cursor:pointer;
+               box-shadow:0 4px 12px rgba(255,69,0,.5);">
+        <i class="fas fa-tools"></i>
+    </button>
+
+    <!-- Mobile sheet backdrop -->
+    <div id="mobileSheetBackdrop" onclick="closeMobileToolsSheet()"
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1600;"></div>
+
+    <!-- Mobile Tools Bottom Sheet -->
+    <div id="mobileToolsSheet"
+        style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1700;
+               background:#0f1923;border-top:2px solid #FF4500;
+               border-radius:16px 16px 0 0;padding:16px 16px 32px;
+               max-height:82vh;overflow-y:auto;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:15px;font-weight:700;color:#fff">
+                <i class="fas fa-tools" style="color:#FF4500;margin-right:8px"></i>Chart Tools
+            </span>
+            <button onclick="closeMobileToolsSheet()"
+                style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Indicators -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Add Indicator
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="addIndicatorMobile('sma20')"  class="mob-ind-btn">SMA 20</button>
+                <button onclick="addIndicatorMobile('sma50')"  class="mob-ind-btn">SMA 50</button>
+                <button onclick="addIndicatorMobile('sma100')" class="mob-ind-btn">SMA 100</button>
+                <button onclick="addIndicatorMobile('ema20')"  class="mob-ind-btn">EMA 20</button>
+                <button onclick="addIndicatorMobile('ema50')"  class="mob-ind-btn">EMA 50</button>
+                <button onclick="addIndicatorMobile('bb')"     class="mob-ind-btn">Bollinger Bands</button>
+                <button onclick="addIndicatorMobile('rsi')"    class="mob-ind-btn">RSI</button>
+                <button onclick="addIndicatorMobile('macd')"   class="mob-ind-btn">MACD</button>
+                <button onclick="addIndicatorMobile('stoch')"  class="mob-ind-btn">Stochastic</button>
+                <button onclick="addIndicatorMobile('atr')"    class="mob-ind-btn">ATR</button>
+            </div>
+        </div>
+
+        <!-- Chart Type -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Chart Type
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="setChartType('candles');closeMobileToolsSheet()" class="mob-ind-btn"><i class="fas fa-chart-bar" style="margin-right:5px"></i>Candles</button>
+                <button onclick="setChartType('line');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-chart-line" style="margin-right:5px"></i>Line</button>
+                <button onclick="setChartType('area');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-mountain" style="margin-right:5px"></i>Area</button>
+                <button onclick="setChartType('bars');closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-align-left" style="margin-right:5px"></i>Bars</button>
+            </div>
+        </div>
+
+        <!-- Drawing Tools -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                Drawing Tools
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="setDrawingTool('line');closeMobileToolsSheet()"       class="mob-ind-btn"><i class="fas fa-slash" style="margin-right:5px"></i>Trend Line</button>
+                <button onclick="setDrawingTool('horizontal');closeMobileToolsSheet()" class="mob-ind-btn"><i class="fas fa-minus" style="margin-right:5px"></i>H. Line</button>
+                <button onclick="setDrawingTool('vertical');closeMobileToolsSheet()"   class="mob-ind-btn"><i class="fas fa-grip-lines-vertical" style="margin-right:5px"></i>V. Line</button>
+                <button onclick="setDrawingTool('rectangle');closeMobileToolsSheet()"  class="mob-ind-btn"><i class="far fa-square" style="margin-right:5px"></i>Rectangle</button>
+                <button onclick="setDrawingTool('fibonacci');closeMobileToolsSheet()"  class="mob-ind-btn">Fibonacci</button>
+                <button onclick="clearAllDrawings();closeMobileToolsSheet()" class="mob-ind-btn" style="color:#f87171;"><i class="fas fa-eraser" style="margin-right:5px"></i>Clear All</button>
+            </div>
+        </div>
+
+        <!-- Misc -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="toggleAlerts();closeMobileToolsSheet()"    class="mob-ind-btn"><i class="fas fa-bell" style="margin-right:5px;color:#fbbf24"></i>Alerts</button>
+            <button onclick="takeScreenshot();closeMobileToolsSheet()"  class="mob-ind-btn"><i class="fas fa-camera" style="margin-right:5px"></i>Screenshot</button>
+        </div>
+    </div>
 </body>
 
 </html>

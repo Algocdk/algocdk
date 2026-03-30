@@ -36,6 +36,24 @@ function getToken() {
     return localStorage.getItem('token');
 }
 
+function getCurrentUserId() {
+    const token = getToken();
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        // Base64url decode
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const json = decodeURIComponent(atob(base64).split('').map(c => 
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join(''));
+        const decoded = JSON.parse(json);
+        return decoded.user_id || decoded.sub;
+    } catch (e) {
+        console.error('Error decoding token:', e);
+        return null;
+    }
+}
+
 function showNotification(message, type = 'info') {
     const colors = {
         success: 'bg-green-500',
@@ -294,7 +312,7 @@ function handleWebSocketMessage(msg) {
         case 'chat':
             if (joinRequestStatus === 'approved') {
                 // Don't show our own messages again
-                if (msg.user_id !== parseInt(localStorage.getItem('user_id'))) {
+                if (msg.user_id !== getCurrentUserId()) {
                     addChatMessage(msg.message, 'user', msg.username);
                 }
             }

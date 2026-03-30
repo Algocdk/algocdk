@@ -2,9 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0A0E1A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Algocdk">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Algocdk">
+    <meta name="msapplication-TileColor" content="#0A0E1A">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Favicon -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="mask-icon" href="/icons/icon-maskable.svg" color="#FF4500">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Title -->
     <title>Algocdk - Charting Platform for Traders & Investors</title>
+    
+    <!-- PWA Manager -->
+    <script src="/pwa-manager.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -26,6 +51,102 @@
         }
     </script>
     <style>
+        /* PWA Mobile App-Like Styles */
+        :root {
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-left: env(safe-area-inset-left, 0px);
+            --safe-area-right: env(safe-area-inset-right, 0px);
+            --status-bar-height: 44px;
+            --home-indicator-height: 34px;
+        }
+        
+        /* App-like body styles for mobile - FIX: Allow scrolling */
+        @media (max-width: 768px) {
+            html {
+                height: 100%;
+                overflow: hidden;
+            }
+            
+            body {
+                height: 100%;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: auto;
+                padding-top: var(--safe-area-top) !important;
+                padding-bottom: var(--safe-area-bottom) !important;
+                padding-left: var(--safe-area-left) !important;
+                padding-right: var(--safe-area-right) !important;
+            }
+            
+            /* Prevent pull-to-refresh only when installed as PWA */
+            .pwa-standalone body,
+            body.pwa-installed {
+                overscroll-behavior-y: contain;
+            }
+        }
+        
+        /* iOS status bar handling */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            .ios-status-bar {
+                padding-top: env(safe-area-inset-top);
+            }
+        }
+        
+        /* Touch optimization for app-like feel */
+        button, a, [role="button"] {
+            -webkit-tap-highlight-color: rgba(255, 69, 0, 0.1);
+            touch-action: manipulation;
+        }
+        
+        /* Active state for touch */
+        @media (hover: none) {
+            button:active, a:active, [role="button"]:active {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+        
+        /* App-like scroll behavior */
+        .scroll-container {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        /* Safe area padding for bottom elements */
+        .safe-area-bottom {
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+        }
+        
+        /* Notch-aware layout */
+        .notch-aware {
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        
+        /* Home indicator spacing on iPhone X+ */
+        .home-indicator-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* App-like shadows */
+        .app-shadow {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .app-shadow-lg {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* App-like border radius */
+        .app-rounded {
+            border-radius: 12px;
+        }
+        
+        .app-rounded-lg {
+            border-radius: 16px;
+        }
+        
+        /* Animation keyframes */
         @keyframes slideDown {
             from { transform: translateY(-100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -42,9 +163,19 @@
             0% { transform: scale(1); opacity: 0.6; }
             100% { transform: scale(7); opacity: 0; }
         }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
         .animate-slideDown { animation: slideDown 0.6s ease-out; }
         .animate-fadeInUp { animation: fadeInUp 0.8s ease-out; }
         .animate-fadeInRight { animation: fadeInRight 0.9s ease-out 0.2s both; }
+        .animate-slideUp { animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .animate-scaleIn { animation: scaleIn 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
         .hero-bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; }
         .hero-bg-slide.active { opacity: 1; }
         .hero-bg-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(13, 17, 23, 0.88) 0%, rgba(13, 17, 23, 0.82) 100%); }
@@ -86,11 +217,15 @@
         #mobileCta {
             display: none;
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #0d1117;
-            border-top: 1px solid #21262d;
-            padding: 10px 16px env(safe-area-inset-bottom);
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
             z-index: 1500;
             gap: 10px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
         #mobileCta a {
             flex: 1; text-align: center; padding: 12px 8px;
@@ -677,91 +812,115 @@
     </section>
 
     <!-- Synthetic Indices Section -->
-    <section class="py-28 px-6 bg-dark-100 rounded-xl my-8 mx-6">
-        <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-bold text-white mb-4">Synthetic Indices</h2>
-            <p class="text-lg text-gray-400 mb-8">Trade 24/7 on synthetic markets with constant volatility</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="R_10">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Volatility Index</div>
-                            <div class="text-2xl font-bold text-white">Volatility 10</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-R_10">--</div>
-                            <div class="text-sm" id="synth-change-R_10">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">R_10 • 1 tick per second</div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="R_25">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Volatility Index</div>
-                            <div class="text-2xl font-bold text-white">Volatility 25</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-R_25">--</div>
-                            <div class="text-sm" id="synth-change-R_25">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">R_25 • 1 tick per second</div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="R_50">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Volatility Index</div>
-                            <div class="text-2xl font-bold text-white">Volatility 50</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-R_50">--</div>
-                            <div class="text-sm" id="synth-change-R_50">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">R_50 • 1 tick per second</div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="R_75">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Volatility Index</div>
-                            <div class="text-2xl font-bold text-white">Volatility 75</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-R_75">--</div>
-                            <div class="text-sm" id="synth-change-R_75">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">R_75 • 1 tick per second</div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="R_100">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Volatility Index</div>
-                            <div class="text-2xl font-bold text-white">Volatility 100</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-R_100">--</div>
-                            <div class="text-sm" id="synth-change-R_100">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">R_100 • 1 tick per second</div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-6 hover:border-primary transition-all cursor-pointer" data-symbol="BOOM1000">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="text-sm text-gray-400 mb-1">Crash/Boom</div>
-                            <div class="text-2xl font-bold text-white">Boom 1000</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-bold text-white" id="synth-price-BOOM1000">--</div>
-                            <div class="text-sm" id="synth-change-BOOM1000">--</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-400">BOOM1000 • Spike patterns</div>
-                </div>
-            </div>
+    <section class="py-16 my-8 mx-4 bg-dark-100 rounded-2xl overflow-hidden">
+
+        <!-- header -->
+        <div class="px-6 mb-6">
+            <h2 class="text-3xl font-bold text-white mb-1">Synthetic Indices</h2>
+            <p class="text-gray-400">Trade 24/7 on synthetic markets with constant volatility</p>
         </div>
+
+        <!-- track — no clipping parent, just overflow-x on this element -->
+        <div id="synthTrack"
+             class="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 pb-4"
+             style="scrollbar-width:none; -webkit-overflow-scrolling:touch;">
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_10">
+                <div class="text-xs text-gray-400 mb-1">Volatility Index</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Volatility 10</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-R_10">--</div>
+                        <div class="text-xs" id="synth-change-R_10">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">R_10 • 1 tick/sec</div>
+            </div>
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_25">
+                <div class="text-xs text-gray-400 mb-1">Volatility Index</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Volatility 25</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-R_25">--</div>
+                        <div class="text-xs" id="synth-change-R_25">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">R_25 • 1 tick/sec</div>
+            </div>
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_50">
+                <div class="text-xs text-gray-400 mb-1">Volatility Index</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Volatility 50</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-R_50">--</div>
+                        <div class="text-xs" id="synth-change-R_50">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">R_50 • 1 tick/sec</div>
+            </div>
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_75">
+                <div class="text-xs text-gray-400 mb-1">Volatility Index</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Volatility 75</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-R_75">--</div>
+                        <div class="text-xs" id="synth-change-R_75">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">R_75 • 1 tick/sec</div>
+            </div>
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_100">
+                <div class="text-xs text-gray-400 mb-1">Volatility Index</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Volatility 100</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-R_100">--</div>
+                        <div class="text-xs" id="synth-change-R_100">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">R_100 • 1 tick/sec</div>
+            </div>
+
+            <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="BOOM1000">
+                <div class="text-xs text-gray-400 mb-1">Crash/Boom</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-lg font-bold text-white">Boom 1000</div>
+                    <div class="text-right">
+                        <div class="font-bold text-white" id="synth-price-BOOM1000">--</div>
+                        <div class="text-xs" id="synth-change-BOOM1000">--</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">BOOM1000 • Spike patterns</div>
+            </div>
+
+        </div>
+
+        <!-- controls row: prev · dots · next -->
+        <div class="flex items-center justify-center gap-4 mt-4 px-6">
+            <button id="synthPrev" aria-label="Previous"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-dark-300 border border-dark-400 text-white hover:bg-primary hover:border-primary transition-all">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <div id="synthDots" class="flex gap-2">
+                <span class="w-2 h-2 rounded-full bg-primary transition-colors"></span>
+                <span class="w-2 h-2 rounded-full bg-dark-400 transition-colors"></span>
+                <span class="w-2 h-2 rounded-full bg-dark-400 transition-colors"></span>
+                <span class="w-2 h-2 rounded-full bg-dark-400 transition-colors"></span>
+                <span class="w-2 h-2 rounded-full bg-dark-400 transition-colors"></span>
+                <span class="w-2 h-2 rounded-full bg-dark-400 transition-colors"></span>
+            </div>
+
+            <button id="synthNext" aria-label="Next"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-dark-300 border border-dark-400 text-white hover:bg-primary hover:border-primary transition-all">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+
     </section>
 
     <!-- Deriv Cryptocurrency Section -->
@@ -863,63 +1022,109 @@
         <div class="max-w-7xl mx-auto">
             <h2 class="text-4xl font-bold text-white mb-4">Automated Trading Strategies</h2>
             <p class="text-lg text-gray-400 mb-8">Deploy professional algorithmic trading bots on Deriv markets</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-primary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Momentum Trading</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">Trend-following algorithms that identify and capitalize on strong market movements with real-time signal validation.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">Forex</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">Crypto</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">Synthetics</span>
+            <!-- scroll wrapper -->
+            <div class="relative">
+                <!-- left arrow -->
+                <button id="strategyPrev" aria-label="Scroll left" class="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-dark-300 border border-dark-400 text-white hover:bg-primary hover:border-primary transition-all shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <!-- right arrow -->
+                <button id="strategyNext" aria-label="Scroll right" class="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-dark-300 border border-dark-400 text-white hover:bg-primary hover:border-primary transition-all shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <!-- scrollable track -->
+                <div id="strategyTrack" class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 -mx-1 px-1" style="scrollbar-width:none;">
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-primary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Momentum Trading</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">Trend-following algorithms that identify and capitalize on strong market movements with real-time signal validation.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">Forex</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">Crypto</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">Synthetics</span>
+                        </div>
+                    </div>
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-secondary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Breakout Detection</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">Advanced volatility analysis to capture explosive price movements using adaptive risk management systems.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">Volatility Indices</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">Boom/Crash</span>
+                        </div>
+                    </div>
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-tertiary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Mean Reversion</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">Statistical arbitrage models that exploit temporary price deviations from historical averages.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">All Markets</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">24/7</span>
+                        </div>
+                    </div>
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-blue-400 uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Grid Trading</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">Automated grid systems that place buy and sell orders at predetermined intervals for range-bound markets.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">Forex</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">Low Risk</span>
+                        </div>
+                    </div>
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-purple-400 uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Scalping Bots</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">High-frequency trading algorithms designed for quick profits from small price movements with tight spreads.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">High Frequency</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">Synthetics</span>
+                        </div>
+                    </div>
+                    <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer snap-start flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[320px]">
+                        <div class="text-sm text-green-400 uppercase tracking-wider mb-3 font-semibold">Custom</div>
+                        <h3 class="text-2xl font-bold text-white mb-3">Build Your Own</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-4">Create custom trading strategies with our visual bot builder or code your own using Python and JavaScript.</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            <span class="px-2 py-1 bg-dark-300 rounded">Python</span>
+                            <span class="px-2 py-1 bg-dark-300 rounded">JavaScript</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-secondary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Breakout Detection</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">Advanced volatility analysis to capture explosive price movements using adaptive risk management systems.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">Volatility Indices</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">Boom/Crash</span>
-                    </div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-tertiary uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Mean Reversion</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">Statistical arbitrage models that exploit temporary price deviations from historical averages.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">All Markets</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">24/7</span>
-                    </div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-blue-400 uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Grid Trading</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">Automated grid systems that place buy and sell orders at predetermined intervals for range-bound markets.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">Forex</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">Low Risk</span>
-                    </div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-purple-400 uppercase tracking-wider mb-3 font-semibold">Strategy Type</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Scalping Bots</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">High-frequency trading algorithms designed for quick profits from small price movements with tight spreads.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">High Frequency</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">Synthetics</span>
-                    </div>
-                </div>
-                <div class="bg-dark-200 border border-dark-400 rounded-xl p-8 hover:border-primary hover:-translate-y-1 transition-all cursor-pointer">
-                    <div class="text-sm text-green-400 uppercase tracking-wider mb-3 font-semibold">Custom</div>
-                    <h3 class="text-2xl font-bold text-white mb-3">Build Your Own</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">Create custom trading strategies with our visual bot builder or code your own using Python and JavaScript.</p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                        <span class="px-2 py-1 bg-dark-300 rounded">Python</span>
-                        <span class="px-2 py-1 bg-dark-300 rounded">JavaScript</span>
-                    </div>
+
+                <!-- mobile dot indicators -->
+                <div class="flex justify-center gap-2 mt-4 md:hidden" id="strategyDots">
+                    <span class="w-2 h-2 rounded-full bg-primary"></span>
+                    <span class="w-2 h-2 rounded-full bg-dark-400"></span>
+                    <span class="w-2 h-2 rounded-full bg-dark-400"></span>
+                    <span class="w-2 h-2 rounded-full bg-dark-400"></span>
+                    <span class="w-2 h-2 rounded-full bg-dark-400"></span>
+                    <span class="w-2 h-2 rounded-full bg-dark-400"></span>
                 </div>
             </div>
+
+            <script>
+            (function(){
+                const track = document.getElementById('strategyTrack');
+                const dots  = document.querySelectorAll('#strategyDots span');
+                const cardW = () => track.querySelector('div').offsetWidth + 20; // card + gap
+
+                document.getElementById('strategyNext').addEventListener('click', () => {
+                    track.scrollBy({ left: cardW(), behavior: 'smooth' });
+                });
+                document.getElementById('strategyPrev').addEventListener('click', () => {
+                    track.scrollBy({ left: -cardW(), behavior: 'smooth' });
+                });
+
+                track.addEventListener('scroll', () => {
+                    const idx = Math.round(track.scrollLeft / cardW());
+                    dots.forEach((d, i) => {
+                        d.classList.toggle('bg-primary', i === idx);
+                        d.classList.toggle('bg-dark-400', i !== idx);
+                    });
+                }, { passive: true });
+            })();
+            </script>
         </div>
     </section>
 
@@ -943,7 +1148,7 @@
             <div class="relative h-[520px] overflow-hidden">
                 <div class="bot-slide active absolute inset-0 opacity-100 scale-100 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot1.jpg" alt="Momentum Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot1.jpg" alt="Momentum Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · MOMENTUM</div>
@@ -956,7 +1161,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot2.jpg" alt="Breakout Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot2.jpg" alt="Breakout Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · BREAKOUT</div>
@@ -969,7 +1174,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot3.jpg" alt="Statistical Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot3.jpg" alt="Statistical Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · STATISTICAL</div>
@@ -982,7 +1187,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot4.jpg" alt="Grid Trading Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot4.jpg" alt="Grid Trading Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · GRID</div>
@@ -995,7 +1200,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot5.jpg" alt="Scalping Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot5.jpg" alt="Scalping Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · SCALPING</div>
@@ -1008,7 +1213,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot6.jpg" alt="Arbitrage Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot6.jpg" alt="Arbitrage Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · ARBITRAGE</div>
@@ -1021,7 +1226,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot7.jpg" alt="Sentiment Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot7.jpg" alt="Sentiment Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · SENTIMENT</div>
@@ -1034,7 +1239,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot8.jpg" alt="AI Learning Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot8.jpg" alt="AI Learning Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · AI LEARNING</div>
@@ -1047,7 +1252,7 @@
                 
                 <div class="bot-slide absolute inset-0 opacity-0 scale-95 transition-all duration-1000">
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="images/bot9.jpg" alt="Multi-Strategy Bot" class="w-full h-full object-cover brightness-75">
+                        <img src="/images/bot9.jpg" alt="Multi-Strategy Bot" class="w-full h-full object-cover brightness-75">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-black/15 flex items-end">
                             <div class="p-9 text-left max-w-xl">
                                 <div class="inline-block px-3.5 py-1.5 text-xs tracking-wider rounded-full bg-cyan-400/15 text-cyan-400 mb-3.5">LIVE · MULTI-STRATEGY</div>
@@ -1382,48 +1587,74 @@
         let synthWs;
         const synthPrices = new Map();
         
+        let synthReconnectTimer = null;
+
         function initSyntheticIndices() {
+            // prevent duplicate connections
+            if (synthWs && (synthWs.readyState === WebSocket.CONNECTING || synthWs.readyState === WebSocket.OPEN)) return;
+
             synthWs = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
-            
+
             synthWs.onopen = () => {
                 const synthSymbols = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100', 'BOOM1000'];
                 synthSymbols.forEach(symbol => {
                     synthWs.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
                 });
+                // keepalive ping every 25s so Deriv doesn't close the idle connection
+                synthWs._ping = setInterval(() => {
+                    if (synthWs.readyState === WebSocket.OPEN) {
+                        synthWs.send(JSON.stringify({ ping: 1 }));
+                    }
+                }, 25000);
             };
-            
+
             synthWs.onmessage = (msg) => {
                 const data = JSON.parse(msg.data);
-                if (data.tick) {
-                    updateSyntheticPrice(data.tick);
+                if (data.tick) updateSyntheticPrice(data.tick);
+            };
+
+            const scheduleReconnect = () => {
+                if (synthWs._ping) clearInterval(synthWs._ping);
+                if (!synthReconnectTimer) {
+                    synthReconnectTimer = setTimeout(() => {
+                        synthReconnectTimer = null;
+                        initSyntheticIndices();
+                    }, 3000);
                 }
             };
-            
-            synthWs.onerror = () => setTimeout(initSyntheticIndices, 3000);
-            synthWs.onclose = () => setTimeout(initSyntheticIndices, 3000);
+
+            synthWs.onerror = scheduleReconnect;
+            synthWs.onclose = scheduleReconnect;
         }
         
         function updateSyntheticPrice(tick) {
             const symbol = tick.symbol;
-            const price = tick.quote;
+            const price = parseFloat(tick.quote);
             const oldPrice = synthPrices.get(symbol);
             synthPrices.set(symbol, price);
-            
+
             const priceEl = document.getElementById(`synth-price-${symbol}`);
             const changeEl = document.getElementById(`synth-change-${symbol}`);
-            
+
             if (priceEl) {
-                priceEl.textContent = price.toFixed(2);
+                // use enough decimals: BOOM/CRASH have 2, volatility indices have 2-4
+                const decimals = symbol.startsWith('BOOM') || symbol.startsWith('CRASH') ? 2 : 4;
+                priceEl.textContent = price.toFixed(decimals);
+                // flash animation
+                priceEl.classList.remove('text-secondary', 'text-red-500');
+                if (oldPrice !== undefined) {
+                    priceEl.classList.add(price >= oldPrice ? 'text-secondary' : 'text-red-500');
+                }
             }
-            
-            if (changeEl && oldPrice) {
+
+            if (changeEl && oldPrice !== undefined) {
                 const change = ((price - oldPrice) / oldPrice * 100);
                 const isPositive = change >= 0;
-                changeEl.textContent = `${isPositive ? '+' : ''}${change.toFixed(2)}%`;
+                changeEl.textContent = `${isPositive ? '+' : ''}${change.toFixed(4)}%`;
                 changeEl.className = `text-sm ${isPositive ? 'text-secondary' : 'text-red-500'}`;
             } else if (changeEl) {
-                changeEl.textContent = '--';
-                changeEl.className = 'text-sm text-gray-400';
+                changeEl.textContent = 'Live';
+                changeEl.className = 'text-sm text-primary';
             }
         }
         
@@ -1775,6 +2006,46 @@
             
             // Initialize Synthetic Indices real-time updates
             initSyntheticIndices();
+
+            // Synthetic Indices scroll controls + auto-scroll
+            (function() {
+                const track = document.getElementById('synthTrack');
+                const dots  = document.querySelectorAll('#synthDots span');
+                const btnNext = document.getElementById('synthNext');
+                const btnPrev = document.getElementById('synthPrev');
+                if (!track || !btnNext || !btnPrev) return;
+
+                const cardW = () => {
+                    const c = track.querySelector('[data-symbol]');
+                    return c ? c.offsetWidth + 16 : 260;
+                };
+
+                const updateDots = () => {
+                    const idx = Math.round(track.scrollLeft / cardW());
+                    dots.forEach((d, i) => {
+                        d.classList.toggle('bg-primary', i === idx);
+                        d.classList.toggle('bg-dark-400', i !== idx);
+                    });
+                };
+
+                track.addEventListener('scroll', updateDots, { passive: true });
+
+                let timer = null;
+                const stopAuto  = () => { clearInterval(timer); timer = null; };
+                const startAuto = () => {
+                    stopAuto();
+                    timer = setInterval(() => {
+                        const max = track.scrollWidth - track.clientWidth;
+                        track.scrollTo({ left: track.scrollLeft >= max - 4 ? 0 : track.scrollLeft + cardW(), behavior: 'smooth' });
+                    }, 3000);
+                };
+
+                btnNext.addEventListener('click', () => { stopAuto(); track.scrollBy({ left:  cardW(), behavior: 'smooth' }); setTimeout(startAuto, 5000); });
+                btnPrev.addEventListener('click', () => { stopAuto(); track.scrollBy({ left: -cardW(), behavior: 'smooth' }); setTimeout(startAuto, 5000); });
+                track.addEventListener('pointerdown', () => { stopAuto(); setTimeout(startAuto, 5000); }, { passive: true });
+
+                startAuto();
+            })();
             
             // Initialize Leaflet map
             const script = document.createElement('script');

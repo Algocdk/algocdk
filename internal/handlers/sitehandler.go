@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -60,16 +61,17 @@ func CreateSiteHandler(ctx *gin.Context) {
 		return
 	}
 
-	// Validate slug format
+	// Validate slug - only allow alphanumeric and hyphens to prevent path traversal
 	slug = strings.ToLower(strings.ReplaceAll(slug, " ", "-"))
-	if strings.Contains(slug, "/") {
-		parts := strings.Split(slug, "/")
-		slug = parts[len(parts)-1]
+	if !regexp.MustCompile(`^[a-z0-9-]+$`).MatchString(slug) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "slug may only contain lowercase letters, numbers, and hyphens"})
+		return
 	}
 
 	// Create site directory
 	siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, slug)
-	if err := os.MkdirAll(siteDir, 0755); err != nil {
+	absSiteDir, _ := filepath.Abs(siteDir)
+	if err := os.MkdirAll(absSiteDir, 0755); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create site directory"})
 		return
 	}
@@ -99,34 +101,32 @@ func CreateSiteHandler(ctx *gin.Context) {
 
 	// Save all uploaded files
 	for _, file := range files {
-		// Get relative path from form data
 		relPath := file.Filename
 		if strings.Contains(relPath, "/") {
-			// Extract path after first directory (folder name)
 			parts := strings.SplitN(relPath, "/", 2)
 			if len(parts) > 1 {
 				relPath = parts[1]
 			}
 		}
 
-		destPath := filepath.Join(siteDir, relPath)
-		
-		// Create subdirectories if needed
-		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		destPath := filepath.Join(absSiteDir, relPath)
+		// Prevent path traversal - ensure dest is within site directory
+		if !strings.HasPrefix(filepath.Clean(destPath), absSiteDir) {
 			continue
 		}
 
-		// Save file
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			continue
+		}
 		if err := ctx.SaveUploadedFile(file, destPath); err != nil {
 			continue
 		}
 	}
 
 	// Find index.html or first HTML file
-	indexPath := filepath.Join(siteDir, "index.html")
+	indexPath := filepath.Join(absSiteDir, "index.html")
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		// Look for any HTML file
-		filepath.Walk(siteDir, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(absSiteDir, func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".html") {
 				indexPath = path
 				return filepath.SkipAll

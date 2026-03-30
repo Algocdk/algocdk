@@ -19,6 +19,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 // PaystackSubaccount represents the subaccount object in Paystack response
 type PaystackSubaccount struct {
 	ID               int     `json:"id"`
@@ -67,7 +69,7 @@ func CreatePaystackSubaccount(admin *models.Admin) error {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Cache-Control", "no-cache")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack subaccount creation failed: %v", err)
@@ -256,7 +258,7 @@ func InitializePayment(ctx *gin.Context) {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Cache-Control", "no-cache")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack request error: %v", err)
@@ -334,7 +336,7 @@ func VerifyPayment(ctx *gin.Context) {
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Cache-Control", "no-cache")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack verify request failed: %v", err)
@@ -533,7 +535,7 @@ func FrontendCallback(ctx *gin.Context) {
 	req.Header.Add("Authorization", "Bearer "+os.Getenv("PAYSTACK_SECRET_KEY"))
 	req.Header.Add("Accept", "application/json")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack verify request failed: %v", err)
@@ -848,7 +850,7 @@ func PaystackCallback(ctx *gin.Context) {
 	req.Header.Add("Authorization", "Bearer "+os.Getenv("PAYSTACK_SECRET_KEY"))
 	req.Header.Add("Accept", "application/json")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack verify request failed: %v", err)
@@ -1085,7 +1087,7 @@ func HandleCallbackRedirect(ctx *gin.Context) {
 	req.Header.Add("Authorization", "Bearer "+os.Getenv("PAYSTACK_SECRET_KEY"))
 	req.Header.Add("Accept", "application/json")
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Paystack verify request failed: %v", err)

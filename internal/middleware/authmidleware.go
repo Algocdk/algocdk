@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -11,29 +12,29 @@ import (
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// Try getting token from header first
 		tokenString := ctx.GetHeader("Authorization")
 
-		// If header is empty, try query param (for WebSocket connections)
+		// Fall back to query param only for WebSocket connections
 		if tokenString == "" {
 			tokenString = ctx.Query("token")
 		}
 
-		// If token still missing, block request
 		if tokenString == "" {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token  could not generate token"})
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 			ctx.Abort()
 			return
 		}
 
-		// Handle “Bearer <token>” format
 		tokenString = strings.TrimSpace(tokenString)
 		if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
 			tokenString = strings.TrimSpace(tokenString[7:])
 		}
 
-		// Parse and validate JWT
+		// Enforce HS256 to prevent alg:none and algorithm confusion attacks
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
 		if err != nil || !token.Valid {

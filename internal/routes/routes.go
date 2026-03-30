@@ -15,14 +15,13 @@ import (
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.DBMiddleware()) // Add DB to context
-	// Serve user sites statically
-	router.Static("/sites", "./sites")
+	// NOTE: /sites is NOT served statically - all access goes through ViewSiteHandler
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
 	api.GET("/marketplace", handlers.MarketplaceHandler)
 	router.GET("/api/paystack/callback", paystack.HandleCallbackRedirect)
 	router.SetTrustedProxies(nil)
-	router.GET("/bots/:id", handlers.ServeBotHandler)
+	router.GET("/bots/:id", middleware.AuthMiddleware(), handlers.ServeBotHandler)
 	{
 		auth := api.Group("/auth")
 		{
@@ -32,6 +31,18 @@ func SetUpRouter(router *gin.Engine) {
 			auth.POST("/forgot_password/", handlers.ForgotPasswordHandler)
 			auth.GET("/verify-email", handlers.VerifyEmailHandler)
 			auth.POST("/resend-verification", handlers.ResendVerificationHandler)
+			// sets auth_token cookie from token in request body so server-side guards work
+			auth.POST("/set-cookie", func(c *gin.Context) {
+				var body struct {
+					Token string `json:"token"`
+				}
+				if err := c.ShouldBindJSON(&body); err != nil || body.Token == "" {
+					c.JSON(400, gin.H{"error": "token required"})
+					return
+				}
+				c.SetCookie("auth_token", body.Token, 86400*7, "/", "", false, false)
+				c.JSON(200, gin.H{"ok": true})
+			})
 		}
 
 		// ================= MARKET DATA =================
@@ -179,6 +190,8 @@ func SetUpRouter(router *gin.Engine) {
 			subGroup.GET("/status", handlers.GetSubscriptionStatus)
 			subGroup.POST("/initialize", handlers.InitializeSubscriptionPayment)
 			subGroup.POST("/cancel", handlers.CancelSubscription)
+			// History only needs auth — not AdminOnly — so expired admins can still view and renew
+			subGroup.GET("/history", handlers.GetAdminSubscriptionHistory)
 		}
 		// verify is public - Paystack redirects here without JWT
 		api.GET("/subscription/verify", handlers.VerifySubscriptionPayment)
@@ -277,6 +290,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.Static("/assets", frontendPath)
 	router.Static("/js", frontendPath)
 	router.Static("/images", frontendPath+"/images")
+	// Serve uploads directory for user-uploaded images
 	router.Static("/uploads", "./uploads")
 	router.StaticFile("/api.js", frontendPath+"/api.js")
 	router.StaticFile("/auth.js", frontendPath+"/auth.js")
@@ -320,7 +334,10 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/superadmin-signup", func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin-signup.html")
 	})
-	router.GET("/superadmin", func(c *gin.Context) {
+	router.GET("/unauthorized", func(c *gin.Context) {
+		c.File(frontendPath + "/unauthorized.html")
+	})
+	router.GET("/superadmin", middleware.PageGuardSuperAdmin(), func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin_dashboard.html")
 	})
 	router.GET("/app", func(c *gin.Context) {
@@ -365,7 +382,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/options", func(c *gin.Context) {
 		c.File(frontendPath + "/options.html")
 	})
-	router.GET("/admin", func(c *gin.Context) {
+	router.GET("/admin", middleware.PageGuardAdmin(), func(c *gin.Context) {
 		c.File(frontendPath + "/admin_dashboard.html")
 	})
 	router.GET("/sites", func(c *gin.Context) {
@@ -386,6 +403,12 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/public-sites", func(c *gin.Context) {
 		c.File(frontendPath + "/public-sites.html")
 	})
+
+	// Site files - serve static sites from ./sites directory
+	router.Static("/sites", "./sites")
+
+	// Site viewer route (must be after static to handle direct file access)
+	router.GET("/site/:slug", handlers.ViewSiteHandler)
 	router.GET("/deriv-oauth", func(c *gin.Context) {
 		c.File(frontendPath + "/deriv-oauth.html")
 	})
@@ -405,8 +428,13 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/indicator-loader.js", frontendPath+"/indicator-loader.js")
 	router.StaticFile("/indicator-renderer.js", frontendPath+"/indicator-renderer.js")
 
-	// Site viewer route
-	router.GET("/site/:slug", handlers.ViewSiteHandler)
+	// PWA Files
+	router.StaticFile("/manifest.json", frontendPath+"/manifest.json")
+	router.StaticFile("/pwa-manager.js", frontendPath+"/pwa-manager.js")
+	router.StaticFile("/sw.js", frontendPath+"/sw.js")
+	router.StaticFile("/offline.html", frontendPath+"/offline.html")
+	router.Static("/icons", frontendPath+"/icons")
+
 	// SPA fallback
 	// router.NoRoute(func(c *gin.Context) {
 	// 	c.File(frontendPath + "/index.html")

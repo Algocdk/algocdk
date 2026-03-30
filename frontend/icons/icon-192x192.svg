@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A0E1A"/>
+      <stop offset="100%" style="stop-color:#1a1f2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="38" fill="url(#bg192)"/>
+  <circle cx="96" cy="96" r="68" fill="none" stroke="#FF4500" stroke-width="8" opacity="0.3"/>
+  <path d="M60 120 L82 82 L105 105 L135 60" stroke="#FF4500" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="60" cy="120" r="7" fill="#FF4500"/>
+  <circle cx="82" cy="82" r="7" fill="#FF4500"/>
+  <circle cx="105" cy="105" r="7" fill="#FF4500"/>
+  <circle cx="135" cy="60" r="7" fill="#FF4500"/>
+  <text x="96" y="160" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#FF4500" text-anchor="middle">ALGO</text>
+</svg>

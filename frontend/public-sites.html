@@ -3,98 +3,686 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browse Sites - Algocdk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Explore - Algocdk</title>
+    <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-900 text-white">
-    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4">
-        <div class="flex items-center justify-between">
-            <h1 class="text-xl font-bold"><span style="color: #FF4500;">Algo</span><span>cdk</span></h1>
-            <a href="/app" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg transition-colors">Back to App</a>
-        </div>
-    </nav>
-
-    <main class="container mx-auto px-6 py-8">
-        <h2 class="text-3xl font-bold mb-6">Browse Public Sites</h2>
-        
-        <div id="sitesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="flex justify-center py-12 col-span-full">
-                <div class="loading-spinner"></div>
-            </div>
-        </div>
-    </main>
-
     <style>
-        .loading-spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #FF4500;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        
+        body {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            overscroll-behavior: none;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+        
+        /* App container */
+        .app-container {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* Header */
+        .app-header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: env(safe-area-inset-top) 20px 16px;
+        }
+        
+        /* Content area */
+        .app-content {
+            flex: 1;
+            padding-bottom: 100px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Bottom navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            color: #64748b;
+        }
+        
+        .nav-item:active {
+            transform: scale(0.95);
+        }
+        
+        .nav-item.active {
+            color: #FF4500;
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+        }
+        
+        .nav-item span {
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        /* Site cards */
+        .site-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .site-card:active {
+            transform: scale(0.98);
+        }
+        
+        .site-card:hover {
+            border-color: rgba(255, 69, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(255, 69, 0, 0.15);
+        }
+        
+        /* Preview image */
+        .site-preview {
+            aspect-ratio: 16/10;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .site-preview::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.02) 50%),
+                linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.02) 50%);
+            background-size: 8px 8px;
+        }
+        
+        /* Badge */
+        .site-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .badge-public {
+            color: #10b981;
+        }
+        
+        /* Loading shimmer */
+        .shimmer {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Pull indicator */
+        .pull-indicator {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pull-indicator i {
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(6px); }
+        }
+        
+        /* Stats */
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .stat-item i {
+            font-size: 11px;
+            color: #64748b;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #FF4500 0%, #ff6b35 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(255, 69, 0, 0.3);
+        }
+        
+        .empty-icon i {
+            font-size: 32px;
+            color: white;
+        }
+        
+        /* Floating action hint */
+        .fab-hint {
+            position: fixed;
+            bottom: 120px;
+            right: 20px;
+            background: linear-gradient(135deg, #FF4500 0%, #ff6b35 100%);
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(255, 69, 0, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+        
+        .fab-hint:active {
+            transform: scale(0.9);
+        }
+        
+        .fab-hint i {
+            color: white;
+            font-size: 24px;
+        }
+        
+        /* Status indicator */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
-
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-white">
+                        <span style="color: #FF4500;">Explore</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-0.5">Discover amazing sites</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors" onclick="refreshSites()">
+                        <i class="fas fa-sync-alt text-sm"></i>
+                    </button>
+                    <a href="/app" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                        <i class="fas fa-user text-sm"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Search bar -->
+            <div class="mt-4 relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input 
+                    type="search" 
+                    id="searchInput"
+                    placeholder="Search sites..." 
+                    class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                    oninput="filterSites(this.value)"
+                >
+            </div>
+        </header>
+        
+        <!-- Content -->
+        <main class="app-content">
+            <!-- Pull indicator -->
+            <div id="pullIndicator" class="pull-indicator" style="display: none;">
+                <i class="fas fa-chevron-down"></i>
+                <span>Pull to refresh</span>
+            </div>
+            
+            <!-- Categories -->
+            <div class="px-5 py-4">
+                <div class="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+                    <button class="category-btn active whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-orange-500 text-white" data-category="all" onclick="filterByCategory(this, 'all')">
+                        All <span class="category-count ml-1 opacity-70" id="count-all"></span>
+                    </button>
+                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="recent" onclick="filterByCategory(this, 'recent')">
+                        <i class="fas fa-clock mr-1"></i> Recent <span class="category-count ml-1 opacity-70" id="count-recent"></span>
+                    </button>
+                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="popular" onclick="filterByCategory(this, 'popular')">
+                        <i class="fas fa-fire mr-1"></i> Popular <span class="category-count ml-1 opacity-70" id="count-popular"></span>
+                    </button>
+                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="featured" onclick="filterByCategory(this, 'featured')">
+                        <i class="fas fa-star mr-1"></i> Featured <span class="category-count ml-1 opacity-70" id="count-featured"></span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Section title -->
+            <div class="px-5 pb-3 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-white">Public Sites</h2>
+                <span id="siteCount" class="text-sm text-slate-500">Loading...</span>
+            </div>
+            
+            <!-- Sites grid -->
+            <div id="sitesGrid" class="px-5 space-y-4">
+                <!-- Loading skeleton -->
+                <div class="space-y-4">
+                    <div class="site-card">
+                        <div class="site-preview shimmer"></div>
+                        <div class="p-4">
+                            <div class="h-5 w-32 bg-slate-700 rounded shimmer mb-2"></div>
+                            <div class="h-4 w-48 bg-slate-700 rounded shimmer mb-3"></div>
+                            <div class="flex gap-4">
+                                <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
+                                <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="site-card">
+                        <div class="site-preview shimmer"></div>
+                        <div class="p-4">
+                            <div class="h-5 w-40 bg-slate-700 rounded shimmer mb-2"></div>
+                            <div class="h-4 w-36 bg-slate-700 rounded shimmer mb-3"></div>
+                            <div class="flex gap-4">
+                                <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
+                                <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Empty state -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">No Sites Found</h3>
+                <p class="text-slate-400 text-sm max-w-xs">There are no public sites available yet. Check back soon!</p>
+            </div>
+            
+            <!-- Error state -->
+            <div id="errorState" class="empty-state" style="display: none;">
+                <div class="empty-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-2">Something went wrong</h3>
+                <p class="text-slate-400 text-sm max-w-xs mb-4">Unable to load sites. Please check your connection.</p>
+                <button onclick="refreshSites()" class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-xl transition-colors">
+                    <i class="fas fa-redo mr-2"></i>Try Again
+                </button>
+            </div>
+        </main>
+        
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="flex justify-around items-center">
+                <a href="/" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="/marketchart" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Markets</span>
+                </a>
+                <a href="/botstore" class="nav-item">
+                    <i class="fas fa-robot"></i>
+                    <span>Bots</span>
+                </a>
+                <a href="/public-sites" class="nav-item active">
+                    <i class="fas fa-globe"></i>
+                    <span>Explore</span>
+                </a>
+                <a href="/app" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+    
     <script>
+        let allSites = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+        
         async function loadPublicSites() {
+            showLoading();
+            
             try {
                 const response = await fetch('/api/sites/public?t=' + Date.now());
+                
+                if (!response.ok) throw new Error('Failed to fetch');
+                
                 const data = await response.json();
-                console.log('Loaded sites:', data);
-                const sites = data.sites || [];
+                allSites = data.sites || [];
                 
-                const grid = document.getElementById('sitesGrid');
+                // Pre-compute featured status based on engagement
+                allSites = allSites.map(site => ({
+                    ...site,
+                    _isFeatured: calculateFeatured(site)
+                }));
                 
-                if (sites.length === 0) {
-                    grid.innerHTML = `
-                        <div class="col-span-full text-center py-12">
-                            <i class="fas fa-globe text-gray-500 text-6xl mb-4"></i>
-                            <h3 class="text-xl font-semibold text-gray-400 mb-2">No Public Sites Yet</h3>
-                            <p class="text-gray-500">Check back later for new sites</p>
-                        </div>
-                    `;
-                    return;
-                }
+                // Update category counts
+                updateCategoryCounts();
                 
-                grid.innerHTML = sites.map(site => `
-                    <div class="bg-gray-800 rounded-xl p-6 hover:bg-gray-700 transition-colors">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h4 class="font-semibold text-white text-lg">${site.name}</h4>
-                                <p class="text-xs text-gray-500 mt-1">by ${site.owner?.name || site.owner?.email?.split('@')[0] || 'Unknown'}</p>
-                            </div>
-                            <span class="px-2 py-1 rounded text-xs bg-success/20 text-success">
-                                Public
-                            </span>
-                        </div>
-                        <p class="text-gray-400 text-sm mb-4">${site.description || 'No description'}</p>
-                        <div class="flex items-center justify-between text-sm text-gray-400 mb-4">
-                            <span><i class="fas fa-eye mr-1"></i>${site.view_count || 0} views</span>
-                            <span><i class="fas fa-calendar mr-1"></i>${new Date(site.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <a href="/site/${site.slug}" target="_blank" class="block w-full bg-primary hover:bg-secondary text-center py-2 rounded-lg text-sm transition-colors">
-                            <i class="fas fa-external-link-alt mr-1"></i>Visit Site
-                        </a>
-                    </div>
-                `).join('');
+                renderSites();
             } catch (error) {
                 console.error('Failed to load sites:', error);
-                document.getElementById('sitesGrid').innerHTML = `
-                    <div class="col-span-full text-center py-12">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-6xl mb-4"></i>
-                        <h3 class="text-xl font-semibold text-gray-400 mb-2">Failed to Load Sites</h3>
-                        <p class="text-gray-500">Please try again later</p>
-                    </div>
-                `;
+                showError();
             }
         }
-
+        
+        // Calculate if a site qualifies as "Featured"
+        // A site is featured if it has high engagement (views + recency score)
+        function calculateFeatured(site) {
+            const views = site.view_count || 0;
+            const createdDate = new Date(site.created_at);
+            const now = new Date();
+            const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            
+            // Featured criteria:
+            // 1. High view count (50+ views) OR
+            // 2. Recently created (within 3 days) with 10+ views OR
+            // 3. High engagement score (views adjusted by recency)
+            const engagementScore = views * Math.max(0.5, 1 - (daysSinceCreation / 30));
+            
+            return views >= 50 || (daysSinceCreation <= 3 && views >= 10) || engagementScore >= 30;
+        }
+        
+        function showLoading() {
+            const grid = document.getElementById('sitesGrid');
+            grid.innerHTML = `
+                <div class="space-y-4">
+                    ${[1,2,3].map(() => `
+                        <div class="site-card">
+                            <div class="site-preview shimmer"></div>
+                            <div class="p-4">
+                                <div class="h-5 w-32 bg-slate-700 rounded shimmer mb-2"></div>
+                                <div class="h-4 w-48 bg-slate-700 rounded shimmer mb-3"></div>
+                                <div class="flex gap-4">
+                                    <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
+                                    <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+        
+        function showError() {
+            document.getElementById('sitesGrid').innerHTML = '';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'flex';
+        }
+        
+        function renderSites() {
+            const grid = document.getElementById('sitesGrid');
+            const emptyState = document.getElementById('emptyState');
+            const errorState = document.getElementById('errorState');
+            const siteCount = document.getElementById('siteCount');
+            
+            errorState.style.display = 'none';
+            
+            let filteredSites = [...allSites];
+            
+            // Apply category filter - each filter transforms the dataset
+            if (currentFilter === 'recent') {
+                // Recent: Newest first, only show sites from last 30 days
+                filteredSites = filteredSites
+                    .filter(site => {
+                        const daysSince = Math.floor((new Date() - new Date(site.created_at)) / (1000 * 60 * 60 * 24));
+                        return daysSince <= 30;
+                    })
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (currentFilter === 'popular') {
+                // Popular: Most views first, minimum 5 views
+                filteredSites = filteredSites
+                    .filter(site => (site.view_count || 0) >= 5)
+                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            } else if (currentFilter === 'featured') {
+                // Featured: Only show sites that meet featured criteria
+                filteredSites = filteredSites
+                    .filter(site => site._isFeatured)
+                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            } else {
+                // All: Default order (newest first)
+                filteredSites.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            }
+            
+            // Apply search filter
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filteredSites = filteredSites.filter(site => 
+                    site.name?.toLowerCase().includes(query) ||
+                    site.description?.toLowerCase().includes(query) ||
+                    site.owner?.name?.toLowerCase().includes(query)
+                );
+            }
+            
+            siteCount.textContent = `${filteredSites.length} site${filteredSites.length !== 1 ? 's' : ''}`;
+            
+            if (filteredSites.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'flex';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            grid.innerHTML = filteredSites.map((site, index) => `
+                <div class="site-card" onclick="window.open('/site/${site.slug}', '_blank')" style="animation: fadeInUp 0.3s ease ${index * 0.05}s both;">
+                    <div class="site-preview">
+                        ${site.thumbnail ? 
+                            `<img src="${site.thumbnail}" alt="${site.name}" class="w-full h-full object-cover">` : 
+                            `<div class="w-full h-full flex items-center justify-center">
+                                <i class="fas fa-globe text-slate-600" style="font-size: 48px;"></i>
+                            </div>`
+                        }
+                        <div class="site-badge badge-public">
+                            <i class="fas fa-circle" style="font-size: 6px;"></i>
+                            Public
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-white text-base mb-1 truncate">${site.name}</h3>
+                        <p class="text-slate-400 text-sm mb-3 line-clamp-2">${site.description || 'No description available'}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="stat-item">
+                                    <i class="fas fa-eye"></i>
+                                    ${formatCount(site.view_count || 0)}
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    ${formatDate(site.created_at)}
+                                </span>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                                <i class="fas fa-external-link-alt text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-700/50 flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                                <i class="fas fa-user text-white text-xs"></i>
+                            </div>
+                            <span class="text-sm text-slate-400">by ${site.owner?.name || site.owner?.email?.split('@')[0] || 'Unknown'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add animation styles
+            if (!document.getElementById('animationStyles')) {
+                const style = document.createElement('style');
+                style.id = 'animationStyles';
+                style.textContent = `
+                    @keyframes fadeInUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        function updateCategoryCounts() {
+            const allCount = allSites.length;
+            const recentCount = allSites.filter(site => {
+                const daysSince = Math.floor((new Date() - new Date(site.created_at)) / (1000 * 60 * 60 * 24));
+                return daysSince <= 30;
+            }).length;
+            const popularCount = allSites.filter(site => (site.view_count || 0) >= 5).length;
+            const featuredCount = allSites.filter(site => site._isFeatured).length;
+            
+            document.getElementById('count-all').textContent = `(${allCount})`;
+            document.getElementById('count-recent').textContent = `(${recentCount})`;
+            document.getElementById('count-popular').textContent = `(${popularCount})`;
+            document.getElementById('count-featured').textContent = `(${featuredCount})`;
+        }
+        
+        function filterByCategory(btn, category) {
+            // Update active state
+            document.querySelectorAll('.category-btn').forEach(b => {
+                b.classList.remove('active', 'bg-orange-500', 'text-white');
+                b.classList.add('bg-slate-800', 'text-slate-400');
+            });
+            btn.classList.add('active', 'bg-orange-500', 'text-white');
+            btn.classList.remove('bg-slate-800', 'text-slate-400');
+            
+            currentFilter = category;
+            renderSites();
+        }
+        
+        function filterSites(query) {
+            searchQuery = query;
+            renderSites();
+        }
+        
+        function refreshSites() {
+            loadPublicSites();
+        }
+        
+        function formatCount(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) return 'Today';
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return days + 'd ago';
+            if (days < 30) return Math.floor(days / 7) + 'w ago';
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        
+        // Initial load
         loadPublicSites();
     </script>
 </body>

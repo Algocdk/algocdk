@@ -16,7 +16,7 @@ type ChartIndicator struct {
 	Category    string    `json:"category"` // e.g., "Trend", "Momentum", "Volatility"
 	IsFree      bool      `gorm:"default:true" json:"is_free"`
 	Price       float64   `gorm:"default:0" json:"price"`
-	Image       string    `json:"image"`    // Indicator image/thumbnail
+	Image       string    `json:"image"`                     // Indicator image/thumbnail
 	Features    string    `gorm:"type:text" json:"features"` // JSON array of features
 	AdminID     uint      `json:"admin_id"`
 	Admin       Admin     `gorm:"foreignKey:AdminID" json:"admin,omitempty"`

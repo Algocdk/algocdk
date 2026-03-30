@@ -103,6 +103,10 @@ class AuthHandler {
         if (response.refresh_token) {
           TokenManager.setRefreshToken(response.refresh_token);
         }
+
+        // set cookie so server-side page guards can read the role
+        document.cookie = 'auth_token=' + response.token + '; path=/; max-age=' + (86400 * 7) + '; SameSite=Lax';
+
         utils.notify('Login successful!', 'success');
         
         // Redirect based on user role
@@ -158,6 +162,13 @@ class AuthHandler {
       localStorage.setItem('pendingVerificationEmail', data.email);
       window.location = '/verify-email?email=' + encodeURIComponent(data.email);
     } catch (error) {
+      // unverified account — verification resent, redirect to verify page
+      if (error.resent) {
+        localStorage.setItem('pendingVerificationEmail', data.email);
+        utils.notify(error.message, 'warning');
+        setTimeout(() => { window.location = '/verify-email?email=' + encodeURIComponent(data.email); }, 1500);
+        return;
+      }
       utils.notify(error.message || 'Signup failed', 'error');
       this.setLoading(event.target, false);
     }

@@ -99,10 +99,30 @@ func SignupHandler(ctx *gin.Context) {
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":   "could not create user",
-			"details": err.Error(),
-		})
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			// check if existing account is unverified — resend verification
+			var existing models.User
+			if dbErr := database.DB.Where("email = ?", payload.Email).First(&existing).Error; dbErr == nil && !existing.EmailVerified {
+				newToken, newHashed, tokenErr := utils.GenerateResetToken()
+				if tokenErr == nil {
+					database.DB.Model(&existing).Updates(map[string]interface{}{
+						"verification_token": newHashed,
+						"updated_at":         utils.FormattedTime(time.Now()),
+					})
+					verificationLink := fmt.Sprintf("%s/api/auth/verify-email?token=%s", os.Getenv("BASE_URL"), newToken)
+					go utils.SendVerificationEmail(existing.Email, verificationLink)
+				}
+				ctx.JSON(http.StatusConflict, gin.H{
+					"error":  "This email is registered but not yet verified. A new verification email has been sent.",
+					"resent": true,
+					"email":  payload.Email,
+				})
+				return
+			}
+			ctx.JSON(http.StatusConflict, gin.H{"error": "An account with this email already exists. Please log in."})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create account. Please try again."})
 		return
 	}
 
@@ -166,6 +186,10 @@ func LoginHandler(ctx *gin.Context) {
 	}
 	token, _ := utils.GenerateToken(user.ID, user.Email, user.Role)
 	payload.RefreshToken, _ = utils.RefreshToken(user.Email)
+
+	// set HttpOnly cookie so server-side page guards can read the role
+	ctx.SetCookie("auth_token", token, 86400*7, "/", "", false, true)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"message":       "login succesful",
 		"token":         token,
@@ -341,8 +365,12 @@ func UpdateProfile(ctx *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /api/user/delete_account/{id} [delete]
 func DeleteAccountHandler(ctx *gin.Context) {
-	id := ctx.Param("id")
-	if err := database.DB.Delete(&models.User{}, id).Error; err != nil {
+	userID := ctx.GetUint("user_id")
+	if userID == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	if err := database.DB.Delete(&models.User{}, userID).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete account"})
 		return
 	}
@@ -543,8 +571,7 @@ func ForgotPasswordHandler(ctx *gin.Context) {
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
-	resetLink := fmt.Sprintf("https://yourfrontend.com/reset-password?token=%s",
-		token)
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", os.Getenv("BASE_URL"), token)
 
 	go utils.SendResetEmail(user.Email, resetLink)
 	ctx.JSON(http.StatusOK, gin.H{

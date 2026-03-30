@@ -8,11 +8,11 @@ import (
 )
 
 type Admin struct {
-	ID          uint  `gorm:"primaryKey" json:"id"`
+	ID          uint   `gorm:"primaryKey" json:"id"`
 	UUID        string `json:"uuid" gorm:"uniqueIndex;type:varchar(36)"`
-	PersonID    uint  `gorm:"uniqueIndex" json:"person_id"` // links to Person table
-	Person      User  `gorm:"foreignKey:PersonID" json:"person"`
-	PhoneNumber int64 `json:"phone_number"`
+	PersonID    uint   `gorm:"uniqueIndex" json:"person_id"` // links to Person table
+	Person      User   `gorm:"foreignKey:PersonID" json:"person"`
+	PhoneNumber int64  `json:"phone_number"`
 	// Payment / KYC / Paystack
 	BankCode               string     `json:"bank_code"`
 	AccountNumber          string     `json:"account_number"`

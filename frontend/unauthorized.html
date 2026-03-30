@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes countdown { from { width: 100%; } to { width: 0%; } }
+        .bar { animation: countdown 3s linear forwards; }
+    </style>
+</head>
+<body class="bg-gray-950 min-h-screen flex items-center justify-center">
+    <div class="text-center px-6">
+        <!-- icon -->
+        <div class="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+            </svg>
+        </div>
+
+        <h1 class="text-2xl font-bold text-white mb-2">Access Denied</h1>
+        <p class="text-gray-400 mb-8">You don't have permission to view this page.</p>
+
+        <!-- spinner + message -->
+        <div class="flex items-center justify-center gap-3 mb-6">
+            <svg class="spinner w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <span class="text-gray-300 text-sm">Redirecting you to the app in <span id="count" class="text-cyan-400 font-semibold">3</span>s...</span>
+        </div>
+
+        <!-- progress bar -->
+        <div class="w-64 mx-auto h-1 bg-gray-800 rounded-full overflow-hidden mb-8">
+            <div class="bar h-full bg-cyan-400 rounded-full"></div>
+        </div>
+
+        <a href="/app" class="inline-block px-6 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-medium transition-colors">
+            Go now
+        </a>
+    </div>
+
+    <script>
+        var n = 3;
+        var el = document.getElementById('count');
+        var t = setInterval(function(){
+            n--;
+            el.textContent = n;
+            if (n <= 0) { clearInterval(t); window.location.replace('/app'); }
+        }, 1000);
+    </script>
+</body>
+</html>

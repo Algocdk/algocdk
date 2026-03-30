@@ -5,6 +5,24 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - AlgoCDK</title>
+    <!-- role guard -->
+    <script>
+    (function(){
+        var token = localStorage.getItem('token');
+        if (!token) { window.location.replace('/auth'); return; }
+        try {
+            var parts = token.split('.');
+            if (parts.length !== 3) throw new Error('bad token');
+            var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+            var role = (payload.role || '').toLowerCase();
+            if (role !== 'admin' && role !== 'superadmin') {
+                window.location.replace('/unauthorized');
+            }
+        } catch(e) {
+            window.location.replace('/auth');
+        }
+    })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -176,6 +194,10 @@
                 <a href="#transactions" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('transactions');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-credit-card mr-3"></i>
                     Transactions
+                </a>
+                <a href="#subscription" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('subscription');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
+                    <i class="fas fa-receipt mr-3"></i>
+                    Subscription
                 </a>
                 <a href="#users" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('users');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-users mr-3"></i>
@@ -689,6 +711,76 @@
                 </div>
             </div>
 
+            <!-- Subscription View -->
+            <div id="subscriptionView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold">Subscription History</h3>
+                        <span id="subCurrentBadge" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400">Loading...</span>
+                    </div>
+                    <!-- Current Plan Card -->
+                    <div id="subCurrentCard" class="bg-gray-700 rounded-xl p-6 mb-6 hidden">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-400 mb-1">Current Plan</p>
+                                <p class="text-2xl font-bold capitalize" id="subCurrentPlan">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400 mb-1">Amount</p>
+                                <p class="text-2xl font-bold text-success" id="subCurrentAmount">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400 mb-1">Expires</p>
+                                <p class="font-medium" id="subCurrentExpiry">-</p>
+                                <p class="text-sm" id="subDaysRemaining"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400 mb-1">Status</p>
+                                <span id="subCurrentStatus" class="px-3 py-1 rounded-full text-sm font-medium">-</span>
+                            </div>
+                        </div>
+                        <div id="subRenewSection" class="mt-4 hidden">
+                            <div class="bg-red-900 bg-opacity-40 border border-red-700 rounded-lg p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="font-semibold text-red-300">Subscription Expired</p>
+                                    <p class="text-sm text-gray-400">Renew to regain access to your admin dashboard.</p>
+                                </div>
+                                <button onclick="renewSubscription()" class="bg-primary hover:bg-secondary px-6 py-2 rounded-lg font-medium transition-colors">Renew Now</button>
+                            </div>
+                        </div>
+                        <div id="subExpiryWarning" class="mt-4 hidden">
+                            <div class="bg-yellow-900 bg-opacity-40 border border-yellow-700 rounded-lg p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="font-semibold text-yellow-300">Expiring Soon</p>
+                                    <p class="text-sm text-gray-400" id="subExpiryWarningText"></p>
+                                </div>
+                                <button onclick="renewSubscription()" class="bg-yellow-600 hover:bg-yellow-500 px-6 py-2 rounded-lg font-medium transition-colors">Renew Early</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- History Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">#</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Plan</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Amount</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Status</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Reference</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Started</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Expires</th>
+                                    <th class="text-left py-3 px-4 text-gray-400 text-sm">Cancelled</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subHistoryBody">
+                                <tr><td colspan="8" class="text-center py-8 text-gray-400"><div class="loading-spinner mx-auto"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sites View -->
             <div id="sitesView" class="view-content hidden">
                 <div class="bg-gray-800 rounded-xl p-6">
@@ -877,6 +969,7 @@
                 bots: 'My Bots',
                 sites: 'My Sites',
                 transactions: 'Transactions',
+                subscription: 'Subscription',
                 users: 'Bot Users',
                 indicators: 'Chart Indicators',
                 bank: 'Bank Details',
@@ -902,6 +995,7 @@
 
             // Load data for specific views
             if (view === 'transactions') loadTransactions();
+            if (view === 'subscription') loadSubscriptionHistory();
             if (view === 'users') loadBotsList();
             if (view === 'bank') loadBankDetails();
             if (view === 'profile') loadProfile();
@@ -977,6 +1071,123 @@
         });
 
         // Load functions
+        async function loadSubscriptionHistory() {
+            const tbody = document.getElementById('subHistoryBody');
+            const badge = document.getElementById('subCurrentBadge');
+            try {
+                const res = await fetch('/api/subscription/history', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                const subs = data.subscriptions || [];
+
+                // Current plan card
+                if (data.current) {
+                    const c = data.current;
+                    const expiresAt = c.expires_at ? new Date(c.expires_at) : null;
+                    const daysLeft = data.days_remaining ?? 0;
+                    const isExpired = !expiresAt || expiresAt < new Date();
+
+                    document.getElementById('subCurrentCard').classList.remove('hidden');
+                    document.getElementById('subCurrentPlan').textContent = c.plan || '-';
+                    document.getElementById('subCurrentAmount').textContent = `KES ${(c.amount || 0).toLocaleString()}`;
+                    document.getElementById('subCurrentExpiry').textContent = expiresAt ? expiresAt.toLocaleDateString() : '-';
+
+                    const daysEl = document.getElementById('subDaysRemaining');
+                    if (isExpired) {
+                        daysEl.textContent = 'Expired';
+                        daysEl.className = 'text-sm text-red-400 font-medium';
+                    } else {
+                        daysEl.textContent = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+                        daysEl.className = daysLeft <= 7 ? 'text-sm text-yellow-400 font-medium' : 'text-sm text-green-400';
+                    }
+
+                    const statusEl = document.getElementById('subCurrentStatus');
+                    statusEl.textContent = isExpired ? 'expired' : c.status;
+                    statusEl.className = 'px-3 py-1 rounded-full text-sm font-medium ' +
+                        (!isExpired && c.status === 'active' ? 'bg-green-900 text-green-300' :
+                         c.status === 'cancelled' ? 'bg-red-900 text-red-300' : 'bg-red-900 text-red-300');
+
+                    badge.textContent = isExpired ? 'EXPIRED' : c.status.toUpperCase();
+                    badge.className = 'px-3 py-1 rounded-full text-sm font-medium ' +
+                        (!isExpired && c.status === 'active' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300');
+
+                    // Show renew or warning banners
+                    if (isExpired || c.status !== 'active') {
+                        document.getElementById('subRenewSection').classList.remove('hidden');
+                        document.getElementById('subExpiryWarning').classList.add('hidden');
+                    } else if (daysLeft <= 7) {
+                        document.getElementById('subExpiryWarning').classList.remove('hidden');
+                        document.getElementById('subExpiryWarningText').textContent =
+                            `Your subscription expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} on ${expiresAt.toLocaleDateString()}. Renew to avoid losing access.`;
+                        document.getElementById('subRenewSection').classList.add('hidden');
+                    }
+                } else {
+                    badge.textContent = 'No Active Plan';
+                    badge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400';
+                }
+
+                if (subs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">No subscription history found</td></tr>`;
+                    return;
+                }
+
+                const statusClass = (s, expiresAt) => {
+                    if (s === 'active' && expiresAt && new Date(expiresAt) > new Date()) return 'bg-green-900 text-green-300';
+                    if (s === 'cancelled') return 'bg-red-900 text-red-300';
+                    if (s === 'pending') return 'bg-yellow-900 text-yellow-300';
+                    return 'bg-red-900 text-red-300'; // expired
+                };
+                const statusLabel = (s, expiresAt) => {
+                    if (s === 'pending') return 'pending';
+                    if (s === 'cancelled') return 'cancelled';
+                    if (s === 'active' && expiresAt && new Date(expiresAt) > new Date()) return 'active';
+                    if (s === 'active' && expiresAt && new Date(expiresAt) <= new Date()) return 'expired';
+                    return s; // show whatever status is in DB
+                };
+                const fmtDate = d => {
+                    if (!d) return '-';
+                    const dt = new Date(d);
+                    return dt.getFullYear() > 2000 ? dt.toLocaleDateString() : '-';
+                };
+
+                tbody.innerHTML = subs.map((s, i) => `
+                    <tr class="border-b border-gray-700 hover:bg-gray-750">
+                        <td class="py-3 px-4 text-gray-400">${i + 1}</td>
+                        <td class="py-3 px-4 capitalize font-medium">${s.plan || '-'}</td>
+                        <td class="py-3 px-4 text-success">KES ${(s.amount || 0).toLocaleString()}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass(s.status, s.expires_at)}">${statusLabel(s.status, s.expires_at)}</span></td>
+                        <td class="py-3 px-4 text-gray-400 text-sm font-mono">${s.reference || '-'}</td>
+                        <td class="py-3 px-4 text-sm">${fmtDate(s.started_at)}</td>
+                        <td class="py-3 px-4 text-sm ${s.expires_at && new Date(s.expires_at) > new Date(2000,0,1) && new Date(s.expires_at) < new Date() ? 'text-red-400' : 'text-green-400'}">${fmtDate(s.expires_at)}</td>
+                        <td class="py-3 px-4 text-sm text-gray-400">${fmtDate(s.cancelled_at)}</td>
+                    </tr>`).join('');
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-danger">Failed to load subscription history</td></tr>`;
+                badge.textContent = 'Error';
+            }
+        }
+
+        async function renewSubscription() {
+            try {
+                const res = await fetch('/api/subscription/initialize', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (data.authorization_url) {
+                    window.location.href = data.authorization_url;
+                } else {
+                    alert(data.error || 'Failed to initialize renewal payment');
+                }
+            } catch (e) {
+                alert('Failed to connect to payment service');
+            }
+        }
+
         async function loadTransactions() {
             try {
                 const response = await api.admin.getTransactions();
@@ -1382,12 +1593,51 @@
         })();
 
         // Initialize on load
+        // Intercept 402 responses (subscription expired) — set up immediately before any scripts run
+        (function() {
+            const _origFetch = window.fetch;
+            window.fetch = async function(...args) {
+                const res = await _origFetch(...args);
+                if (res.status === 402) {
+                    const clone = res.clone();
+                    clone.json().then(data => {
+                        if (data.code === 'SUBSCRIPTION_EXPIRED' || data.code === 'NO_SUBSCRIPTION') {
+                            showSubscriptionExpiredOverlay(data.expires_at);
+                        }
+                    }).catch(() => {});
+                }
+                return res;
+            };
+        })();
+
+        function showSubscriptionExpiredOverlay(expiresAt) {
+            if (document.getElementById('subExpiredOverlay')) return;
+            // Ignore zero/invalid dates — means expiry not yet set
+            const expDate = expiresAt ? new Date(expiresAt) : null;
+            const isRealExpiry = expDate && expDate.getFullYear() > 2000 && expDate < new Date();
+            if (!isRealExpiry) return;
+            const overlay = document.createElement('div');
+            overlay.id = 'subExpiredOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            const expiredDate = expDate.toLocaleDateString();
+            overlay.innerHTML = `
+                <div style="background:#1f2937;border:1px solid #ef4444;border-radius:1rem;padding:2.5rem;max-width:480px;width:90%;text-align:center;">
+                    <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+                    <h2 style="font-size:1.5rem;font-weight:700;color:#ef4444;margin-bottom:0.5rem;">Subscription Expired</h2>
+                    <p style="color:#9ca3af;margin-bottom:0.5rem;">Your admin subscription expired on <strong style="color:#f9fafb;">${expiredDate}</strong>.</p>
+                    <p style="color:#9ca3af;margin-bottom:2rem;">Renew your subscription to regain full access to your admin dashboard.</p>
+                    <button onclick="renewSubscription()" style="background:#FF4500;color:white;border:none;padding:0.75rem 2rem;border-radius:0.5rem;font-size:1rem;font-weight:600;cursor:pointer;width:100%;margin-bottom:0.75rem;">Renew Subscription — KES 500/month</button>
+                    <button onclick="document.getElementById('subExpiredOverlay').remove();switchView('subscription');" style="background:#374151;color:#d1d5db;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;cursor:pointer;width:100%;">View Subscription Details</button>
+                </div>`;
+            document.body.appendChild(overlay);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             if (!TokenManager.isValid()) {
                 window.location.href = '/auth';
                 return;
             }
-            
+
             // Wait a bit for all scripts to load before calling loadSites
             setTimeout(() => {
                 loadSites();

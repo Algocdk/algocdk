@@ -105,13 +105,6 @@ func GetPendingAdminRequests(ctx *gin.Context) {
 		return
 	}
 
-	// Verify superadmin role
-	var superAdmin models.SuperAdmin
-	if err := database.DB.First(&superAdmin, userID).Error; err != nil {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied - superadmin only"})
-		return
-	}
-
 	var requests []models.AdminRequest
 	if err := database.DB.Preload("User").Where("status = ?", "pending").Order("created_at DESC").Find(&requests).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch admin requests"})
@@ -125,10 +118,10 @@ func GetPendingAdminRequests(ctx *gin.Context) {
 		hasSub := database.DB.Where("user_id = ? AND plan = ? AND status = ?", req.UserID, "admin", "active").First(&sub).Error == nil
 
 		response = append(response, gin.H{
-			"id":              req.ID,
-			"reason":          req.Reason,
-			"status":          req.Status,
-			"created_at":      req.CreatedAt,
+			"id":               req.ID,
+			"reason":           req.Reason,
+			"status":           req.Status,
+			"created_at":       req.CreatedAt,
 			"has_subscription": hasSub,
 			"user": gin.H{
 				"id":      req.User.ID,
@@ -165,13 +158,6 @@ func ReviewAdminRequest(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 	if userID == 0 {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	// Verify superadmin role
-	var superAdmin models.SuperAdmin
-	if err := database.DB.First(&superAdmin, userID).Error; err != nil {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied - superadmin only"})
 		return
 	}
 
@@ -266,15 +252,8 @@ func GetAllAdminRequests(ctx *gin.Context) {
 		return
 	}
 
-	// Verify superadmin role
-	var superAdmin models.SuperAdmin
-	if err := database.DB.First(&superAdmin, userID).Error; err != nil {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied - superadmin only"})
-		return
-	}
-
 	var requests []models.AdminRequest
-	if err := database.DB.Preload("User").Preload("Reviewer").Order("created_at DESC").Find(&requests).Error; err != nil {
+	if err := database.DB.Preload("User").Order("created_at DESC").Find(&requests).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch admin requests"})
 		return
 	}

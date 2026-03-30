@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/keyadaniel56/algocdk/internal/database"
 	"github.com/keyadaniel56/algocdk/internal/models"
+	"github.com/keyadaniel56/algocdk/internal/security"
 )
 
 // AdminDashboardHandler godoc
@@ -269,7 +270,7 @@ func CreateBotHandler(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	backtested := backtestedStr == "true" || backtestedStr == "1"
 
 	now := time.Now()
@@ -288,10 +289,15 @@ func CreateBotHandler(c *gin.Context) {
 		return path, nil
 	}
 
-	// Save HTML file
+	// Scan HTML file for malicious content before saving
 	htmlFile, err := c.FormFile("html_file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "html_file required"})
+		return
+	}
+	scanResult := security.ScanFile(htmlFile)
+	if !scanResult.Safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "HTML file failed security scan", "issues": scanResult.Issues})
 		return
 	}
 	htmlPath, err := saveFile(htmlFile, filepath.Join(baseFolder, "html"))
@@ -311,7 +317,7 @@ func CreateBotHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save image file"})
 		return
 	}
-	
+
 	// Save backtest image if provided
 	var backtestImagePath string
 	if backtestFile, err := c.FormFile("backtest_image"); err == nil {
@@ -348,7 +354,7 @@ func CreateBotHandler(c *gin.Context) {
 	}
 
 	// Generate bot link for frontend
-	botLink := fmt.Sprintf("https://yourfrontend.com/bots/%d", bot.ID)
+	botLink := fmt.Sprintf("%s/bots/%d", os.Getenv("BASE_URL"), bot.ID)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "Bot created successfully",

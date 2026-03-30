@@ -42,7 +42,7 @@
             z-index: 100;
         }
         
-        .logo { font-size: 20px; font-weight: bold; }
+        .logo { font-size: 20px; font-weight: bold; text-decoration: none; color: inherit; }
         .logo span:first-child { color: var(--accent); }
         
         .nav-links { display: flex; gap: 24px; align-items: center; }
@@ -523,7 +523,7 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar">
-        <div class="logo"><span>Algo</span><span>cdk</span></div>
+        <a href="/app" class="logo"><span>Algo</span><span>cdk</span></a>
         <div class="nav-links">
             <a href="app">Dashboard</a>
             <a href="mybots">My Bots</a>

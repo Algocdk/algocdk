@@ -53,14 +53,14 @@ type Bot struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Version     string `json:"version"`
-	
+
 	// Performance metrics
-	Performance     string `json:"performance"`      // e.g., "+187%"
-	WinRate         string `json:"win_rate"`         // e.g., "89%"
-	TotalTrades     string `json:"trades"`           // e.g., "12,847"
-	Backtested      bool   `json:"backtested" gorm:"default:false"`
-	BacktestImage   string `json:"backtest_image"`   // Screenshot/proof of backtest results
-	Features        string `gorm:"type:text" json:"features"` // JSON array of features
+	Performance   string `json:"performance"` // e.g., "+187%"
+	WinRate       string `json:"win_rate"`    // e.g., "89%"
+	TotalTrades   string `json:"trades"`      // e.g., "12,847"
+	Backtested    bool   `json:"backtested" gorm:"default:false"`
+	BacktestImage string `json:"backtest_image"`            // Screenshot/proof of backtest results
+	Features      string `gorm:"type:text" json:"features"` // JSON array of features
 }
 
 // BeforeCreate hook to generate UUID
