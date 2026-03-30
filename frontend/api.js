@@ -2,6 +2,23 @@
 // Base URL for the API (update this for production)
 const API_BASE_URL = window.location.origin + '/api';
 
+// Sync localStorage token to cookie so server-side guards can read it
+(function syncAuthCookie() {
+  const token = localStorage.getItem('token');
+  if (token) {
+    // set immediately via JS for same-page use
+    document.cookie = 'auth_token=' + token + '; path=/; max-age=' + (86400 * 7) + '; SameSite=Lax';
+    // also persist via server so HttpOnly-style cookie survives navigation
+    fetch('/api/auth/set-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
+    }).catch(function(){});
+  } else {
+    document.cookie = 'auth_token=; path=/; max-age=0';
+  }
+})();
+
 // Token management
 const TokenManager = {
   get: () => localStorage.getItem('token'),

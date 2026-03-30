@@ -1477,6 +1477,7 @@
         let SYMBOL = localStorage.getItem('currentSymbol') || "R_100";
         let TIMEFRAME = parseInt(localStorage.getItem('currentTimeframe')) || 60;
         const MAX_CANDLES = 5000;
+        const DERIV_APP_ID = '1089'; // public demo app ID
 
         /* ================= STATE ================= */
         let candles = [];
@@ -1515,11 +1516,17 @@
 
         function resize() {
             const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            // only resize if container has real dimensions
+            if (w > 0 && h > 0) {
+                canvas.width = w;
+                canvas.height = h;
+            }
         }
-        resize();
-        window.addEventListener("resize", resize);
+        // defer first resize until layout is complete
+        requestAnimationFrame(() => { resize(); draw(); });
+        window.addEventListener("resize", () => { resize(); draw(); });
 
         /* ================= MARKET DATA ================= */
         function initMarketData() {
@@ -1637,6 +1644,7 @@
 
         /* ================= BACKGROUND PRICE UPDATES ================= */
         function startBackgroundUpdates() {
+            if (backgroundWs && (backgroundWs.readyState === WebSocket.OPEN || backgroundWs.readyState === WebSocket.CONNECTING)) return;
             backgroundWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
             
             backgroundWs.onopen = () => {
@@ -1645,6 +1653,9 @@
                     backgroundWs.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
                 });
             };
+
+            backgroundWs.onerror = (e) => console.warn('Background WS error', e);
+            backgroundWs.onclose = () => setTimeout(startBackgroundUpdates, 3000);
             
             backgroundWs.onmessage = e => {
                 const d = JSON.parse(e.data);
@@ -1723,6 +1734,7 @@
 
         /* ================= WS ================= */
         function connect() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
             ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
             ws.onopen = () => {
@@ -1734,6 +1746,16 @@
                     end: "latest"
                 }));
                 ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
+            };
+
+            ws.onerror = (e) => {
+                console.warn('Chart WS error', e);
+                hideLoading();
+            };
+
+            ws.onclose = () => {
+                console.warn('Chart WS closed, reconnecting in 3s...');
+                setTimeout(connect, 3000);
             };
 
             ws.onmessage = e => {
@@ -1777,7 +1799,13 @@
                 market.price = price;
                 market.change = price - oldPrice;
                 market.changePercent = ((price - oldPrice) / oldPrice) * 100;
-                populateMarketList();
+                // throttle DOM updates — max once per 500ms
+                if (!updateMarketPrice._timer) {
+                    updateMarketPrice._timer = setTimeout(() => {
+                        updateMarketPrice._timer = null;
+                        populateMarketList();
+                    }, 500);
+                }
             }
         }
 

@@ -31,6 +31,18 @@ func SetUpRouter(router *gin.Engine) {
 			auth.POST("/forgot_password/", handlers.ForgotPasswordHandler)
 			auth.GET("/verify-email", handlers.VerifyEmailHandler)
 			auth.POST("/resend-verification", handlers.ResendVerificationHandler)
+			// sets auth_token cookie from token in request body so server-side guards work
+			auth.POST("/set-cookie", func(c *gin.Context) {
+				var body struct {
+					Token string `json:"token"`
+				}
+				if err := c.ShouldBindJSON(&body); err != nil || body.Token == "" {
+					c.JSON(400, gin.H{"error": "token required"})
+					return
+				}
+				c.SetCookie("auth_token", body.Token, 86400*7, "/", "", false, false)
+				c.JSON(200, gin.H{"ok": true})
+			})
 		}
 
 		// ================= MARKET DATA =================
@@ -322,7 +334,10 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/superadmin-signup", func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin-signup.html")
 	})
-	router.GET("/superadmin", func(c *gin.Context) {
+	router.GET("/unauthorized", func(c *gin.Context) {
+		c.File(frontendPath + "/unauthorized.html")
+	})
+	router.GET("/superadmin", middleware.PageGuardSuperAdmin(), func(c *gin.Context) {
 		c.File(frontendPath + "/superadmin_dashboard.html")
 	})
 	router.GET("/app", func(c *gin.Context) {
@@ -367,7 +382,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.GET("/options", func(c *gin.Context) {
 		c.File(frontendPath + "/options.html")
 	})
-	router.GET("/admin", func(c *gin.Context) {
+	router.GET("/admin", middleware.PageGuardAdmin(), func(c *gin.Context) {
 		c.File(frontendPath + "/admin_dashboard.html")
 	})
 	router.GET("/sites", func(c *gin.Context) {

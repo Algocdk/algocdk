@@ -1,14 +1,76 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/keyadaniel56/algocdk/internal/database"
 	"github.com/keyadaniel56/algocdk/internal/models"
 )
+
+// pageRoleFromCookie parses the auth_token cookie and returns the role claim, or "".
+func pageRoleFromCookie(ctx *gin.Context) string {
+	tokenStr, err := ctx.Cookie("auth_token")
+	if err != nil || tokenStr == "" {
+		return ""
+	}
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected alg")
+		}
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	if err != nil || !token.Valid {
+		return ""
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return ""
+	}
+	role, _ := claims["role"].(string)
+	return strings.ToLower(role)
+}
+
+// PageGuardAdmin redirects to /unauthorized if the cookie role is not admin/superadmin.
+func PageGuardAdmin() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		role := pageRoleFromCookie(ctx)
+		if role == "" {
+			ctx.Redirect(http.StatusFound, "/auth")
+			ctx.Abort()
+			return
+		}
+		if role != "admin" && role != "superadmin" {
+			ctx.Redirect(http.StatusFound, "/unauthorized")
+			ctx.Abort()
+			return
+		}
+		ctx.Next()
+	}
+}
+
+// PageGuardSuperAdmin redirects to /unauthorized if the cookie role is not superadmin.
+func PageGuardSuperAdmin() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		role := pageRoleFromCookie(ctx)
+		if role == "" {
+			ctx.Redirect(http.StatusFound, "/auth")
+			ctx.Abort()
+			return
+		}
+		if role != "superadmin" {
+			ctx.Redirect(http.StatusFound, "/unauthorized")
+			ctx.Abort()
+			return
+		}
+		ctx.Next()
+	}
+}
 
 // AdminOnly ensures the authenticated user has an admin role AND an active subscription
 func AdminOnly() gin.HandlerFunc {

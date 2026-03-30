@@ -103,6 +103,10 @@ class AuthHandler {
         if (response.refresh_token) {
           TokenManager.setRefreshToken(response.refresh_token);
         }
+
+        // set cookie so server-side page guards can read the role
+        document.cookie = 'auth_token=' + response.token + '; path=/; max-age=' + (86400 * 7) + '; SameSite=Lax';
+
         utils.notify('Login successful!', 'success');
         
         // Redirect based on user role

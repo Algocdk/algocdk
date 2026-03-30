@@ -186,6 +186,10 @@ func LoginHandler(ctx *gin.Context) {
 	}
 	token, _ := utils.GenerateToken(user.ID, user.Email, user.Role)
 	payload.RefreshToken, _ = utils.RefreshToken(user.Email)
+
+	// set HttpOnly cookie so server-side page guards can read the role
+	ctx.SetCookie("auth_token", token, 86400*7, "/", "", false, true)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"message":       "login succesful",
 		"token":         token,

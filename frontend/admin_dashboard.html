@@ -5,6 +5,30 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - AlgoCDK</title>
+    <!-- role guard -->
+    <script>
+    (function(){
+        var token = localStorage.getItem('token');
+        if (!token) { document.write(''); window.location.replace('/auth'); return; }
+        document.documentElement.style.visibility = 'hidden';
+        fetch('/api/user/profile', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r){
+            if (r.status === 401) { window.location.replace('/auth'); throw new Error('unauth'); }
+            return r.json();
+        }).then(function(data){
+            var role = ((data.user && data.user.role) || '').toLowerCase();
+            if (role !== 'admin' && role !== 'superadmin') {
+                window.location.replace('/unauthorized');
+            } else {
+                document.documentElement.style.visibility = '';
+            }
+        }).catch(function(e){
+            if (e && e.message !== 'unauth') window.location.replace('/auth');
+        });
+    })();
+    </script>
+    <style>html{visibility:hidden}</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
