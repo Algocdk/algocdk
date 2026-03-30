@@ -20,9 +20,11 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: .env file not found, using environment variables")
+	// try root .env first, then internal/.env
+	if err := godotenv.Load(); err != nil {
+		if err2 := godotenv.Load("internal/.env"); err2 != nil {
+			log.Println("Warning: no .env file found, using environment variables")
+		}
 	}
 
 	config := &Config{

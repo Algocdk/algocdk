@@ -99,10 +99,30 @@ func SignupHandler(ctx *gin.Context) {
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":   "could not create user",
-			"details": err.Error(),
-		})
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			// check if existing account is unverified — resend verification
+			var existing models.User
+			if dbErr := database.DB.Where("email = ?", payload.Email).First(&existing).Error; dbErr == nil && !existing.EmailVerified {
+				newToken, newHashed, tokenErr := utils.GenerateResetToken()
+				if tokenErr == nil {
+					database.DB.Model(&existing).Updates(map[string]interface{}{
+						"verification_token": newHashed,
+						"updated_at":         utils.FormattedTime(time.Now()),
+					})
+					verificationLink := fmt.Sprintf("%s/api/auth/verify-email?token=%s", os.Getenv("BASE_URL"), newToken)
+					go utils.SendVerificationEmail(existing.Email, verificationLink)
+				}
+				ctx.JSON(http.StatusConflict, gin.H{
+					"error":  "This email is registered but not yet verified. A new verification email has been sent.",
+					"resent": true,
+					"email":  payload.Email,
+				})
+				return
+			}
+			ctx.JSON(http.StatusConflict, gin.H{"error": "An account with this email already exists. Please log in."})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create account. Please try again."})
 		return
 	}
 

@@ -120,6 +120,7 @@ async function apiRequest(endpoint, method = 'GET', data = null, headers = {}, r
     // Attach additional error data
     if (errorData.code) error.code = errorData.code;
     if (errorData.email) error.email = errorData.email;
+    if (errorData.resent) error.resent = errorData.resent;
     throw error;
   }
 
