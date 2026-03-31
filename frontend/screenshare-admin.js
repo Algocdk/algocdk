@@ -119,10 +119,22 @@ async function startSession() {
 
 async function startScreenCapture() {
     try {
-        mediaStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { mediaSource: 'screen', width: 1920, height: 1080 },
-            audio: false
-        });
+        const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // Mobile: getDisplayMedia is not supported — use camera instead
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            showNotification('Using camera (screen share not supported on mobile)', 'info');
+        } else {
+            // Desktop: full screen capture
+            mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                video: { mediaSource: 'screen', width: 1920, height: 1080 },
+                audio: false
+            });
+        }
 
         elements.screenPreview.srcObject = mediaStream;
         elements.noPreview.style.display = 'none';
@@ -142,12 +154,18 @@ async function startScreenCapture() {
         await startAudioCapture();
 
         mediaStream.getVideoTracks()[0].onended = () => {
-            showNotification('Screen sharing stopped', 'info');
+            showNotification('Stream stopped', 'info');
             stopSession();
         };
     } catch (error) {
         console.error('Error capturing screen:', error);
-        showNotification('Failed to capture screen. Please grant permission.', 'error');
+        if (error.name === 'NotAllowedError') {
+            showNotification('Permission denied. Please allow camera/screen access.', 'error');
+        } else if (error.name === 'NotSupportedError') {
+            showNotification('Screen sharing is not supported on this device.', 'error');
+        } else {
+            showNotification('Failed to start stream. Please grant permission.', 'error');
+        }
         // If resuming and user cancels, stop the session
         if (currentSession) {
             stopSession();

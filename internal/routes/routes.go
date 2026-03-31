@@ -431,6 +431,8 @@ func SetUpRouter(router *gin.Engine) {
 	// PWA Files
 	router.StaticFile("/manifest.json", frontendPath+"/manifest.json")
 	router.StaticFile("/pwa-manager.js", frontendPath+"/pwa-manager.js")
+	router.StaticFile("/premium-effects.js", frontendPath+"/premium-effects.js")
+	router.StaticFile("/premium-theme.css", frontendPath+"/premium-theme.css")
 	router.StaticFile("/sw.js", frontendPath+"/sw.js")
 	router.StaticFile("/offline.html", frontendPath+"/offline.html")
 	router.Static("/icons", frontendPath+"/icons")

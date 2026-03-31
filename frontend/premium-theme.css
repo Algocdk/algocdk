@@ -1,0 +1,351 @@
+/* ============================================================
+   Algocdk — Premium Apple-style Fintech Theme
+   Layered on top of existing styles, no layout changes
+   ============================================================ */
+
+/* ── Design tokens ── */
+:root {
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --glow-blue: rgba(59, 130, 246, 0.18);
+  --glow-purple: rgba(139, 92, 246, 0.15);
+  --glass-bg: rgba(13, 17, 23, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --glass-blur: blur(20px);
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset;
+  --transition-smooth: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ── Base body upgrade ── */
+body {
+  background: #060a12 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* ── Animated gradient background canvas ── */
+#premiumBgCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.25;
+}
+
+/* ── Nav upgrade ── */
+nav {
+  background: rgba(6, 10, 18, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 4px 24px rgba(0,0,0,0.4) !important;
+}
+
+nav .text-2xl {
+  background: linear-gradient(135deg, #FF4500 0%, #FF8C00 50%, #ff6b35 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(255,69,0,0.4));
+}
+
+nav a.text-gray-400 {
+  position: relative;
+  transition: color 0.25s ease !important;
+}
+nav a.text-gray-400::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+  transition: width 0.3s var(--transition-smooth);
+}
+nav a.text-gray-400:hover::after { width: 100%; }
+
+/* ── Hero section ── */
+section.mt-\[60px\] {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,0.12) 0%, transparent 70%),
+              radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139,92,246,0.08) 0%, transparent 60%),
+              #060a12 !important;
+}
+
+section.mt-\[60px\] > .max-w-7xl { position: relative; z-index: 2; }
+
+/* Hero text glow */
+section.mt-\[60px\] h1 {
+  text-shadow: 0 0 60px rgba(59,130,246,0.15);
+}
+
+/* Hero CTA buttons */
+section.mt-\[60px\] a[href="/auth"]:first-of-type {
+  background: linear-gradient(135deg, #FF4500, #FF8C00) !important;
+  box-shadow: 0 0 0 1px rgba(255,69,0,0.3), 0 8px 32px rgba(255,69,0,0.25) !important;
+  transition: all 0.3s var(--transition-smooth) !important;
+}
+section.mt-\[60px\] a[href="/auth"]:first-of-type:hover {
+  box-shadow: 0 0 0 1px rgba(255,69,0,0.5), 0 12px 40px rgba(255,69,0,0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Hero chart card — glassmorphism + 3D tilt ── */
+.animate-fadeInRight > div,
+.hero-chart-card {
+  background: rgba(13, 17, 23, 0.6) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(59,130,246,0.08),
+              0 1px 0 rgba(255,255,255,0.06) inset !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease, box-shadow 0.3s ease !important;
+  will-change: transform;
+}
+
+/* ── Glass card base — applied to all dark cards ── */
+.bg-dark-200.border.border-dark-400.rounded-xl,
+.bg-dark-200.border.border-dark-400.rounded-2xl,
+.stat-card,
+.bg-dark-300\/60 {
+  background: rgba(16, 21, 32, 0.7) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: transform 0.35s var(--transition-smooth),
+              box-shadow 0.35s var(--transition-smooth),
+              border-color 0.3s ease !important;
+}
+
+.bg-dark-200.border.border-dark-400.rounded-xl:hover,
+.bg-dark-200.border.border-dark-400.rounded-2xl:hover {
+  border-color: rgba(59,130,246,0.3) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5),
+              0 0 0 1px rgba(59,130,246,0.15),
+              0 0 32px rgba(59,130,246,0.06) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Stat cards hover glow */
+.stat-card:hover,
+.bg-dark-300\/60:hover {
+  border-color: rgba(59,130,246,0.25) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5),
+              0 0 24px rgba(59,130,246,0.08) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Section backgrounds ── */
+section.py-20.px-6.bg-dark-100,
+section.py-28.px-6.bg-dark-100,
+section.py-16.my-8.mx-4.bg-dark-100 {
+  background: linear-gradient(180deg, #060a12 0%, #080d18 100%) !important;
+  border-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Market summary section */
+section.py-20.px-6.bg-dark-100.border-t {
+  background: linear-gradient(180deg, #07091400 0%, #060a12 100%) !important;
+  position: relative;
+}
+section.py-20.px-6.bg-dark-100.border-t::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 60%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.4), rgba(139,92,246,0.4), transparent);
+}
+
+/* ── Market slideshow card ── */
+.relative.h-96.bg-\[\#131722\] {
+  background: rgba(10, 14, 26, 0.85) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(59,130,246,0.06) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* Slide nav buttons */
+.slide-nav-btn {
+  background: rgba(13,17,23,0.8) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.25s var(--transition-smooth) !important;
+}
+.slide-nav-btn:hover {
+  background: rgba(59,130,246,0.2) !important;
+  border-color: rgba(59,130,246,0.4) !important;
+  box-shadow: 0 0 20px rgba(59,130,246,0.2) !important;
+}
+
+/* ── Trading platform section ── */
+.flex.flex-col.lg\:flex-row.h-auto {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Features section cards — scroll-reveal handled by JS ── */
+.bg-dark-200.border.border-dark-400.rounded-xl.p-8 {
+  position: relative;
+  overflow: hidden;
+}
+.bg-dark-200.border.border-dark-400.rounded-xl.p-8::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.bg-dark-200.border.border-dark-400.rounded-xl.p-8:hover::before {
+  opacity: 1;
+}
+
+/* ── Forex ideas cards ── */
+.border.border-gray-200.rounded-2xl.overflow-hidden.bg-white {
+  background: rgba(15, 20, 30, 0.85) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+  transition: transform 0.35s var(--transition-smooth),
+              box-shadow 0.35s var(--transition-smooth) !important;
+}
+.border.border-gray-200.rounded-2xl.overflow-hidden.bg-white:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5),
+              0 0 0 1px rgba(59,130,246,0.15) !important;
+}
+.border.border-gray-200.rounded-2xl .p-4 .text-gray-900 {
+  color: #e2e8f0 !important;
+}
+.border.border-gray-200.rounded-2xl .p-4 .text-gray-500 {
+  color: #64748b !important;
+}
+
+/* ── Synthetic indices cards ── */
+#synthTrack > div {
+  background: rgba(13, 17, 23, 0.7) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+  transition: all 0.3s var(--transition-smooth) !important;
+}
+#synthTrack > div:hover {
+  border-color: rgba(59,130,246,0.3) !important;
+  box-shadow: 0 8px 32px rgba(59,130,246,0.1) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Bot slideshow ── */
+.bot-slide .relative.w-full.h-full.rounded-3xl {
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7),
+              0 0 0 1px rgba(255,255,255,0.05) !important;
+}
+
+/* ── CTA section ── */
+.max-w-4xl.mx-auto.text-center.bg-gradient-to-br {
+  background: linear-gradient(135deg,
+    rgba(59,130,246,0.08) 0%,
+    rgba(139,92,246,0.06) 50%,
+    rgba(255,69,0,0.06) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 0 80px rgba(59,130,246,0.06),
+              0 32px 80px rgba(0,0,0,0.4) !important;
+  backdrop-filter: blur(20px) !important;
+  position: relative;
+  overflow: hidden;
+}
+.max-w-4xl.mx-auto.text-center.bg-gradient-to-br::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), rgba(139,92,246,0.5), transparent);
+}
+
+/* ── Footer ── */
+footer {
+  background: rgba(4, 7, 14, 0.95) !important;
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* ── Scroll-reveal base state ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s var(--transition-smooth),
+              transform 0.7s var(--transition-smooth);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+.reveal-delay-6 { transition-delay: 0.6s; }
+
+/* ── Glow orbs (decorative, pointer-events:none) ── */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.35;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+/* ── Particle canvas ── */
+#particleCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+}
+
+/* ── Price ticker glow ── */
+.text-secondary { text-shadow: 0 0 12px rgba(14,203,129,0.3); }
+.text-red-500 { text-shadow: 0 0 12px rgba(246,70,93,0.3); }
+
+/* ── Gradient text for section headings ── */
+.premium-heading {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.75) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Mobile drawer glass ── */
+#drawerPanel {
+  background: rgba(8, 12, 22, 0.95) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-left: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* ── Mobile CTA bar glass ── */
+#mobileCta {
+  background: rgba(6, 10, 18, 0.9) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* ── Smooth scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.4); }
+
+/* ── Selection color ── */
+::selection { background: rgba(59,130,246,0.3); color: #fff; }

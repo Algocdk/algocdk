@@ -28,9 +28,9 @@
     <title>Algocdk - Charting Platform for Traders & Investors</title>
     
     <!-- PWA Manager -->
-    <script src="/pwa-manager.js"></script>
+    <script src="/pwa-manager.js" defer></script>
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <script>
         tailwind.config = {
             theme: {
@@ -178,7 +178,7 @@
         .animate-scaleIn { animation: scaleIn 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
         .hero-bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; }
         .hero-bg-slide.active { opacity: 1; }
-        .hero-bg-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(13, 17, 23, 0.88) 0%, rgba(13, 17, 23, 0.82) 100%); }
+        .hero-bg-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(13, 17, 23, 0.52) 0%, rgba(13, 17, 23, 0.38) 100%); }
         .forex-bg-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.8s ease-in-out; }
         .forex-bg-slide.active { opacity: 1; }
 
@@ -334,10 +334,17 @@
         /* Hamburger hidden on desktop */
         #navHamburger { display: none; }
     </style>
-    <!-- Inter font -->
+    <!-- Inter font — non-blocking -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <!-- Leaflet (lazy — loaded only when map section is visible) -->
+    <link rel="preload" as="style" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onload="this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+    <!-- Premium theme -->
+    <link rel="stylesheet" href="/premium-theme.css">
 </head>
 <body class="bg-dark-100 text-gray-300 overflow-x-hidden max-w-full">
 
@@ -399,10 +406,10 @@
     <section class="mt-[60px] min-h-[calc(100vh-60px)] flex items-center relative overflow-hidden rounded-b-xl">
         <div class="absolute top-0 left-0 w-full h-full z-0">
             <div class="hero-bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1920&q=80');"></div>
-            <div class="hero-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=1920&q=80');"></div>
-            <div class="hero-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=1920&q=80');"></div>
-            <div class="hero-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80');"></div>
-            <div class="hero-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1920&q=80');"></div>
+            <div class="hero-bg-slide" data-bg="https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=1920&q=80"></div>
+            <div class="hero-bg-slide" data-bg="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=1920&q=80"></div>
+            <div class="hero-bg-slide" data-bg="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80"></div>
+            <div class="hero-bg-slide" data-bg="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1920&q=80"></div>
         </div>
         <div class="max-w-7xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-16 items-center relative z-10">
             <div class="animate-fadeInUp">
@@ -732,9 +739,9 @@
     <section class="py-28 px-6 bg-white rounded-xl my-8 mx-6 relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-full z-0">
             <div class="forex-bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1920&q=80'); background-size: cover; background-position: center;"></div>
-            <div class="forex-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1920&q=80'); background-size: cover; background-position: center;"></div>
-            <div class="forex-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1920&q=80'); background-size: cover; background-position: center;"></div>
-            <div class="forex-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?w=1920&q=80'); background-size: cover; background-position: center;"></div>
+            <div class="forex-bg-slide" data-bg="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1920&q=80" style="background-size: cover; background-position: center;"></div>
+            <div class="forex-bg-slide" data-bg="https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1920&q=80" style="background-size: cover; background-position: center;"></div>
+            <div class="forex-bg-slide" data-bg="https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?w=1920&q=80" style="background-size: cover; background-position: center;"></div>
         </div>
         <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-black/75 via-gray-900/70 to-black/75 z-[1]"></div>
         <div class="max-w-7xl mx-auto relative z-10">
@@ -756,7 +763,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white transition-all hover:-translate-y-0.5 hover:shadow-xl cursor-pointer">
                     <div class="h-44 bg-gradient-to-br from-gray-200 to-indigo-200 relative">
-                        <img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=180&fit=crop&q=80" alt="EURUSD Chart" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=180&fit=crop&q=80" alt="EURUSD Chart" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         <div class="absolute top-3 left-3 text-xs bg-gray-900/75 text-white px-2 py-1 rounded-full">EURUSD</div>
                     </div>
                     <div class="p-4">
@@ -774,7 +781,7 @@
                 
                 <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white transition-all hover:-translate-y-0.5 hover:shadow-xl cursor-pointer">
                     <div class="h-44 bg-gradient-to-br from-gray-200 to-indigo-200 relative">
-                        <img src="https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=400&h=180&fit=crop&q=80" alt="EURUSD Chart" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=400&h=180&fit=crop&q=80" alt="EURUSD Chart" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         <div class="absolute top-3 left-3 text-xs bg-gray-900/75 text-white px-2 py-1 rounded-full">EURUSD</div>
                     </div>
                     <div class="p-4">
@@ -792,7 +799,7 @@
                 
                 <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white transition-all hover:-translate-y-0.5 hover:shadow-xl cursor-pointer">
                     <div class="h-44 bg-gradient-to-br from-gray-200 to-indigo-200 relative">
-                        <img src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&h=180&fit=crop&q=80" alt="EUR/USD Chart" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&h=180&fit=crop&q=80" alt="EUR/USD Chart" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         <div class="absolute top-3 left-3 text-xs bg-gray-900/75 text-white px-2 py-1 rounded-full">EUR/USD</div>
                     </div>
                     <div class="p-4">
@@ -815,14 +822,15 @@
     <section class="py-16 my-8 mx-4 bg-dark-100 rounded-2xl overflow-hidden">
 
         <!-- header -->
-        <div class="px-6 mb-6">
+        <div class="max-w-screen-xl mx-auto px-6 mb-6 text-center">
             <h2 class="text-3xl font-bold text-white mb-1">Synthetic Indices</h2>
             <p class="text-gray-400">Trade 24/7 on synthetic markets with constant volatility</p>
         </div>
 
         <!-- track — no clipping parent, just overflow-x on this element -->
+        <div class="max-w-screen-xl mx-auto px-6">
         <div id="synthTrack"
-             class="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 pb-4"
+             class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 justify-start lg:justify-center"
              style="scrollbar-width:none; -webkit-overflow-scrolling:touch;">
 
             <div class="bg-dark-200 border border-dark-400 rounded-xl p-5 snap-start shrink-0 w-[78vw] sm:w-[48vw] md:w-60 cursor-pointer hover:border-primary transition-colors" data-symbol="R_10">
@@ -898,6 +906,7 @@
             </div>
 
         </div>
+        </div><!-- /max-w wrapper -->
 
         <!-- controls row: prev · dots · next -->
         <div class="flex items-center justify-center gap-4 mt-4 px-6">
@@ -1130,7 +1139,6 @@
 
     <!-- Global Section -->
     <section class="p-0 bg-dark-200 border-t border-b border-dark-400 rounded-xl overflow-hidden my-8 mx-6 relative min-h-[500px]">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <div id="globalMap" class="absolute top-0 left-0 w-full h-full z-0"></div>
         <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-dark-100/70 to-dark-200/60 z-10 pointer-events-none"></div>
         <div class="max-w-7xl mx-auto text-center relative z-20 py-28 px-6">
@@ -1274,11 +1282,11 @@
             <p class="text-xl text-gray-400 mb-10">Join millions of traders using Algocdk for market analysis and trading</p>
             <div class="flex items-center justify-center gap-4 mb-8">
                 <div class="flex -ml-2.5">
-                    <img src="https://i.pravatar.cc/40?img=1" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5">
-                    <img src="https://i.pravatar.cc/40?img=2" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5">
-                    <img src="https://i.pravatar.cc/40?img=3" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5">
-                    <img src="https://i.pravatar.cc/40?img=4" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5">
-                    <img src="https://i.pravatar.cc/40?img=5" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5">
+                    <img src="https://i.pravatar.cc/40?img=1" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5" loading="lazy" decoding="async">
+                    <img src="https://i.pravatar.cc/40?img=2" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5" loading="lazy" decoding="async">
+                    <img src="https://i.pravatar.cc/40?img=3" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5" loading="lazy" decoding="async">
+                    <img src="https://i.pravatar.cc/40?img=4" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5" loading="lazy" decoding="async">
+                    <img src="https://i.pravatar.cc/40?img=5" alt="User" class="w-10 h-10 rounded-full border-2 border-dark-100 -ml-2.5" loading="lazy" decoding="async">
                 </div>
                 <p class="text-gray-400 text-sm m-0">Join 50,000+ active traders worldwide</p>
             </div>
@@ -2061,44 +2069,82 @@
                 startAuto();
             })();
             
-            // Initialize Leaflet map
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.onload = () => {
-                const globalMap = L.map('globalMap', {
-                    zoomControl: true,
-                    attributionControl: false,
-                    scrollWheelZoom: true,
-                    dragging: true
-                }).setView([20, 0], 2);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(globalMap);
-                const signalIcon = L.divIcon({
-                    className: '',
-                    html: '<div style="width:14px; height:14px; background:#ff6838; border-radius:50%; box-shadow:0 0 20px #ff5f5f;"><div style="position:absolute; inset:0; border-radius:50%; background:#ff683880; animation:signal-pulse 2.5s infinite;"></div></div>',
-                    iconSize: [14,14], iconAnchor: [7,7]
-                });
-                L.marker([20, 0], { icon: signalIcon }).addTo(globalMap);
-            };
-            document.head.appendChild(script);
+            // Initialize Leaflet map — only load when section is near viewport
+            const mapSection = document.getElementById('globalMap');
+            if (mapSection) {
+                const leafletObserver = new IntersectionObserver(entries => {
+                    if (!entries[0].isIntersecting) return;
+                    leafletObserver.disconnect();
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                    script.onload = () => {
+                        const globalMap = L.map('globalMap', {
+                            zoomControl: true,
+                            attributionControl: false,
+                            scrollWheelZoom: true,
+                            dragging: true
+                        }).setView([20, 0], 2);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(globalMap);
+                        const signalIcon = L.divIcon({
+                            className: '',
+                            html: '<div style="width:14px; height:14px; background:#ff6838; border-radius:50%; box-shadow:0 0 20px #ff5f5f;"><div style="position:absolute; inset:0; border-radius:50%; background:#ff683880; animation:signal-pulse 2.5s infinite;"></div></div>',
+                            iconSize: [14,14], iconAnchor: [7,7]
+                        });
+                        L.marker([20, 0], { icon: signalIcon }).addTo(globalMap);
+                    };
+                    document.head.appendChild(script);
+                }, { rootMargin: '300px' });
+                leafletObserver.observe(mapSection);
+            }
             
-            // Hero background slideshow
+            // Hero background slideshow — lazy-loads data-bg images before showing
             const slides = document.querySelectorAll('.hero-bg-slide');
             let currentSlide = 0;
+            function loadSlide(slide) {
+                const bg = slide.dataset.bg;
+                if (bg && !slide.style.backgroundImage) {
+                    slide.style.backgroundImage = `url('${bg}')`;
+                }
+            }
+            // Pre-load next slide 1s before it shows
             function nextSlide() {
                 slides[currentSlide].classList.remove('active');
                 currentSlide = (currentSlide + 1) % slides.length;
+                loadSlide(slides[currentSlide]);
                 slides[currentSlide].classList.add('active');
+                // Pre-fetch the one after
+                const preNext = slides[(currentSlide + 1) % slides.length];
+                loadSlide(preNext);
             }
+            // Pre-load slide 2 after page is idle
+            requestIdleCallback ? requestIdleCallback(() => loadSlide(slides[1])) : setTimeout(() => loadSlide(slides[1]), 2000);
             setInterval(nextSlide, 4000);
             
-            // Forex background slideshow
+            // Forex background slideshow — same lazy pattern
             const forexSlides = document.querySelectorAll('.forex-bg-slide');
             let currentForexSlide = 0;
+            function loadForexSlide(slide) {
+                const bg = slide.dataset.bg;
+                if (bg && !slide.style.backgroundImage) {
+                    slide.style.backgroundImage = `url('${bg}')`;
+                }
+            }
             function nextForexSlide() {
                 forexSlides[currentForexSlide].classList.remove('active');
                 currentForexSlide = (currentForexSlide + 1) % forexSlides.length;
+                loadForexSlide(forexSlides[currentForexSlide]);
                 forexSlides[currentForexSlide].classList.add('active');
+                const preNext = forexSlides[(currentForexSlide + 1) % forexSlides.length];
+                loadForexSlide(preNext);
             }
+            // Forex section is below fold — load its first slide lazily too
+            const forexObserver = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting) {
+                    loadForexSlide(forexSlides[1]);
+                    forexObserver.disconnect();
+                }
+            }, { rootMargin: '200px' });
+            if (forexSlides[0]) forexObserver.observe(forexSlides[0]);
             setInterval(nextForexSlide, 5000);
             
             // Smooth scroll
@@ -2140,5 +2186,7 @@
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
     </script>
+    <!-- Premium 3D effects -->
+    <script src="/premium-effects.js" defer></script>
 </body>
 </html>

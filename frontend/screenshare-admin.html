@@ -150,9 +150,9 @@
                         <div class="screen-preview">
                             <video id="screenPreview" class="video-preview" autoplay muted></video>
                             <div id="noPreview" class="flex flex-col items-center justify-center h-full text-slate-400">
-                                <i class="fas fa-desktop text-6xl mb-4 opacity-50"></i>
-                                <p class="text-lg">Click "Start Screen Share" to begin</p>
-                                <p class="text-sm mt-2 opacity-75">Your screen will appear here</p>
+                                <i id="noPreviewIcon" class="fas fa-desktop text-6xl mb-4 opacity-50"></i>
+                                <p class="text-lg" id="noPreviewText">Click "Start Session" to begin</p>
+                                <p class="text-sm mt-2 opacity-75" id="noPreviewSub">Your stream will appear here</p>
                             </div>
                         </div>
                     </div>
@@ -193,5 +193,17 @@
     </div>
 
     <script src="/screenshare-admin.js"></script>
+    <script>
+        // Adapt UI labels for mobile on load
+        (function() {
+            const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+            if (isMobile) {
+                document.getElementById('startBtn').innerHTML = '<i class="fas fa-video mr-2"></i>Start Live Session';
+                document.getElementById('noPreviewIcon').className = 'fas fa-camera text-6xl mb-4 opacity-50';
+                document.getElementById('noPreviewText').textContent = 'Click "Start Live Session" to begin';
+                document.getElementById('noPreviewSub').textContent = 'Your camera feed will stream to viewers';
+            }
+        })();
+    </script>
 </body>
 </html>
