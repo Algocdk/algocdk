@@ -1,72 +1,55 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/smtp"
 	"os"
 )
 
-// SendResetEmail sends a password reset link to a user.
-// It supports 3 modes: "console", "smtp", or "mailhog".
 func SendResetEmail(to, resetLink string) {
-	mode := os.Getenv("EMAIL_MODE") // "console", "smtp", or "mailhog"
-	from := os.Getenv("EMAIL_FROM") // e.g., no-reply@myapp.com
-
 	msg := fmt.Sprintf(
 		"Subject: Password Reset\n\nClick the link to reset your password:\n%s\n\nThis link expires in 15 minutes.",
 		resetLink,
 	)
-
-	sendEmail(mode, from, to, msg, "RESET EMAIL")
+	htmlMsg := fmt.Sprintf("<p>Click the link to reset your password:</p><p><a href='%s'>%s</a></p><p>This link expires in 15 minutes.</p>", resetLink, resetLink)
+	sendEmail(to, "Password Reset", msg, htmlMsg, "RESET EMAIL")
 }
 
-// SendVerificationEmail sends an email verification link to a user.
 func SendVerificationEmail(to, verificationLink string) {
-	mode := os.Getenv("EMAIL_MODE")
-	from := os.Getenv("EMAIL_FROM")
-
 	msg := fmt.Sprintf(
 		"Subject: Verify Your Email Address\n\nWelcome to Algocdk!\n\nPlease click the link below to verify your email address:\n%s\n\nIf you didn't create an account, please ignore this email.",
 		verificationLink,
 	)
-
-	sendEmail(mode, from, to, msg, "VERIFICATION EMAIL")
+	htmlMsg := fmt.Sprintf("<p>Welcome to Algocdk!</p><p>Please click the link below to verify your email address:</p><p><a href='%s'>%s</a></p>", verificationLink, verificationLink)
+	sendEmail(to, "Verify Your Email Address", msg, htmlMsg, "VERIFICATION EMAIL")
 }
 
-// sendEmail is a helper function to send emails based on the configured mode
-func sendEmail(mode, from, to, msg, emailType string) {
+func sendEmail(to, subject, plainMsg, htmlMsg, emailType string) {
+	mode := os.Getenv("EMAIL_MODE")
+	from := os.Getenv("EMAIL_FROM")
+
 	switch mode {
 	case "console":
-		// Just log the email to console
 		log.Printf("===== %s =====", emailType)
 		log.Println("To:", to)
-		log.Println("From:", from)
-		log.Println("Message:\n", msg)
+		log.Println("Message:", plainMsg)
 		log.Println("=======================")
 
-	case "mailhog":
-		// Use local MailHog SMTP server
-		host := os.Getenv("EMAIL_HOST") // localhost
-		port := os.Getenv("EMAIL_PORT") // usually "1025"
-		auth := smtp.PlainAuth("", "", "", host)
-		err := smtp.SendMail(host+":"+port, auth, from, []string{to}, []byte(msg))
-		if err != nil {
-			log.Printf("MAILHOG ERROR (%s): %v", emailType, err)
-		} else {
-			log.Printf("MailHog: %s sent to %s", emailType, to)
-		}
+	case "resend":
+		sendViaResend(to, subject, htmlMsg, emailType)
 
 	case "smtp":
 		host := os.Getenv("EMAIL_HOST")
 		port := os.Getenv("EMAIL_PORT")
 		username := os.Getenv("EMAIL_USERNAME")
 		password := os.Getenv("EMAIL_PASSWORD")
-
 		log.Printf("SMTP ATTEMPT (%s): host=%s port=%s user=%s from=%s to=%s", emailType, host, port, username, from, to)
-
 		auth := smtp.PlainAuth("", username, password, host)
-		err := smtp.SendMail(host+":"+port, auth, from, []string{to}, []byte(msg))
+		err := smtp.SendMail(host+":"+port, auth, from, []string{to}, []byte(plainMsg))
 		if err != nil {
 			log.Printf("SMTP ERROR (%s): %v", emailType, err)
 		} else {
@@ -74,6 +57,43 @@ func sendEmail(mode, from, to, msg, emailType string) {
 		}
 
 	default:
-		log.Printf("EMAIL_MODE=%q — %s not sent. Set EMAIL_MODE=smtp to send real emails.", mode, emailType)
+		log.Printf("EMAIL_MODE=%q — %s not sent. Set EMAIL_MODE=resend or smtp.", mode, emailType)
+	}
+}
+
+func sendViaResend(to, subject, html, emailType string) {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	from := os.Getenv("EMAIL_FROM")
+	if from == "" {
+		from = "onboarding@resend.dev"
+	}
+
+	payload := map[string]interface{}{
+		"from":    from,
+		"to":      []string{to},
+		"subject": subject,
+		"html":    html,
+	}
+
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("RESEND ERROR (%s): failed to create request: %v", emailType, err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("RESEND ERROR (%s): %v", emailType, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		log.Printf("RESEND SUCCESS (%s): sent to %s", emailType, to)
+	} else {
+		log.Printf("RESEND ERROR (%s): status %d", emailType, resp.StatusCode)
 	}
 }
