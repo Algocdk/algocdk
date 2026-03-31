@@ -46,6 +46,9 @@ func AuthMiddleware() gin.HandlerFunc {
 		claims := token.Claims.(jwt.MapClaims)
 		ctx.Set("user_id", uint(claims["user_id"].(float64)))
 		ctx.Set("email", claims["email"].(string))
+		if role, ok := claims["role"].(string); ok {
+			ctx.Set("role", role)
+		}
 
 		ctx.Next()
 	}

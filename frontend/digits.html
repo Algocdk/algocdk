@@ -176,6 +176,271 @@
         .digit-btn:hover { border-color: #FF4500; color: #FF4500; }
         .digit-btn.active { background: #FF4500; color: white; border-color: #FF4500; box-shadow: 0 4px 12px rgba(255,69,0,0.4); }
         
+        /* ── Market Digit Analysis ── */
+        .analysis-card {
+            background: #1a1f2e;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 1px solid #2d3748;
+        }
+
+        .analysis-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .analysis-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #e2e8f0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .analysis-title .icon-wrap {
+            width: 34px;
+            height: 34px;
+            background: rgba(255,69,0,0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF4500;
+            font-size: 15px;
+        }
+
+        .sample-badge {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #2d3748;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Digit frequency grid */
+        .digit-freq-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .digit-freq-cell {
+            background: #0D1421;
+            border: 1.5px solid #2d3748;
+            border-radius: 12px;
+            padding: 10px 6px 8px;
+            text-align: center;
+            transition: border-color 0.3s, background 0.3s, transform 0.15s;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .digit-freq-cell.hot {
+            border-color: #FF4500;
+            background: rgba(255,69,0,0.08);
+        }
+
+        .digit-freq-cell.hot::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at top, rgba(255,69,0,0.12), transparent 70%);
+            pointer-events: none;
+        }
+
+        .digit-freq-cell .dfc-num {
+            font-size: 20px;
+            font-weight: 800;
+            color: #e2e8f0;
+            line-height: 1;
+        }
+
+        .digit-freq-cell.hot .dfc-num { color: #FF4500; }
+
+        .digit-freq-cell .dfc-pct {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 3px;
+            font-weight: 600;
+        }
+
+        .digit-freq-cell.hot .dfc-pct { color: #FF6B35; }
+
+        .digit-freq-cell .dfc-bar-track {
+            height: 3px;
+            background: #1e2535;
+            border-radius: 2px;
+            margin-top: 7px;
+            overflow: hidden;
+        }
+
+        .digit-freq-cell .dfc-bar-fill {
+            height: 100%;
+            background: #2d3748;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        .digit-freq-cell.hot .dfc-bar-fill {
+            background: linear-gradient(90deg, #FF4500, #FF6B35);
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .stat-box {
+            background: #0D1421;
+            border: 1.5px solid #2d3748;
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-box .stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .stat-box.green .stat-icon { background: rgba(16,185,129,0.15); color: #10b981; }
+        .stat-box.red .stat-icon   { background: rgba(239,68,68,0.15);  color: #ef4444; }
+        .stat-box.blue .stat-icon  { background: rgba(99,102,241,0.15); color: #818cf8; }
+        .stat-box.amber .stat-icon { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+        .stat-box .stat-body { min-width: 0; }
+
+        .stat-box .stat-label {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-box .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stat-box.green .stat-value { color: #10b981; }
+        .stat-box.red .stat-value   { color: #ef4444; }
+
+        /* Streak bar */
+        .streak-bar {
+            background: #0D1421;
+            border: 1.5px solid #2d3748;
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .streak-bar .streak-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .streak-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #FF4500;
+            box-shadow: 0 0 8px rgba(255,69,0,0.6);
+            animation: pulse-dot 1.4s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.7); }
+        }
+
+        .streak-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .streak-value { font-size: 14px; font-weight: 700; color: #FF4500; margin-top: 1px; }
+
+        .streak-right { text-align: right; }
+        .streak-right .streak-label { display: block; }
+        .streak-right .streak-count { font-size: 22px; font-weight: 800; color: #e2e8f0; line-height: 1; margin-top: 2px; }
+
+        /* Insights */
+        .insights-box {
+            background: rgba(255,69,0,0.06);
+            border: 1.5px solid rgba(255,69,0,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .insight-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .insight-row .ins-icon {
+            color: #FF4500;
+            font-size: 11px;
+            margin-top: 1px;
+            flex-shrink: 0;
+            width: 14px;
+            text-align: center;
+        }
+
+        .insight-row strong { color: #FF6B35; font-weight: 700; }
+
+        .insight-row.suggestion {
+            background: rgba(255,69,0,0.08);
+            border-radius: 8px;
+            padding: 7px 10px;
+            border-left: 3px solid #FF4500;
+        }
+
+        .insight-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 12px;
+            justify-content: center;
+            padding: 4px 0;
+        }
+
         @media (max-width: 768px) {
             body { padding: 12px; }
             .container { padding: 0; }
@@ -184,6 +449,9 @@
             .card { padding: 16px; }
             .tab { font-size: 12px; padding: 10px; }
             .trade-btn { padding: 16px; font-size: 16px; }
+            .analysis-card { padding: 16px; }
+            .digit-freq-cell .dfc-num { font-size: 17px; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -224,29 +492,40 @@
             <div id="tradeInterface"></div>
         </div>
         
-        <div class="card">
-            <h2 style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                <i class="fas fa-chart-bar" style="color: #FF4500;"></i> Market Digit Analysis
-            </h2>
-            
-            <div id="digitFrequencyGrid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;"></div>
-            
-            <div id="ratioDisplay" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;"></div>
-            
-            <div style="background: #0D1421; padding: 16px; border-radius: 8px; border: 1px solid #2d3748; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="analysis-card">
+            <div class="analysis-header">
+                <div class="analysis-title">
+                    <div class="icon-wrap"><i class="fas fa-chart-bar"></i></div>
+                    Market Digit Analysis
+                </div>
+                <span class="sample-badge" id="sampleSize">0 ticks</span>
+            </div>
+
+            <!-- Digit frequency grid -->
+            <div class="digit-freq-grid" id="digitFrequencyGrid"></div>
+
+            <!-- Stats row (even/odd, over/under, etc.) -->
+            <div class="stats-row" id="ratioDisplay"></div>
+
+            <!-- Streak bar -->
+            <div class="streak-bar">
+                <div class="streak-left">
+                    <div class="streak-dot"></div>
                     <div>
-                        <div style="color: #94a3b8; font-size: 12px;">Current Streak</div>
-                        <div id="streakInfo" style="color: #FF4500; font-size: 18px; font-weight: 700; margin-top: 4px;">-</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: #94a3b8; font-size: 12px;">Sample Size</div>
-                        <div id="sampleSize" style="color: #e2e8f0; font-size: 18px; font-weight: 700; margin-top: 4px;">0</div>
+                        <div class="streak-label">Current Streak</div>
+                        <div class="streak-value" id="streakInfo">—</div>
                     </div>
                 </div>
+                <div class="streak-right">
+                    <span class="streak-label">Sample</span>
+                    <div class="streak-count" id="streakSampleCount">0</div>
+                </div>
             </div>
-            
-            <div id="insights" style="background: rgba(255,69,0,0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,69,0,0.2);"></div>
+
+            <!-- Insights -->
+            <div class="insights-box" id="insights">
+                <div class="insight-loading"><i class="fas fa-spinner fa-spin"></i> Collecting data...</div>
+            </div>
         </div>
     </div>
 
@@ -475,12 +754,12 @@
             for (let i = 0; i < 10; i++) {
                 const cell = document.createElement('div');
                 cell.id = `digit-${i}`;
-                cell.style.cssText = 'background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748; text-align: center; transition: all 0.3s;';
+                cell.className = 'digit-freq-cell';
                 cell.innerHTML = `
-                    <div style="font-size: 18px; font-weight: 700; color: #e2e8f0;">${i}</div>
-                    <div id="count-${i}" style="font-size: 12px; color: #94a3b8; margin-top: 4px;">0</div>
-                    <div id="bar-${i}" style="height: 4px; background: #2d3748; border-radius: 2px; margin-top: 6px; overflow: hidden;">
-                        <div style="height: 100%; width: 0%; background: #FF4500; transition: width 0.3s;"></div>
+                    <div class="dfc-num">${i}</div>
+                    <div class="dfc-pct" id="count-${i}">0%</div>
+                    <div class="dfc-bar-track">
+                        <div class="dfc-bar-fill" id="bar-${i}" style="width:0%"></div>
                     </div>
                 `;
                 grid.appendChild(cell);
@@ -529,15 +808,15 @@
                 const barEl = document.getElementById(`bar-${i}`);
                 const cellEl = document.getElementById(`digit-${i}`);
                 
-                if (countEl) countEl.textContent = `${count} (${percent}%)`;
-                if (barEl) barEl.firstElementChild.style.width = `${(count / maxCount) * 100}%`;
+                if (countEl) countEl.textContent = `${percent}%`;
+                if (barEl) barEl.style.width = `${(count / maxCount) * 100}%`;
                 
-                if (count === maxCount && maxCount > 0) {
-                    cellEl.style.borderColor = '#FF4500';
-                    cellEl.style.background = 'rgba(255,69,0,0.1)';
-                } else {
-                    cellEl.style.borderColor = '#2d3748';
-                    cellEl.style.background = '#0D1421';
+                if (cellEl) {
+                    if (count === maxCount && maxCount > 0) {
+                        cellEl.classList.add('hot');
+                    } else {
+                        cellEl.classList.remove('hot');
+                    }
                 }
             }
             
@@ -545,13 +824,19 @@
             if (ratioDisplay) {
                 if (currentMode === 'evenodd') {
                     ratioDisplay.innerHTML = `
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Even</div>
-                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">${((evenCount / total) * 100).toFixed(1)}%</div>
+                        <div class="stat-box green">
+                            <div class="stat-icon"><i class="fas fa-equals"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Even</div>
+                                <div class="stat-value">${((evenCount / total) * 100).toFixed(1)}%</div>
+                            </div>
                         </div>
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Odd</div>
-                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">${((oddCount / total) * 100).toFixed(1)}%</div>
+                        <div class="stat-box red">
+                            <div class="stat-icon"><i class="fas fa-not-equal"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Odd</div>
+                                <div class="stat-value">${((oddCount / total) * 100).toFixed(1)}%</div>
+                            </div>
                         </div>
                     `;
                 } else if (currentMode === 'matches') {
@@ -560,24 +845,36 @@
                     const leastFrequent = digitCounts.indexOf(Math.min(...digitCounts.filter(c => c > 0)));
                     const leastCount = digitHistory.filter(d => d === leastFrequent).length;
                     ratioDisplay.innerHTML = `
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Most Frequent</div>
-                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">Digit ${mostFrequent} (${mostFreqCount})</div>
+                        <div class="stat-box green">
+                            <div class="stat-icon"><i class="fas fa-fire"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Most Frequent</div>
+                                <div class="stat-value">Digit ${mostFrequent} &nbsp;(${mostFreqCount})</div>
+                            </div>
                         </div>
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Least Frequent</div>
-                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">Digit ${leastFrequent} (${leastCount})</div>
+                        <div class="stat-box red">
+                            <div class="stat-icon"><i class="fas fa-snowflake"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Least Frequent</div>
+                                <div class="stat-value">Digit ${leastFrequent} &nbsp;(${leastCount})</div>
+                            </div>
                         </div>
                     `;
                 } else if (currentMode === 'overunder') {
                     ratioDisplay.innerHTML = `
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Over (5-9)</div>
-                            <div style="color: #10b981; font-size: 20px; font-weight: 700;">${((overCount / total) * 100).toFixed(1)}%</div>
+                        <div class="stat-box green">
+                            <div class="stat-icon"><i class="fas fa-arrow-up"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Over (5–9)</div>
+                                <div class="stat-value">${((overCount / total) * 100).toFixed(1)}%</div>
+                            </div>
                         </div>
-                        <div style="background: #0D1421; padding: 12px; border-radius: 8px; border: 1px solid #2d3748;">
-                            <div style="color: #94a3b8; font-size: 12px;">Under (0-4)</div>
-                            <div style="color: #ef4444; font-size: 20px; font-weight: 700;">${((underCount / total) * 100).toFixed(1)}%</div>
+                        <div class="stat-box red">
+                            <div class="stat-icon"><i class="fas fa-arrow-down"></i></div>
+                            <div class="stat-body">
+                                <div class="stat-label">Under (0–4)</div>
+                                <div class="stat-value">${((underCount / total) * 100).toFixed(1)}%</div>
+                            </div>
                         </div>
                     `;
                 }
@@ -620,6 +917,8 @@
             
             if (streakEl) streakEl.textContent = streakText;
             if (sampleEl) sampleEl.textContent = `${total} ticks`;
+            const streakSampleEl = document.getElementById('streakSampleCount');
+            if (streakSampleEl) streakSampleEl.textContent = total;
             
             updateInsights(evenCount, oddCount, overCount, underCount, total);
         }
@@ -627,7 +926,7 @@
         function updateInsights(evenCount, oddCount, overCount, underCount, total) {
             const insightsEl = document.getElementById('insights');
             if (!insightsEl || total < 10) {
-                if (insightsEl) insightsEl.innerHTML = '<div style="color: #FF4500; font-size: 12px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Collecting data...</div>';
+                if (insightsEl) insightsEl.innerHTML = '<div class="insight-loading"><i class="fas fa-spinner fa-spin"></i> Collecting data...</div>';
                 return;
             }
             
@@ -639,41 +938,43 @@
             const overPercent = ((overCount / total) * 100).toFixed(1);
             
             let insights = [];
+
+            const row = (icon, text, isSuggestion = false) =>
+                `<div class="insight-row${isSuggestion ? ' suggestion' : ''}">
+                    <i class="fas fa-${icon} ins-icon"></i>
+                    <span>${text}</span>
+                </div>`;
             
-            // Mode-specific insights
             if (currentMode === 'evenodd') {
                 if (evenPercent > 60) {
-                    insights.push(`<i class="fas fa-chart-line"></i> Even digits dominating (${evenPercent}% of last ${total} ticks)`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Consider EVEN trade`);
+                    insights.push(row('chart-line', `Even digits dominating — <strong>${evenPercent}%</strong> of last ${total} ticks`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Consider an EVEN trade`, true));
                 } else if (evenPercent < 40) {
-                    insights.push(`<i class="fas fa-chart-line"></i> Odd digits dominating (${(100 - evenPercent).toFixed(1)}% of last ${total} ticks)`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Consider ODD trade`);
+                    insights.push(row('chart-line', `Odd digits dominating — <strong>${(100 - evenPercent).toFixed(1)}%</strong> of last ${total} ticks`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Consider an ODD trade`, true));
                 } else {
-                    insights.push(`<i class="fas fa-balance-scale"></i> Even/Odd balanced (${evenPercent}% vs ${(100 - evenPercent).toFixed(1)}%)`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Wait for clearer trend`);
+                    insights.push(row('balance-scale', `Even/Odd balanced — ${evenPercent}% vs ${(100 - evenPercent).toFixed(1)}%`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Wait for a clearer trend`, true));
                 }
-                
                 if (streakCount >= 5) {
                     const opposite = streakType === 'even' ? 'ODD' : 'EVEN';
-                    insights.push(`<i class="fas fa-exclamation-triangle"></i> ${streakCount} ${streakType.toUpperCase()} streak - ${opposite} reversal likely`);
+                    insights.push(row('exclamation-triangle', `${streakCount} ${streakType.toUpperCase()} streak — <strong>${opposite}</strong> reversal likely`));
                 } else if (streakCount >= 3) {
-                    insights.push(`<i class="fas fa-fire"></i> ${streakCount} ${streakType.toUpperCase()} streak building`);
+                    insights.push(row('fire', `${streakCount} ${streakType.toUpperCase()} streak building`));
                 }
             } else if (currentMode === 'matches') {
                 if (mostFreqPercent > 15) {
-                    insights.push(`<i class="fas fa-fire"></i> Digit ${mostFrequent} hot - appearing ${mostFreqPercent}% (${mostFreqCount}/${total})`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Select digit ${mostFrequent} and trade MATCHES`);
+                    insights.push(row('fire', `Digit <strong>${mostFrequent}</strong> is hot — appearing <strong>${mostFreqPercent}%</strong> (${mostFreqCount}/${total})`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Select digit ${mostFrequent} and trade MATCHES`, true));
                 }
-                
                 const lastDigit = digitHistory[digitHistory.length - 1];
                 const lastDigitCount = digitHistory.filter(d => d === lastDigit).length;
                 const lastDigitPercent = ((lastDigitCount / total) * 100).toFixed(1);
-                insights.push(`<i class="fas fa-bullseye"></i> Current digit ${lastDigit} appeared ${lastDigitCount} times (${lastDigitPercent}%)`);
-                
+                insights.push(row('bullseye', `Current digit <strong>${lastDigit}</strong> appeared ${lastDigitCount} times (${lastDigitPercent}%)`));
                 const leastFrequent = digitCounts.indexOf(Math.min(...digitCounts.filter(c => c > 0)));
                 const leastCount = digitHistory.filter(d => d === leastFrequent).length;
                 if (leastCount > 0 && leastCount < mostFreqCount * 0.5) {
-                    insights.push(`<i class="fas fa-snowflake"></i> Digit ${leastFrequent} cold (${leastCount} times) - avoid MATCHES on this`);
+                    insights.push(row('snowflake', `Digit <strong>${leastFrequent}</strong> is cold (${leastCount} times) — avoid MATCHES on this`));
                 }
             } else if (currentMode === 'overunder') {
                 const barrier = selectedBarrier;
@@ -681,34 +982,31 @@
                 const belowBarrier = digitHistory.filter(d => d < barrier).length;
                 const abovePercent = ((aboveBarrier / total) * 100).toFixed(1);
                 const belowPercent = ((belowBarrier / total) * 100).toFixed(1);
-                
-                insights.push(`<i class="fas fa-info-circle"></i> With barrier ${barrier}: Over=${abovePercent}%, Under=${belowPercent}%`);
-                
+                insights.push(row('info-circle', `Barrier <strong>${barrier}</strong>: Over = ${abovePercent}%, Under = ${belowPercent}%`));
                 if (abovePercent > 55) {
-                    insights.push(`<i class="fas fa-arrow-up"></i> Digits above ${barrier} dominating`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Trade OVER with barrier ${barrier}`);
+                    insights.push(row('arrow-up', `Digits above <strong>${barrier}</strong> dominating`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Trade OVER with barrier ${barrier}`, true));
                 } else if (belowPercent > 55) {
-                    insights.push(`<i class="fas fa-arrow-down"></i> Digits below ${barrier} dominating`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Trade UNDER with barrier ${barrier}`);
+                    insights.push(row('arrow-down', `Digits below <strong>${barrier}</strong> dominating`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Trade UNDER with barrier ${barrier}`, true));
                 } else {
-                    insights.push(`<i class="fas fa-balance-scale"></i> Balanced around barrier ${barrier}`);
-                    insights.push(`<i class="fas fa-lightbulb"></i> <strong>Suggestion:</strong> Try different barrier or wait for trend`);
+                    insights.push(row('balance-scale', `Balanced around barrier <strong>${barrier}</strong>`));
+                    insights.push(row('lightbulb', `<strong>Suggestion:</strong> Try a different barrier or wait for a trend`, true));
                 }
-                
                 const recentTrend = digitHistory.slice(-10);
                 const recentAbove = recentTrend.filter(d => d > barrier).length;
                 if (recentAbove >= 7) {
-                    insights.push(`<i class="fas fa-fire"></i> Strong OVER trend in last 10 ticks (${recentAbove}/10)`);
+                    insights.push(row('fire', `Strong OVER trend in last 10 ticks (${recentAbove}/10)`));
                 } else if (recentAbove <= 3) {
-                    insights.push(`<i class="fas fa-fire"></i> Strong UNDER trend in last 10 ticks (${10 - recentAbove}/10)`);
+                    insights.push(row('fire', `Strong UNDER trend in last 10 ticks (${10 - recentAbove}/10)`));
                 }
             }
             
             if (insights.length === 0) {
-                insights.push(`<i class="fas fa-info-circle"></i> Collecting more data for analysis...`);
+                insights.push(row('info-circle', 'Collecting more data for analysis...'));
             }
             
-            insightsEl.innerHTML = insights.map(i => `<div style="color: #FF4500; font-size: 12px; margin-bottom: 6px;">${i}</div>`).join('');
+            insightsEl.innerHTML = insights.join('');
         }
     </script>
 </body>

@@ -222,6 +222,28 @@ func ProfileHandler(ctx *gin.Context) {
 		return
 	}
 
+	role, _ := ctx.Get("role")
+
+	// Superadmin lives in a separate table
+	if role == "superadmin" {
+		var sa models.SuperAdmin
+		if err := database.DB.First(&sa, userID).Error; err != nil {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "superadmin not found"})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{
+			"user": gin.H{
+				"id":         sa.ID,
+				"name":       sa.Name,
+				"email":      sa.Email,
+				"joined":     time.Time(sa.CreatedAt).Format(time.RFC3339),
+				"membership": sa.Membership,
+				"role":       "superadmin",
+			},
+		})
+		return
+	}
+
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
