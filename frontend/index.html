@@ -1920,6 +1920,7 @@
             }
 
             _setupChart(canvas) {
+                this.ctx = canvas.getContext('2d');
                 const resizeChart = () => {
                     const parent = canvas.parentElement;
                     if (!parent || !parent.clientWidth) return;
