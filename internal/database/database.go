@@ -3,8 +3,10 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/keyadaniel56/algocdk/internal/models"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -13,7 +15,16 @@ var DB *gorm.DB
 
 func InitDB() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
+
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	} else {
+		dbPath := os.Getenv("DB_PATH")
+		if dbPath == "" {
+			dbPath = "app.db"
+		}
+		DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	}
 	if err != nil {
 		log.Fatalf("%v", err.Error())
 	}
