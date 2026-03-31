@@ -1934,7 +1934,13 @@
                 resizeChart();
                 window.addEventListener('resize', resizeChart);
                 this.generateSampleCandles();
-                this.drawPlatformChart();
+                // Use rAF to ensure canvas has layout dimensions before drawing
+                requestAnimationFrame(() => {
+                    resizeChart();
+                    this.drawPlatformChart();
+                    const overlay = document.getElementById('chartLoading');
+                    if (overlay) overlay.style.display = 'none';
+                });
             }
             
             generateSampleCandles() {
