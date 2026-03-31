@@ -36,7 +36,6 @@ func SendVerificationEmail(to, verificationLink string) {
 
 // sendEmail is a helper function to send emails based on the configured mode
 func sendEmail(mode, from, to, msg, emailType string) {
-
 	switch mode {
 	case "console":
 		// Just log the email to console
@@ -59,22 +58,22 @@ func sendEmail(mode, from, to, msg, emailType string) {
 		}
 
 	case "smtp":
-		// Use real SMTP (Mailtrap, Gmail, your domain)
 		host := os.Getenv("EMAIL_HOST")
 		port := os.Getenv("EMAIL_PORT")
 		username := os.Getenv("EMAIL_USERNAME")
 		password := os.Getenv("EMAIL_PASSWORD")
 
-		auth := smtp.PlainAuth("", username, password, host)
+		log.Printf("SMTP ATTEMPT (%s): host=%s port=%s user=%s from=%s to=%s", emailType, host, port, username, from, to)
 
+		auth := smtp.PlainAuth("", username, password, host)
 		err := smtp.SendMail(host+":"+port, auth, from, []string{to}, []byte(msg))
 		if err != nil {
 			log.Printf("SMTP ERROR (%s): %v", emailType, err)
 		} else {
-			log.Printf("SMTP: %s sent to %s", emailType, to)
+			log.Printf("SMTP SUCCESS (%s): sent to %s", emailType, to)
 		}
 
 	default:
-		log.Printf("EMAIL_MODE not set or invalid. %s not sent. Use console/mailhog/smtp", emailType)
+		log.Printf("EMAIL_MODE=%q — %s not sent. Set EMAIL_MODE=smtp to send real emails.", mode, emailType)
 	}
 }
