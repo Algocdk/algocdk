@@ -42,6 +42,9 @@ func sendEmail(to, subject, plainMsg, htmlMsg, emailType string) {
 	case "resend":
 		sendViaResend(to, subject, htmlMsg, emailType)
 
+	case "brevo":
+		sendViaBrevo(to, subject, htmlMsg, emailType)
+
 	case "smtp":
 		host := os.Getenv("EMAIL_HOST")
 		port := os.Getenv("EMAIL_PORT")
@@ -95,5 +98,43 @@ func sendViaResend(to, subject, html, emailType string) {
 		log.Printf("RESEND SUCCESS (%s): sent to %s", emailType, to)
 	} else {
 		log.Printf("RESEND ERROR (%s): status %d", emailType, resp.StatusCode)
+	}
+}
+
+func sendViaBrevo(to, subject, html, emailType string) {
+	apiKey := os.Getenv("BREVO_API_KEY")
+	from := os.Getenv("EMAIL_FROM")
+	fromName := os.Getenv("EMAIL_FROM_NAME")
+	if fromName == "" {
+		fromName = "Algocdk"
+	}
+
+	payload := map[string]interface{}{
+		"sender":      map[string]string{"name": fromName, "email": from},
+		"to":          []map[string]string{{"email": to}},
+		"subject":     subject,
+		"htmlContent": html,
+	}
+
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("BREVO ERROR (%s): failed to create request: %v", emailType, err)
+		return
+	}
+	req.Header.Set("api-key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("BREVO ERROR (%s): %v", emailType, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		log.Printf("BREVO SUCCESS (%s): sent to %s", emailType, to)
+	} else {
+		log.Printf("BREVO ERROR (%s): status %d", emailType, resp.StatusCode)
 	}
 }
