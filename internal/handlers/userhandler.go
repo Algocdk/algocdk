@@ -99,7 +99,7 @@ func SignupHandler(ctx *gin.Context) {
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") || strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			// check if existing account is unverified — resend verification
 			var existing models.User
 			if dbErr := database.DB.Where("email = ?", payload.Email).First(&existing).Error; dbErr == nil && !existing.EmailVerified {
