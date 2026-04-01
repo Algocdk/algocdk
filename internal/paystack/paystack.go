@@ -241,7 +241,7 @@ func InitializePayment(ctx *gin.Context) {
 		"email":        user.Email,
 		"amount":       int(input.Amount * 100),
 		"reference":    reference,
-		"callback_url": os.Getenv("BASE_URL") + "/api/payment/callback?reference=" + reference,
+		"callback_url": os.Getenv("BASE_URL") + "/api/paystack/callback?reference=" + reference,
 		"currency":     "KES",
 	}
 	if subaccountCode != "" {
@@ -1257,6 +1257,5 @@ func HandleCallbackRedirect(ctx *gin.Context) {
 	}
 
 	log.Printf("Callback redirect processed successfully for reference: %s", reference)
-	// Redirect to frontend with success message or render a success page
-	ctx.Redirect(http.StatusFound, "/?payment=success&reference="+reference)
+	ctx.Redirect(http.StatusFound, "/mybots?payment=success&reference="+reference)
 }

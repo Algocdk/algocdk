@@ -971,6 +971,18 @@
 
             // Load user's bots
             loadUserBots();
+
+            // Show success message if redirected from payment
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('payment') === 'success') {
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:14px 20px;border-radius:12px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(16,185,129,0.4);';
+                toast.innerHTML = '✅ Payment successful! Your bot is ready in My Bots.';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+                // Clean URL
+                window.history.replaceState({}, document.title, '/mybots');
+            }
         });
     </script>
     <script src="/api.js"></script>
