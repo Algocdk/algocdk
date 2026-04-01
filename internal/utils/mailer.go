@@ -75,10 +75,51 @@ func SendVerificationEmail(to, verificationLink string) {
         <tr><td style="padding:0 36px 32px;">
           <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;border:1px solid #2d3748;border-radius:12px;padding:20px;">
             <tr><td>
-              <p style="margin:0 0 12px;color:#e2e8f0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">What you get access to</p>
-              <p style="margin:0 0 8px;color:#94a3b8;font-size:13px;">🤖 &nbsp;Automated trading bots</p>
-              <p style="margin:0 0 8px;color:#94a3b8;font-size:13px;">📊 &nbsp;Real-time market analysis</p>
-              <p style="margin:0;color:#94a3b8;font-size:13px;">⚡ &nbsp;Digits, barriers &amp; multiplier trading</p>
+              <p style="margin:0 0 16px;color:#e2e8f0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">What you get access to</p>
+              <!-- Item 1 -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                <tr>
+                  <td width="28" valign="top">
+                    <div style="width:20px;height:20px;background:rgba(255,69,0,0.15);border-radius:5px;text-align:center;line-height:20px;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-top:4px;">
+                        <rect x="3" y="8" width="18" height="13" rx="2" stroke="#FF4500" stroke-width="2"/>
+                        <path d="M8 8V6a4 4 0 018 0v2" stroke="#FF4500" stroke-width="2"/>
+                        <circle cx="9" cy="14" r="1.5" fill="#FF4500"/>
+                        <circle cx="15" cy="14" r="1.5" fill="#FF4500"/>
+                        <path d="M9 18h6" stroke="#FF4500" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                  </td>
+                  <td style="padding-left:10px;color:#94a3b8;font-size:13px;line-height:1.5;">Automated trading bots with proven strategies</td>
+                </tr>
+              </table>
+              <!-- Item 2 -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                <tr>
+                  <td width="28" valign="top">
+                    <div style="width:20px;height:20px;background:rgba(255,69,0,0.15);border-radius:5px;text-align:center;line-height:20px;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-top:4px;">
+                        <path d="M3 17l4-4 4 4 4-6 4 3" stroke="#FF4500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3 21h18" stroke="#FF4500" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                  </td>
+                  <td style="padding-left:10px;color:#94a3b8;font-size:13px;line-height:1.5;">Real-time market analysis and digit statistics</td>
+                </tr>
+              </table>
+              <!-- Item 3 -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="28" valign="top">
+                    <div style="width:20px;height:20px;background:rgba(255,69,0,0.15);border-radius:5px;text-align:center;line-height:20px;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-top:4px;">
+                        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" stroke="#FF4500" stroke-width="2" stroke-linejoin="round" fill="none"/>
+                      </svg>
+                    </div>
+                  </td>
+                  <td style="padding-left:10px;color:#94a3b8;font-size:13px;line-height:1.5;">Digits, barriers, multipliers &amp; accumulator trading</td>
+                </tr>
+              </table>
             </td></tr>
           </table>
         </td></tr>
