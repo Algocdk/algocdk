@@ -524,7 +524,8 @@
                 min-height: unset;
             }
             .bot-resize-handle { display: none; }
-            .bot-fab { bottom: 16px; right: 16px; width: 50px; height: 50px; font-size: 20px; }
+            /* Hide standalone FAB on mobile — bot accessible via bottom nav */
+            .bot-fab { display: none !important; }
 
             /* Bottom nav */
             .bottom-nav { display: flex; }
@@ -1345,7 +1346,7 @@
         <a href="/trading"><i class="fas fa-arrow-left"></i>Back</a>
         <a href="#trade-section" onclick="document.querySelector('.card').scrollIntoView({behavior:'smooth'});return false;" class="active"><i class="fas fa-bolt"></i>Trade</a>
         <a href="#analysis-section" onclick="document.querySelector('.analysis-card').scrollIntoView({behavior:'smooth'});return false;"><i class="fas fa-chart-bar"></i>Analysis</a>
-        <a onclick="toggleBotPanel();return false;" href="#"><i class="fas fa-robot"></i>Bot</a>
+        <a onclick="toggleBotPanel();return false;" href="#" style="color:#FF4500;"><i class="fas fa-robot"></i>Bot</a>
     </nav>
 
     <!-- Bot Panel -->
@@ -1403,9 +1404,40 @@
         const botPanelHeader = document.getElementById('botPanelHeader');
         const botPanelBody = document.getElementById('botPanelBody');
         const botResizeHandle = document.getElementById('botResizeHandle');
+        const STORAGE_KEY = 'digits_bot_strategies';
         let botFiles = [];
         let activeStrategyIndex = -1;
         let isPanelMinimized = false;
+
+        // ── Persistence ──
+        function saveToStorage() {
+            try {
+                // Store name + content + type. Content can be large so we catch quota errors.
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(botFiles.map(f => ({
+                    name: f.name,
+                    content: f.content,
+                    type: f.type
+                }))));
+            } catch (e) {
+                console.warn('Storage quota exceeded — strategy not saved:', e);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return;
+                botFiles = JSON.parse(saved);
+                renderBotFileList();
+                // Auto-run the last active strategy if one was saved
+                const lastActive = parseInt(localStorage.getItem(STORAGE_KEY + '_active') || '-1');
+                if (lastActive >= 0 && lastActive < botFiles.length && botFiles[lastActive].type === 'html') {
+                    runStrategy(lastActive, false); // false = don't switch tab on restore
+                }
+            } catch (e) {
+                console.warn('Failed to restore strategies:', e);
+            }
+        }
 
         function toggleBotPanel() {
             botPanel.classList.toggle('open');
@@ -1432,7 +1464,15 @@
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    botFiles.push({ name: file.name, content: e.target.result, type: file.name.split('.').pop() });
+                    // Replace if same name already exists, otherwise push
+                    const existing = botFiles.findIndex(f => f.name === file.name);
+                    const entry = { name: file.name, content: e.target.result, type: file.name.split('.').pop() };
+                    if (existing >= 0) {
+                        botFiles[existing] = entry;
+                    } else {
+                        botFiles.push(entry);
+                    }
+                    saveToStorage();
                     renderBotFileList();
                 };
                 reader.readAsText(file);
@@ -1441,15 +1481,19 @@
 
         function renderBotFileList() {
             const list = document.getElementById('botFileList');
+            if (botFiles.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
             list.innerHTML = botFiles.map((f, i) => `
                 <div class="bot-file-item">
                     <div class="file-info">
                         <i class="fas fa-${f.type === 'html' ? 'file-code' : f.type === 'js' ? 'file-alt' : 'palette'}"></i>
-                        <span>${f.name}</span>
+                        <span title="${f.name}">${f.name}</span>
                     </div>
                     <div class="file-actions">
                         ${f.type === 'html' ? `<button class="run-btn" onclick="runStrategy(${i})"><i class="fas fa-play"></i> Run</button>` : ''}
-                        <button onclick="removeFile(${i})"><i class="fas fa-trash"></i></button>
+                        <button onclick="removeFile(${i})" title="Remove"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -1459,26 +1503,31 @@
             botFiles.splice(index, 1);
             if (activeStrategyIndex === index) {
                 activeStrategyIndex = -1;
+                localStorage.removeItem(STORAGE_KEY + '_active');
                 document.getElementById('botRunnerFrame').style.display = 'none';
                 document.getElementById('botRunnerEmpty').style.display = '';
+            } else if (activeStrategyIndex > index) {
+                activeStrategyIndex--;
+                localStorage.setItem(STORAGE_KEY + '_active', activeStrategyIndex);
             }
+            saveToStorage();
             renderBotFileList();
         }
 
-        function runStrategy(index) {
+        function runStrategy(index, switchTab = true) {
             const file = botFiles[index];
             if (!file || file.type !== 'html') return;
 
             activeStrategyIndex = index;
+            localStorage.setItem(STORAGE_KEY + '_active', index);
+
             const frame = document.getElementById('botRunnerFrame');
             const empty = document.getElementById('botRunnerEmpty');
-
-            // Write the HTML content into the iframe
             frame.style.display = '';
             empty.style.display = 'none';
             frame.srcdoc = file.content;
 
-            switchBotTab('run');
+            if (switchTab) switchBotTab('run');
         }
 
         // ── Drag to move (mouse + touch) ──
@@ -1493,7 +1542,6 @@
         }
         function moveDrag(clientX, clientY) {
             if (!isDragging) return;
-            // On mobile the panel is fullscreen — no point dragging
             if (window.innerWidth <= 768) return;
             let x = Math.max(0, Math.min(window.innerWidth - botPanel.offsetWidth, clientX - dragOffX));
             let y = Math.max(0, Math.min(window.innerHeight - botPanel.offsetHeight, clientY - dragOffY));
@@ -1540,6 +1588,9 @@
             dropzone.classList.remove('drag-over');
             handleBotFiles(e.dataTransfer.files);
         });
+
+        // ── Restore on load ──
+        loadFromStorage();
     </script>
 </body>
 </html>
