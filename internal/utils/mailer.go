@@ -11,21 +11,88 @@ import (
 )
 
 func SendResetEmail(to, resetLink string) {
-	msg := fmt.Sprintf(
-		"Subject: Password Reset\n\nClick the link to reset your password:\n%s\n\nThis link expires in 15 minutes.",
-		resetLink,
-	)
-	htmlMsg := fmt.Sprintf("<p>Click the link to reset your password:</p><p><a href='%s'>%s</a></p><p>This link expires in 15 minutes.</p>", resetLink, resetLink)
-	sendEmail(to, "Password Reset", msg, htmlMsg, "RESET EMAIL")
+	plain := fmt.Sprintf("Click the link to reset your password:\n%s\n\nThis link expires in 15 minutes.", resetLink)
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0D1421;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1f2e;border-radius:16px;border:1px solid #2d3748;overflow:hidden;max-width:560px;width:100%%;">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#FF4500,#E63900);padding:32px;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Algo<span style="opacity:0.85;">cdk</span></h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Automated Trading Platform</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:40px 36px;">
+          <h2 style="margin:0 0 12px;color:#e2e8f0;font-size:22px;font-weight:700;">Reset Your Password</h2>
+          <p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong style="color:#e2e8f0;">15 minutes</strong>.</p>
+          <table cellpadding="0" cellspacing="0" width="100%%"><tr><td align="center" style="padding:8px 0 32px;">
+            <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#FF4500,#E63900);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Reset Password</a>
+          </td></tr></table>
+          <p style="margin:0 0 8px;color:#64748b;font-size:13px;">Or copy this link into your browser:</p>
+          <p style="margin:0;background:#0D1421;border:1px solid #2d3748;border-radius:8px;padding:12px;color:#94a3b8;font-size:12px;word-break:break-all;">%s</p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 36px;border-top:1px solid #2d3748;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">If you didn't request a password reset, you can safely ignore this email.</p>
+          <p style="margin:8px 0 0;color:#334155;font-size:11px;">© 2026 Algocdk. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`, resetLink, resetLink)
+	sendEmail(to, "Reset Your Algocdk Password", plain, html, "RESET EMAIL")
 }
 
 func SendVerificationEmail(to, verificationLink string) {
-	msg := fmt.Sprintf(
-		"Subject: Verify Your Email Address\n\nWelcome to Algocdk!\n\nPlease click the link below to verify your email address:\n%s\n\nIf you didn't create an account, please ignore this email.",
-		verificationLink,
-	)
-	htmlMsg := fmt.Sprintf("<p>Welcome to Algocdk!</p><p>Please click the link below to verify your email address:</p><p><a href='%s'>%s</a></p>", verificationLink, verificationLink)
-	sendEmail(to, "Verify Your Email Address", msg, htmlMsg, "VERIFICATION EMAIL")
+	plain := fmt.Sprintf("Welcome to Algocdk!\n\nPlease verify your email:\n%s\n\nIf you didn't create an account, ignore this email.", verificationLink)
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0D1421;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1f2e;border-radius:16px;border:1px solid #2d3748;overflow:hidden;max-width:560px;width:100%%;">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#FF4500,#E63900);padding:32px;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Algo<span style="opacity:0.85;">cdk</span></h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Automated Trading Platform</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:40px 36px;">
+          <h2 style="margin:0 0 12px;color:#e2e8f0;font-size:22px;font-weight:700;">Verify Your Email Address</h2>
+          <p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">Welcome to Algocdk! You're one step away from accessing automated trading bots and real-time market analysis. Click the button below to verify your email.</p>
+          <table cellpadding="0" cellspacing="0" width="100%%"><tr><td align="center" style="padding:8px 0 32px;">
+            <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#FF4500,#E63900);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Verify Email Address</a>
+          </td></tr></table>
+          <p style="margin:0 0 8px;color:#64748b;font-size:13px;">Or copy this link into your browser:</p>
+          <p style="margin:0;background:#0D1421;border:1px solid #2d3748;border-radius:8px;padding:12px;color:#94a3b8;font-size:12px;word-break:break-all;">%s</p>
+        </td></tr>
+        <!-- What's next -->
+        <tr><td style="padding:0 36px 32px;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;border:1px solid #2d3748;border-radius:12px;padding:20px;">
+            <tr><td>
+              <p style="margin:0 0 12px;color:#e2e8f0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">What you get access to</p>
+              <p style="margin:0 0 8px;color:#94a3b8;font-size:13px;">🤖 &nbsp;Automated trading bots</p>
+              <p style="margin:0 0 8px;color:#94a3b8;font-size:13px;">📊 &nbsp;Real-time market analysis</p>
+              <p style="margin:0;color:#94a3b8;font-size:13px;">⚡ &nbsp;Digits, barriers &amp; multiplier trading</p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 36px;border-top:1px solid #2d3748;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">If you didn't create an Algocdk account, you can safely ignore this email.</p>
+          <p style="margin:8px 0 0;color:#334155;font-size:11px;">© 2026 Algocdk. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`, verificationLink, verificationLink)
+	sendEmail(to, "Verify Your Algocdk Account", plain, html, "VERIFICATION EMAIL")
 }
 
 func sendEmail(to, subject, plainMsg, htmlMsg, emailType string) {
