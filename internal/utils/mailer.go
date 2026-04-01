@@ -83,8 +83,8 @@ func SendVerificationEmail(to, verificationLink string) {
         <!-- Icon + heading -->
         <tr><td style="padding:36px 36px 0;text-align:center;">
           <div style="width:64px;height:64px;background:#ff4500;border-radius:50%%;margin:0 auto 20px;text-align:center;line-height:64px;font-size:26px;color:#fff;">&#9993;</div>
-          <h2 style="margin:0 0 10px;color:#ffffff;font-size:22px;font-weight:700;">Check Your Email</h2>
-          <p style="margin:0 0 6px;color:#9ca3af;font-size:14px;">We've sent a verification link to:</p>
+          <h2 style="margin:0 0 10px;color:#ffffff;font-size:22px;font-weight:700;">Welcome to Algocdk!</h2>
+          <p style="margin:0 0 6px;color:#9ca3af;font-size:14px;line-height:1.6;">You're almost in. Verify your email address to activate your account and start trading.</p>
           <p style="margin:0 0 28px;color:#ffffff;font-size:14px;font-weight:600;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 16px;display:inline-block;">%s</p>
         </td></tr>
         <!-- CTA -->
@@ -99,19 +99,19 @@ func SendVerificationEmail(to, verificationLink string) {
               <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:10px;">
                 <tr>
                   <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">1</div></td>
-                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Check your email inbox</td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Click the button above to verify your email</td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:10px;">
                 <tr>
                   <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">2</div></td>
-                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Click the verification link above</td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Log in to your Algocdk account</td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%%">
                 <tr>
                   <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">3</div></td>
-                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Return to login and start trading</td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Start trading with automated bots</td>
                 </tr>
               </table>
             </td></tr>
