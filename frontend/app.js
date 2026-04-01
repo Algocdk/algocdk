@@ -8,6 +8,9 @@ class AlgocdkApp {
 
   async init() {
     try {
+      // Capture Deriv OAuth tokens if redirected here from Deriv
+      this.captureDerivOAuthTokens();
+
       // Initialize core components
       this.setupGlobalErrorHandling();
       this.setupRouting();
@@ -28,6 +31,34 @@ class AlgocdkApp {
     }
   }
 
+  captureDerivOAuthTokens() {
+    const params = new URLSearchParams(window.location.search);
+    const acct1 = params.get('acct1');
+    const token1 = params.get('token1');
+    if (!acct1 || !token1) return;
+
+    const accounts = [];
+    if (acct1 && token1) accounts.push({ account: acct1, token: token1, currency: params.get('cur1') || 'USD' });
+    if (params.get('acct2') && params.get('token2')) {
+      accounts.push({ account: params.get('acct2'), token: params.get('token2'), currency: params.get('cur2') || 'USD' });
+    }
+
+    // Store tokens in localStorage only — never sent to backend
+    DerivTokenManager.setAccounts(accounts);
+
+    // Clean tokens from URL so they don't sit in browser history
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Notify backend of account metadata (no token)
+    const jwt = TokenManager.get();
+    if (jwt) {
+      fetch('/api/deriv/oauth/callback', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accounts })
+      }).catch(err => console.warn('Deriv metadata sync failed:', err));
+    }
+  }
   setupGlobalErrorHandling() {
     window.addEventListener('error', (event) => {
       console.error('Global error:', event.error);
