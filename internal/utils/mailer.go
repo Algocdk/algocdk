@@ -45,6 +45,9 @@ func sendEmail(to, subject, plainMsg, htmlMsg, emailType string) {
 	case "brevo":
 		sendViaBrevo(to, subject, htmlMsg, emailType)
 
+	case "sendgrid":
+		sendViaSendGrid(to, subject, htmlMsg, emailType)
+
 	case "smtp":
 		host := os.Getenv("EMAIL_HOST")
 		port := os.Getenv("EMAIL_PORT")
@@ -136,5 +139,47 @@ func sendViaBrevo(to, subject, html, emailType string) {
 		log.Printf("BREVO SUCCESS (%s): sent to %s", emailType, to)
 	} else {
 		log.Printf("BREVO ERROR (%s): status %d", emailType, resp.StatusCode)
+	}
+}
+
+func sendViaSendGrid(to, subject, html, emailType string) {
+	apiKey := os.Getenv("SENDGRID_API_KEY")
+	from := os.Getenv("EMAIL_FROM")
+	fromName := os.Getenv("EMAIL_FROM_NAME")
+	if fromName == "" {
+		fromName = "Algocdk"
+	}
+
+	payload := map[string]interface{}{
+		"personalizations": []map[string]interface{}{
+			{"to": []map[string]string{{"email": to}}},
+		},
+		"from":    map[string]string{"email": from, "name": fromName},
+		"subject": subject,
+		"content": []map[string]string{
+			{"type": "text/html", "value": html},
+		},
+	}
+
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest("POST", "https://api.sendgrid.com/v3/mail/send", bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("SENDGRID ERROR (%s): failed to create request: %v", emailType, err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("SENDGRID ERROR (%s): %v", emailType, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		log.Printf("SENDGRID SUCCESS (%s): sent to %s", emailType, to)
+	} else {
+		log.Printf("SENDGRID ERROR (%s): status %d", emailType, resp.StatusCode)
 	}
 }
