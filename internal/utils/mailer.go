@@ -15,29 +15,42 @@ func SendResetEmail(to, resetLink string) {
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0D1421;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;padding:40px 0;">
+<body style="margin:0;padding:0;background:#000000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#000000 0%%,#1a1a1a 100%%);padding:40px 0;min-height:100vh;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1f2e;border-radius:16px;border:1px solid #2d3748;overflow:hidden;max-width:560px;width:100%%;">
-        <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#FF4500,#E63900);padding:32px;text-align:center;">
-          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Algo<span style="opacity:0.85;">cdk</span></h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Automated Trading Platform</p>
+      <table width="520" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.05);border-radius:16px;border:1px solid rgba(255,255,255,0.1);overflow:hidden;max-width:520px;width:100%%;">
+        <!-- Logo header -->
+        <tr><td style="padding:32px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <table cellpadding="0" cellspacing="0" align="center">
+            <tr>
+              <td style="width:44px;height:44px;background:linear-gradient(135deg,#ff4500,#ff6b35);border-radius:10px;text-align:center;line-height:44px;font-size:20px;font-weight:900;color:#fff;letter-spacing:-1px;">A</td>
+              <td style="padding-left:10px;">
+                <span style="font-size:22px;font-weight:800;color:#ff4500;">Algo</span><span style="font-size:22px;font-weight:800;color:#ffffff;">cdk</span>
+              </td>
+            </tr>
+          </table>
         </td></tr>
-        <!-- Body -->
-        <tr><td style="padding:40px 36px;">
-          <h2 style="margin:0 0 12px;color:#e2e8f0;font-size:22px;font-weight:700;">Reset Your Password</h2>
-          <p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong style="color:#e2e8f0;">15 minutes</strong>.</p>
-          <table cellpadding="0" cellspacing="0" width="100%%"><tr><td align="center" style="padding:8px 0 32px;">
-            <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#FF4500,#E63900);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Reset Password</a>
-          </td></tr></table>
-          <p style="margin:0 0 8px;color:#64748b;font-size:13px;">Or copy this link into your browser:</p>
-          <p style="margin:0;background:#0D1421;border:1px solid #2d3748;border-radius:8px;padding:12px;color:#94a3b8;font-size:12px;word-break:break-all;">%s</p>
+        <!-- Icon -->
+        <tr><td style="padding:36px 36px 0;text-align:center;">
+          <div style="width:64px;height:64px;background:#ff4500;border-radius:50%%;margin:0 auto 20px;text-align:center;line-height:64px;font-size:26px;font-weight:900;color:#fff;">&#128274;</div>
+          <h2 style="margin:0 0 10px;color:#ffffff;font-size:22px;font-weight:700;">Reset Your Password</h2>
+          <p style="margin:0 0 28px;color:#9ca3af;font-size:14px;line-height:1.6;">We received a request to reset your password.<br>This link expires in <strong style="color:#ff4500;">15 minutes</strong>.</p>
+        </td></tr>
+        <!-- CTA -->
+        <tr><td style="padding:0 36px 28px;text-align:center;">
+          <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#ff4500,#ff6b35);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 40px;border-radius:10px;letter-spacing:0.3px;">Reset Password</a>
+        </td></tr>
+        <!-- Fallback link -->
+        <tr><td style="padding:0 36px 28px;">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:12px;text-align:center;">Or copy this link into your browser:</p>
+          <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;">
+            <p style="margin:0;color:#9ca3af;font-size:11px;word-break:break-all;text-align:center;">%s</p>
+          </div>
         </td></tr>
         <!-- Footer -->
-        <tr><td style="padding:20px 36px;border-top:1px solid #2d3748;text-align:center;">
-          <p style="margin:0;color:#475569;font-size:12px;">If you didn't request a password reset, you can safely ignore this email.</p>
-          <p style="margin:8px 0 0;color:#334155;font-size:11px;">© 2026 Algocdk. All rights reserved.</p>
+        <tr><td style="padding:20px 36px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;">If you didn't request this, you can safely ignore this email.</p>
+          <p style="margin:0;color:#374151;font-size:11px;">&#169; 2026 Algocdk. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -52,67 +65,75 @@ func SendVerificationEmail(to, verificationLink string) {
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0D1421;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;padding:40px 0;">
+<body style="margin:0;padding:0;background:#000000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#000000 0%%,#1a1a1a 100%%);padding:40px 0;min-height:100vh;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1f2e;border-radius:16px;border:1px solid #2d3748;overflow:hidden;max-width:560px;width:100%%;">
-        <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#FF4500,#E63900);padding:32px;text-align:center;">
-          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Algo<span style="opacity:0.85;">cdk</span></h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Automated Trading Platform</p>
+      <table width="520" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.05);border-radius:16px;border:1px solid rgba(255,255,255,0.1);overflow:hidden;max-width:520px;width:100%%;">
+        <!-- Logo header -->
+        <tr><td style="padding:32px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <table cellpadding="0" cellspacing="0" align="center">
+            <tr>
+              <td style="width:44px;height:44px;background:linear-gradient(135deg,#ff4500,#ff6b35);border-radius:10px;text-align:center;line-height:44px;font-size:20px;font-weight:900;color:#fff;letter-spacing:-1px;">A</td>
+              <td style="padding-left:10px;">
+                <span style="font-size:22px;font-weight:800;color:#ff4500;">Algo</span><span style="font-size:22px;font-weight:800;color:#ffffff;">cdk</span>
+              </td>
+            </tr>
+          </table>
         </td></tr>
-        <!-- Body -->
-        <tr><td style="padding:40px 36px;">
-          <h2 style="margin:0 0 12px;color:#e2e8f0;font-size:22px;font-weight:700;">Verify Your Email Address</h2>
-          <p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">Welcome to Algocdk! You're one step away from accessing automated trading bots and real-time market analysis. Click the button below to verify your email.</p>
-          <table cellpadding="0" cellspacing="0" width="100%%"><tr><td align="center" style="padding:8px 0 32px;">
-            <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#FF4500,#E63900);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">Verify Email Address</a>
-          </td></tr></table>
-          <p style="margin:0 0 8px;color:#64748b;font-size:13px;">Or copy this link into your browser:</p>
-          <p style="margin:0;background:#0D1421;border:1px solid #2d3748;border-radius:8px;padding:12px;color:#94a3b8;font-size:12px;word-break:break-all;">%s</p>
+        <!-- Icon + heading -->
+        <tr><td style="padding:36px 36px 0;text-align:center;">
+          <div style="width:64px;height:64px;background:#ff4500;border-radius:50%%;margin:0 auto 20px;text-align:center;line-height:64px;font-size:26px;color:#fff;">&#9993;</div>
+          <h2 style="margin:0 0 10px;color:#ffffff;font-size:22px;font-weight:700;">Check Your Email</h2>
+          <p style="margin:0 0 6px;color:#9ca3af;font-size:14px;">We've sent a verification link to:</p>
+          <p style="margin:0 0 28px;color:#ffffff;font-size:14px;font-weight:600;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 16px;display:inline-block;">%s</p>
         </td></tr>
-        <!-- What's next -->
-        <tr><td style="padding:0 36px 32px;">
-          <table width="100%%" cellpadding="0" cellspacing="0" style="background:#0D1421;border:1px solid #2d3748;border-radius:12px;padding:20px;">
+        <!-- CTA -->
+        <tr><td style="padding:0 36px 28px;text-align:center;">
+          <a href="%s" style="display:inline-block;background:linear-gradient(135deg,#ff4500,#ff6b35);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 40px;border-radius:10px;letter-spacing:0.3px;">Verify Email Address</a>
+        </td></tr>
+        <!-- Next steps -->
+        <tr><td style="padding:0 36px 28px;">
+          <table width="100%%" cellpadding="0" cellspacing="0" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;">
             <tr><td>
-              <p style="margin:0 0 16px;color:#e2e8f0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">What you get access to</p>
-              <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:12px;">
+              <p style="margin:0 0 14px;color:#ffffff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Next steps</p>
+              <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:10px;">
                 <tr>
-                  <td width="32" valign="middle" style="padding-right:10px;">
-                    <div style="width:24px;height:24px;background:#FF4500;border-radius:6px;text-align:center;line-height:24px;font-size:13px;font-weight:700;color:#fff;">B</div>
-                  </td>
-                  <td style="color:#94a3b8;font-size:13px;line-height:1.5;">Automated trading bots with proven strategies</td>
+                  <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">1</div></td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Check your email inbox</td>
                 </tr>
               </table>
-              <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:12px;">
+              <table cellpadding="0" cellspacing="0" width="100%%" style="margin-bottom:10px;">
                 <tr>
-                  <td width="32" valign="middle" style="padding-right:10px;">
-                    <div style="width:24px;height:24px;background:#FF4500;border-radius:6px;text-align:center;line-height:24px;font-size:13px;font-weight:700;color:#fff;">M</div>
-                  </td>
-                  <td style="color:#94a3b8;font-size:13px;line-height:1.5;">Real-time market analysis and digit statistics</td>
+                  <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">2</div></td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Click the verification link above</td>
                 </tr>
               </table>
               <table cellpadding="0" cellspacing="0" width="100%%">
                 <tr>
-                  <td width="32" valign="middle" style="padding-right:10px;">
-                    <div style="width:24px;height:24px;background:#FF4500;border-radius:6px;text-align:center;line-height:24px;font-size:13px;font-weight:700;color:#fff;">T</div>
-                  </td>
-                  <td style="color:#94a3b8;font-size:13px;line-height:1.5;">Digits, barriers, multipliers &amp; accumulator trading</td>
+                  <td width="28" valign="middle"><div style="width:20px;height:20px;background:#ff4500;border-radius:50%%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:#fff;">3</div></td>
+                  <td style="padding-left:10px;color:#9ca3af;font-size:13px;">Return to login and start trading</td>
                 </tr>
               </table>
             </td></tr>
           </table>
         </td></tr>
+        <!-- Fallback link -->
+        <tr><td style="padding:0 36px 28px;">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:12px;text-align:center;">Or copy this link into your browser:</p>
+          <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;">
+            <p style="margin:0;color:#9ca3af;font-size:11px;word-break:break-all;text-align:center;">%s</p>
+          </div>
+        </td></tr>
         <!-- Footer -->
-        <tr><td style="padding:20px 36px;border-top:1px solid #2d3748;text-align:center;">
-          <p style="margin:0;color:#475569;font-size:12px;">If you didn't create an Algocdk account, you can safely ignore this email.</p>
-          <p style="margin:8px 0 0;color:#334155;font-size:11px;">© 2026 Algocdk. All rights reserved.</p>
+        <tr><td style="padding:20px 36px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;">If you didn't create an Algocdk account, you can safely ignore this email.</p>
+          <p style="margin:0;color:#374151;font-size:11px;">&#169; 2026 Algocdk. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body>
-</html>`, verificationLink, verificationLink)
+</html>`, to, verificationLink, verificationLink)
 	sendEmail(to, "Verify Your Algocdk Account", plain, html, "VERIFICATION EMAIL")
 }
 
