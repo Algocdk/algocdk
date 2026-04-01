@@ -19,7 +19,20 @@ func AuthMiddleware() gin.HandlerFunc {
 			tokenString = ctx.Query("token")
 		}
 
+		// Fall back to cookie (set on login, used for browser navigation)
 		if tokenString == "" {
+			if cookie, err := ctx.Cookie("auth_token"); err == nil {
+				tokenString = cookie
+			}
+		}
+
+		if tokenString == "" {
+			// If it's a browser navigation (accepts HTML), redirect to login
+			if strings.Contains(ctx.GetHeader("Accept"), "text/html") {
+				ctx.Redirect(http.StatusFound, "/auth")
+				ctx.Abort()
+				return
+			}
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 			ctx.Abort()
 			return
