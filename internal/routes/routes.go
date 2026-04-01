@@ -31,6 +31,7 @@ func SetUpRouter(router *gin.Engine) {
 			auth.POST("/forgot_password/", handlers.ForgotPasswordHandler)
 			auth.GET("/verify-email", handlers.VerifyEmailHandler)
 			auth.POST("/resend-verification", handlers.ResendVerificationHandler)
+			auth.POST("/reset-password", handlers.ResetPasswordHandler)
 			// sets auth_token cookie from token in request body so server-side guards work
 			auth.POST("/set-cookie", func(c *gin.Context) {
 				var body struct {
@@ -316,6 +317,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/verify-email", func(c *gin.Context) {
 		c.File(frontendPath + "/verify-email.html")
+	})
+	router.GET("/reset-password", func(c *gin.Context) {
+		c.File(frontendPath + "/reset-password.html")
 	})
 	router.GET("/verify-success", func(c *gin.Context) {
 		c.File(frontendPath + "/verify-success.html")
