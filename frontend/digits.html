@@ -442,17 +442,334 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 12px; }
-            .container { padding: 0; }
-            .price { font-size: 36px; }
-            .last-digit { font-size: 24px; padding: 8px 16px; }
-            .card { padding: 16px; }
-            .tab { font-size: 12px; padding: 10px; }
-            .trade-btn { padding: 16px; font-size: 16px; }
-            .analysis-card { padding: 16px; }
-            .digit-freq-cell .dfc-num { font-size: 17px; }
-            .stats-row { grid-template-columns: 1fr 1fr; }
+            body { padding: 8px 8px 80px; }
+            .container { padding: 0; max-width: 100%; }
+
+            /* Compact price box */
+            .price-box { padding: 16px 12px; border-radius: 14px; margin-bottom: 10px; }
+            .price { font-size: 28px; margin: 4px 0; }
+            .last-digit { font-size: 22px; padding: 6px 18px; margin-top: 4px; }
+            .price-box > div:first-child,
+            .price-box > div:nth-child(3) { font-size: 11px; }
+
+            /* Header */
+            .header { margin-bottom: 10px; gap: 8px; }
+            .back-btn { padding: 8px 14px; font-size: 13px; }
+            .balance { font-size: 13px; padding: 8px 12px; }
+
+            /* Card */
+            .card { padding: 14px; border-radius: 14px; margin-bottom: 10px; }
+
+            /* Tabs — scrollable row */
+            .tab-group { gap: 6px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+            .tab-group::-webkit-scrollbar { display: none; }
+            .tab { flex: 0 0 auto; padding: 9px 14px; font-size: 12px; border-radius: 10px; white-space: nowrap; }
+
+            /* Stake + Duration side by side */
+            .inputs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+            .input-group { margin-bottom: 0; }
+            .input-group label { font-size: 12px; margin-bottom: 5px; }
+            .input-field { padding: 11px 10px; font-size: 15px; border-radius: 10px; }
+
+            /* Trade buttons — side by side where possible */
+            .trade-btn { padding: 15px; font-size: 15px; border-radius: 12px; margin-bottom: 8px; }
+            .trade-btns-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .trade-btns-row .trade-btn { margin-bottom: 0; }
+
+            h2 { font-size: 15px; margin-bottom: 10px; }
+
+            /* Digit grid */
+            .digit-grid { gap: 6px; margin-bottom: 12px; }
+            .digit-btn { padding: 12px 6px; font-size: 16px; border-radius: 10px; }
+
+            /* Analysis card */
+            .analysis-card { padding: 14px; border-radius: 14px; margin-bottom: 10px; }
+            .analysis-header { margin-bottom: 12px; }
+            .analysis-title { font-size: 14px; }
+            .analysis-title .icon-wrap { width: 28px; height: 28px; font-size: 13px; }
+
+            /* Digit freq grid — 5 cols still but smaller */
+            .digit-freq-grid { gap: 5px; margin-bottom: 10px; }
+            .digit-freq-cell { padding: 7px 4px 6px; border-radius: 9px; }
+            .digit-freq-cell .dfc-num { font-size: 15px; }
+            .digit-freq-cell .dfc-pct { font-size: 9px; }
+            .digit-freq-cell .dfc-bar-track { margin-top: 5px; }
+
+            /* Stats row */
+            .stats-row { gap: 8px; margin-bottom: 10px; }
+            .stat-box { padding: 10px 10px; gap: 8px; border-radius: 10px; }
+            .stat-box .stat-icon { width: 28px; height: 28px; font-size: 12px; border-radius: 7px; }
+            .stat-box .stat-value { font-size: 13px; }
+            .stat-box .stat-label { font-size: 9px; }
+
+            /* Streak bar */
+            .streak-bar { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; }
+            .streak-value { font-size: 12px; }
+            .streak-right .streak-count { font-size: 18px; }
+
+            /* Insights */
+            .insights-box { padding: 10px; gap: 6px; border-radius: 10px; }
+            .insight-row { font-size: 11px; }
+
+            /* Bot panel — full screen on mobile */
+            .bot-panel {
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 0;
+                min-width: unset;
+                min-height: unset;
+            }
+            .bot-resize-handle { display: none; }
+            .bot-fab { bottom: 16px; right: 16px; width: 50px; height: 50px; font-size: 20px; }
+
+            /* Bottom nav */
+            .bottom-nav { display: flex; }
         }
+
+        @media (min-width: 769px) {
+            .inputs-row { display: contents; }
+            .trade-btns-row { display: contents; }
+            .bottom-nav { display: none !important; }
+        }
+
+        /* Bottom nav (mobile only) */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #0D1421;
+            border-top: 1px solid #2d3748;
+            z-index: 900;
+            padding: 6px 0 env(safe-area-inset-bottom, 6px);
+        }
+        .bottom-nav a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 0;
+            transition: color 0.2s;
+        }
+        .bottom-nav a i { font-size: 18px; }
+        .bottom-nav a.active, .bottom-nav a:hover { color: #FF4500; }
+    </style>
+        .bot-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF4500, #E63900);
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255,69,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .bot-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(255,69,0,0.7);
+        }
+
+        .bot-panel {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            width: 480px;
+            height: 560px;
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 320px;
+            min-height: 260px;
+        }
+        .bot-panel.open { display: flex; }
+
+        .bot-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #0D1421;
+            border-bottom: 1px solid #2d3748;
+            cursor: grab;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .bot-panel-header:active { cursor: grabbing; }
+
+        .bot-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e2e8f0;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .bot-panel-title i { color: #FF4500; }
+
+        .bot-panel-actions { display: flex; gap: 6px; }
+        .bot-panel-actions button {
+            background: #2d3748;
+            border: none;
+            color: #94a3b8;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .bot-panel-actions button:hover { background: #FF4500; color: white; }
+
+        .bot-panel-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .bot-tabs {
+            display: flex;
+            border-bottom: 1px solid #2d3748;
+            flex-shrink: 0;
+        }
+        .bot-tab {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .bot-tab.active { color: #FF4500; border-bottom-color: #FF4500; }
+
+        .bot-tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .bot-tab-content.active { display: flex; }
+
+        /* Load tab */
+        .bot-load-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            overflow-y: auto;
+        }
+        .bot-dropzone {
+            border: 2px dashed #2d3748;
+            border-radius: 12px;
+            padding: 32px 16px;
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+        .bot-dropzone:hover, .bot-dropzone.drag-over {
+            border-color: #FF4500;
+            background: rgba(255,69,0,0.05);
+            color: #FF4500;
+        }
+        .bot-dropzone i { font-size: 28px; margin-bottom: 8px; display: block; }
+
+        .bot-file-list { display: flex; flex-direction: column; gap: 8px; }
+        .bot-file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0D1421;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+        .bot-file-item .file-info { display: flex; align-items: center; gap: 8px; }
+        .bot-file-item .file-info i { color: #FF4500; }
+        .bot-file-item .file-actions { display: flex; gap: 6px; }
+        .bot-file-item .file-actions button {
+            background: #2d3748;
+            border: none;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .bot-file-item .file-actions button:hover { background: #FF4500; color: white; }
+        .bot-file-item .file-actions button.run-btn:hover { background: #10b981; color: white; }
+
+        /* Runner tab */
+        .bot-runner {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .bot-runner-frame {
+            flex: 1;
+            border: none;
+            background: white;
+        }
+        .bot-runner-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 13px;
+            gap: 8px;
+        }
+        .bot-runner-empty i { font-size: 36px; color: #2d3748; }
+
+        /* Resize handle */
+        .bot-resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 18px;
+            height: 18px;
+            cursor: se-resize;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 3px;
+            color: #2d3748;
+            font-size: 12px;
+        }
+        .bot-resize-handle:hover { color: #FF4500; }
     </style>
 </head>
 <body>
@@ -479,14 +796,16 @@
                 <button class="tab" onclick="selectMode('overunder')" id="tab-overunder">Over/Under</button>
             </div>
             
-            <div class="input-group">
-                <label>Stake Amount</label>
-                <input type="number" class="input-field" id="stakeAmount" value="10" min="1" step="1">
-            </div>
-            
-            <div class="input-group">
-                <label>Duration (Ticks)</label>
-                <input type="number" class="input-field" id="duration" value="5" min="1" max="10">
+            <div class="inputs-row">
+                <div class="input-group">
+                    <label>Stake Amount</label>
+                    <input type="number" class="input-field" id="stakeAmount" value="10" min="1" step="1">
+                </div>
+                
+                <div class="input-group">
+                    <label>Duration (Ticks)</label>
+                    <input type="number" class="input-field" id="duration" value="5" min="1" max="10">
+                </div>
             </div>
             
             <div id="tradeInterface"></div>
@@ -557,12 +876,14 @@
             if (currentMode === 'evenodd') {
                 container.innerHTML = `
                     <h2>Choose Prediction</h2>
-                    <button class="trade-btn btn-green" onclick="placeTrade('DIGITEVEN')">
-                        <i class="fas fa-equals"></i> EVEN (0,2,4,6,8)
-                    </button>
-                    <button class="trade-btn btn-red" onclick="placeTrade('DIGITODD')">
-                        <i class="fas fa-not-equal"></i> ODD (1,3,5,7,9)
-                    </button>
+                    <div class="trade-btns-row">
+                        <button class="trade-btn btn-green" onclick="placeTrade('DIGITEVEN')">
+                            <i class="fas fa-equals"></i> EVEN
+                        </button>
+                        <button class="trade-btn btn-red" onclick="placeTrade('DIGITODD')">
+                            <i class="fas fa-not-equal"></i> ODD
+                        </button>
+                    </div>
                 `;
             } else if (currentMode === 'matches') {
                 container.innerHTML = `
@@ -572,25 +893,29 @@
                             `<button class="digit-btn ${d === selectedDigit ? 'active' : ''}" onclick="selectDigit(${d})">${d}</button>`
                         ).join('')}
                     </div>
-                    <button class="trade-btn btn-blue" onclick="placeTrade('DIGITMATCH')">
-                        <i class="fas fa-bullseye"></i> MATCHES
-                    </button>
-                    <button class="trade-btn btn-purple" onclick="placeTrade('DIGITDIFF')">
-                        <i class="fas fa-times"></i> DIFFERS
-                    </button>
+                    <div class="trade-btns-row">
+                        <button class="trade-btn btn-blue" onclick="placeTrade('DIGITMATCH')">
+                            <i class="fas fa-bullseye"></i> MATCHES
+                        </button>
+                        <button class="trade-btn btn-purple" onclick="placeTrade('DIGITDIFF')">
+                            <i class="fas fa-times"></i> DIFFERS
+                        </button>
+                    </div>
                 `;
             } else {
                 container.innerHTML = `
-                    <div class="input-group">
+                    <div class="input-group" style="margin-bottom:14px">
                         <label>Barrier</label>
                         <input type="number" class="input-field" id="barrierInput" value="${selectedBarrier}" min="1" max="8" onchange="selectedBarrier = parseInt(this.value); updateAnalysisDisplay();">
                     </div>
-                    <button class="trade-btn btn-green" onclick="placeTrade('DIGITOVER')">
-                        <i class="fas fa-arrow-up"></i> OVER
-                    </button>
-                    <button class="trade-btn btn-red" onclick="placeTrade('DIGITUNDER')">
-                        <i class="fas fa-arrow-down"></i> UNDER
-                    </button>
+                    <div class="trade-btns-row">
+                        <button class="trade-btn btn-green" onclick="placeTrade('DIGITOVER')">
+                            <i class="fas fa-arrow-up"></i> OVER
+                        </button>
+                        <button class="trade-btn btn-red" onclick="placeTrade('DIGITUNDER')">
+                            <i class="fas fa-arrow-down"></i> UNDER
+                        </button>
+                    </div>
                 `;
             }
         }
@@ -1008,6 +1333,213 @@
             
             insightsEl.innerHTML = insights.join('');
         }
+    </script>
+
+    <!-- Bot FAB -->
+    <button class="bot-fab" onclick="toggleBotPanel()" title="Strategy Bot">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- Bottom Nav (mobile) -->
+    <nav class="bottom-nav">
+        <a href="/trading"><i class="fas fa-arrow-left"></i>Back</a>
+        <a href="#trade-section" onclick="document.querySelector('.card').scrollIntoView({behavior:'smooth'});return false;" class="active"><i class="fas fa-bolt"></i>Trade</a>
+        <a href="#analysis-section" onclick="document.querySelector('.analysis-card').scrollIntoView({behavior:'smooth'});return false;"><i class="fas fa-chart-bar"></i>Analysis</a>
+        <a onclick="toggleBotPanel();return false;" href="#"><i class="fas fa-robot"></i>Bot</a>
+    </nav>
+
+    <!-- Bot Panel -->
+    <div class="bot-panel" id="botPanel">
+        <div class="bot-panel-header" id="botPanelHeader">
+            <div class="bot-panel-title">
+                <i class="fas fa-robot"></i> Strategy Runner
+            </div>
+            <div class="bot-panel-actions">
+                <button onclick="minimizeBotPanel()" title="Minimize"><i class="fas fa-minus"></i></button>
+                <button onclick="closeBotPanel()" title="Close"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="bot-panel-body" id="botPanelBody">
+            <div class="bot-tabs">
+                <button class="bot-tab active" onclick="switchBotTab('load')"><i class="fas fa-folder-open"></i> Load</button>
+                <button class="bot-tab" onclick="switchBotTab('run')"><i class="fas fa-play"></i> Runner</button>
+            </div>
+
+            <!-- Load Tab -->
+            <div class="bot-tab-content active" id="bot-tab-load">
+                <div class="bot-load-area">
+                    <div class="bot-dropzone" id="botDropzone" onclick="document.getElementById('botFileInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Drop your strategy file here<br>
+                        <small style="color:#475569">HTML / JS / CSS supported</small>
+                    </div>
+                    <input type="file" id="botFileInput" accept=".html,.js,.css" style="display:none" multiple onchange="handleBotFiles(this.files)">
+                    <div class="bot-file-list" id="botFileList"></div>
+                </div>
+            </div>
+
+            <!-- Runner Tab -->
+            <div class="bot-tab-content" id="bot-tab-run">
+                <div class="bot-runner">
+                    <div class="bot-runner-empty" id="botRunnerEmpty">
+                        <i class="fas fa-robot"></i>
+                        <span>No strategy loaded</span>
+                        <small>Load an HTML file from the Load tab</small>
+                    </div>
+                    <iframe class="bot-runner-frame" id="botRunnerFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div class="bot-resize-handle" id="botResizeHandle">
+            <i class="fas fa-grip-lines-vertical" style="transform:rotate(45deg)"></i>
+        </div>
+    </div>
+
+    <script>
+        // ── Bot Panel State ──
+        const botPanel = document.getElementById('botPanel');
+        const botPanelHeader = document.getElementById('botPanelHeader');
+        const botPanelBody = document.getElementById('botPanelBody');
+        const botResizeHandle = document.getElementById('botResizeHandle');
+        let botFiles = [];
+        let activeStrategyIndex = -1;
+        let isPanelMinimized = false;
+
+        function toggleBotPanel() {
+            botPanel.classList.toggle('open');
+        }
+        function closeBotPanel() {
+            botPanel.classList.remove('open');
+        }
+        function minimizeBotPanel() {
+            isPanelMinimized = !isPanelMinimized;
+            botPanelBody.style.display = isPanelMinimized ? 'none' : '';
+            botResizeHandle.style.display = isPanelMinimized ? 'none' : '';
+        }
+
+        function switchBotTab(tab) {
+            document.querySelectorAll('.bot-tab').forEach((t, i) => {
+                t.classList.toggle('active', ['load','run'][i] === tab);
+            });
+            document.querySelectorAll('.bot-tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`bot-tab-${tab}`).classList.add('active');
+        }
+
+        // ── File Loading ──
+        function handleBotFiles(files) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    botFiles.push({ name: file.name, content: e.target.result, type: file.name.split('.').pop() });
+                    renderBotFileList();
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function renderBotFileList() {
+            const list = document.getElementById('botFileList');
+            list.innerHTML = botFiles.map((f, i) => `
+                <div class="bot-file-item">
+                    <div class="file-info">
+                        <i class="fas fa-${f.type === 'html' ? 'file-code' : f.type === 'js' ? 'file-alt' : 'palette'}"></i>
+                        <span>${f.name}</span>
+                    </div>
+                    <div class="file-actions">
+                        ${f.type === 'html' ? `<button class="run-btn" onclick="runStrategy(${i})"><i class="fas fa-play"></i> Run</button>` : ''}
+                        <button onclick="removeFile(${i})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            botFiles.splice(index, 1);
+            if (activeStrategyIndex === index) {
+                activeStrategyIndex = -1;
+                document.getElementById('botRunnerFrame').style.display = 'none';
+                document.getElementById('botRunnerEmpty').style.display = '';
+            }
+            renderBotFileList();
+        }
+
+        function runStrategy(index) {
+            const file = botFiles[index];
+            if (!file || file.type !== 'html') return;
+
+            activeStrategyIndex = index;
+            const frame = document.getElementById('botRunnerFrame');
+            const empty = document.getElementById('botRunnerEmpty');
+
+            // Write the HTML content into the iframe
+            frame.style.display = '';
+            empty.style.display = 'none';
+            frame.srcdoc = file.content;
+
+            switchBotTab('run');
+        }
+
+        // ── Drag to move (mouse + touch) ──
+        let isDragging = false, dragOffX = 0, dragOffY = 0;
+
+        function startDrag(clientX, clientY) {
+            isDragging = true;
+            const rect = botPanel.getBoundingClientRect();
+            dragOffX = clientX - rect.left;
+            dragOffY = clientY - rect.top;
+            botPanel.style.transition = 'none';
+        }
+        function moveDrag(clientX, clientY) {
+            if (!isDragging) return;
+            // On mobile the panel is fullscreen — no point dragging
+            if (window.innerWidth <= 768) return;
+            let x = Math.max(0, Math.min(window.innerWidth - botPanel.offsetWidth, clientX - dragOffX));
+            let y = Math.max(0, Math.min(window.innerHeight - botPanel.offsetHeight, clientY - dragOffY));
+            botPanel.style.left = x + 'px';
+            botPanel.style.top = y + 'px';
+            botPanel.style.right = 'auto';
+        }
+
+        botPanelHeader.addEventListener('mousedown', (e) => { if (!e.target.closest('button')) startDrag(e.clientX, e.clientY); });
+        botPanelHeader.addEventListener('touchstart', (e) => { if (!e.target.closest('button')) { const t = e.touches[0]; startDrag(t.clientX, t.clientY); } }, { passive: true });
+        document.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+        document.addEventListener('touchmove', (e) => { if (isDragging) { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('touchend', () => { isDragging = false; });
+
+        // ── Resize ──
+        let isResizing = false, resizeStartX, resizeStartY, resizeStartW, resizeStartH;
+
+        botResizeHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isResizing = true;
+            resizeStartX = e.clientX;
+            resizeStartY = e.clientY;
+            resizeStartW = botPanel.offsetWidth;
+            resizeStartH = botPanel.offsetHeight;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const w = Math.max(320, resizeStartW + (e.clientX - resizeStartX));
+            const h = Math.max(260, resizeStartH + (e.clientY - resizeStartY));
+            botPanel.style.width = w + 'px';
+            botPanel.style.height = h + 'px';
+        });
+
+        document.addEventListener('mouseup', () => { isResizing = false; });
+
+        // ── Drag & drop on dropzone ──
+        const dropzone = document.getElementById('botDropzone');
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            handleBotFiles(e.dataTransfer.files);
+        });
     </script>
 </body>
 </html>
