@@ -197,16 +197,14 @@ func SetUpRouter(router *gin.Engine) {
 		api.GET("/subscription/verify", handlers.VerifySubscriptionPayment)
 
 		paystackGroup := api.Group("/payment")
+		paystackGroup.Use(middleware.AuthMiddleware())
 		{
-			paystackGroup.Use(middleware.AuthMiddleware())
-			{
-				paystackGroup.POST("/initialize", paystack.InitializePayment)
-				paystackGroup.GET("/verify", paystack.VerifyPayment)
-				paystackGroup.POST("/callback", paystack.FrontendCallback)
-				paystackGroup.POST("update-transaction", paystack.UpdateTransaction)
-			}
-			paystackGroup.POST("/webhook", paystack.PaystackCallback)
+			paystackGroup.POST("/initialize", paystack.InitializePayment)
+			paystackGroup.GET("/verify", paystack.VerifyPayment)
+			paystackGroup.POST("/callback", paystack.FrontendCallback)
+			paystackGroup.POST("/update-transaction", paystack.UpdateTransaction)
 		}
+		paystackGroup.POST("/webhook", paystack.PaystackCallback)
 
 		// ============================================
 		// DERIV OAUTH INTEGRATION
