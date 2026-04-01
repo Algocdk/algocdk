@@ -28,10 +28,11 @@ class AuthHandler {
       forgotForm.addEventListener('submit', this.handleForgotPassword.bind(this));
     }
 
-    // Form toggles
-    const toggleBtns = document.querySelectorAll('[data-toggle-form]');
-    toggleBtns.forEach(btn => {
-      btn.addEventListener('click', this.toggleForm.bind(this));
+    // Form toggles — all buttons with data-toggle-form
+    document.querySelectorAll('[data-toggle-form]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.showForm(e.currentTarget.dataset.toggleForm);
+      });
     });
 
     // Password visibility toggles
@@ -188,11 +189,23 @@ class AuthHandler {
 
     try {
       await api.auth.forgotPassword({ email });
-      utils.notify('Password reset link sent to your email', 'success');
-      this.showForm('login');
+      utils.notify('Reset link sent! Check your email inbox.', 'success');
+      // Show success state in the form
+      event.target.innerHTML = `
+        <div class="text-center py-4">
+          <div class="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-check text-white text-xl"></i>
+          </div>
+          <p class="text-white font-semibold">Reset link sent!</p>
+          <p class="text-gray-400 text-sm mt-1">Check your inbox at <strong class="text-white">${email}</strong></p>
+          <button type="button" onclick="window.authHandler.showForm('login')"
+            class="mt-4 w-full py-3 px-4 bg-dark-800 text-gray-300 rounded-lg font-semibold border border-gray-700 hover:bg-gray-700 hover:text-white transition-all duration-300">
+            ← Back to Login
+          </button>
+        </div>
+      `;
     } catch (error) {
       utils.notify(error.message || 'Failed to send reset email', 'error');
-    } finally {
       this.setLoading(event.target, false);
     }
   }
@@ -278,37 +291,35 @@ class AuthHandler {
   }
 
   showForm(formType) {
-    // Hide all forms
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
-    
-    if (loginForm) loginForm.classList.add('hidden');
-    if (signupForm) signupForm.classList.add('hidden');
-    
+    const forgotForm = document.getElementById('forgot-password-form');
+    const tabs = document.querySelector('.flex.mb-6');
+
+    // Hide all forms
+    [loginForm, signupForm, forgotForm].forEach(f => f && f.classList.add('hidden'));
+
+    // Show/hide tabs — hide them on forgot view
+    if (tabs) tabs.style.display = formType === 'forgot' ? 'none' : '';
+
     // Show target form
-    const targetForm = document.getElementById(`${formType}-form`);
-    if (targetForm) {
-      targetForm.classList.remove('hidden');
-    }
-    
-    // Update tab buttons
-    const tabButtons = document.querySelectorAll('[data-toggle-form]');
-    tabButtons.forEach(btn => {
-      const btnFormType = btn.dataset.toggleForm;
-      if (btnFormType === formType) {
-        // Active tab
-        btn.classList.add('bg-primary-500', 'text-white');
-        btn.classList.remove('text-gray-400', 'hover:text-white');
-      } else {
-        // Inactive tab
-        btn.classList.remove('bg-primary-500', 'text-white');
-        btn.classList.add('text-gray-400', 'hover:text-white');
-      }
+    const target = document.getElementById(
+      formType === 'forgot' ? 'forgot-password-form' : `${formType}-form`
+    );
+    if (target) target.classList.remove('hidden');
+
+    // Update tab active state
+    document.querySelectorAll('[data-toggle-form="login"], [data-toggle-form="signup"]').forEach(btn => {
+      const isActive = btn.dataset.toggleForm === formType;
+      btn.classList.toggle('bg-primary-500', isActive);
+      btn.classList.toggle('text-white', isActive);
+      btn.classList.toggle('text-gray-400', !isActive);
     });
 
-    // Update URL without page reload
-    const newUrl = `${window.location.pathname}?form=${formType}`;
-    window.history.replaceState({}, '', newUrl);
+    // Update URL
+    if (formType !== 'forgot') {
+      window.history.replaceState({}, '', `${window.location.pathname}?form=${formType}`);
+    }
   }
 
   togglePasswordVisibility(event) {
