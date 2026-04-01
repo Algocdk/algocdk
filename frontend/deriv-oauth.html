@@ -69,33 +69,48 @@
             window.location.href = '/auth';
         }
 
+        // Inline DerivTokenManager — mirrors the one in api.js
+        const DerivTokenManager = {
+            setAccounts: (accounts) => localStorage.setItem('deriv_accounts', JSON.stringify(accounts)),
+            getAccounts: () => JSON.parse(localStorage.getItem('deriv_accounts') || '[]'),
+            getToken: (loginid) => {
+                const accounts = DerivTokenManager.getAccounts();
+                if (!accounts.length) return null;
+                if (loginid) return accounts.find(a => a.account === loginid)?.token || null;
+                return accounts[0].token;
+            },
+            hasAccounts: () => DerivTokenManager.getAccounts().length > 0,
+            clear: () => localStorage.removeItem('deriv_accounts'),
+        };
+
         // Handle OAuth redirect from Deriv
         window.addEventListener('load', () => {
             const params = new URLSearchParams(window.location.search);
-            const accounts = params.get('acct1');
+            const acct1 = params.get('acct1');
             const token1 = params.get('token1');
-            const currency1 = params.get('cur1');
-            
-            if (accounts && token1) {
-                const accountData = {
-                    accounts: [{
-                        account: accounts,
-                        token: token1,
-                        currency: currency1
-                    }]
-                };
-                
-                // Add additional accounts if present
-                if (params.get('acct2')) {
-                    accountData.accounts.push({
-                        account: params.get('acct2'),
-                        token: params.get('token2'),
-                        currency: params.get('cur2')
-                    });
-                }
-                
-                handleOAuthCallback(accountData);
+            const cur1 = params.get('cur1');
+
+            if (!acct1 || !token1) return;
+
+            const accounts = [{ account: acct1, token: token1, currency: cur1 || 'USD' }];
+            if (params.get('acct2') && params.get('token2')) {
+                accounts.push({ account: params.get('acct2'), token: params.get('token2'), currency: params.get('cur2') || 'USD' });
             }
+
+            // Store tokens in localStorage only
+            DerivTokenManager.setAccounts(accounts);
+
+            // Clean URL so tokens don't linger in browser history
+            window.history.replaceState({}, document.title, '/deriv-oauth');
+
+            // Notify backend of linked account metadata (no token sent)
+            fetch(`${API_BASE}/deriv/oauth/callback`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accounts })
+            }).catch(err => console.warn('Backend metadata sync failed:', err));
+
+            setTimeout(() => { window.location.href = '/app'; }, 800);
         });
 
         async function linkDerivAccount() {
@@ -104,7 +119,6 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
-                
                 if (data.success) {
                     window.location.href = data.oauth_url;
                 }
@@ -113,76 +127,43 @@
             }
         }
 
-        async function handleOAuthCallback(accountData) {
-            try {
-                const res = await fetch(`${API_BASE}/deriv/oauth/callback`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(accountData)
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    alert('Deriv account linked successfully!');
-                    window.history.replaceState({}, document.title, '/deriv-oauth');
-                    setTimeout(() => {
-                        window.location.href = '/app';
-                    }, 1000);
-                }
-            } catch (err) {
-                alert('Failed to link account: ' + err.message);
-            }
-        }
-
         async function loadLinkedAccounts() {
-            try {
-                const res = await fetch(`${API_BASE}/deriv/oauth/accounts`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                
-                if (data.success && data.accounts.length > 0) {
-                    document.getElementById('linkedAccounts').classList.remove('hidden');
-                    const list = document.getElementById('accountsList');
-                    list.innerHTML = data.accounts.map(acc => `
-                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded">
-                            <div>
-                                <span class="font-semibold">${acc.account_id}</span>
-                                <span class="text-sm text-gray-400 ml-2">${acc.currency}</span>
-                                <span class="text-xs ${acc.is_virtual ? 'text-green-400' : 'text-blue-400'} ml-2">
-                                    ${acc.is_virtual ? 'Demo' : 'Real'}
-                                </span>
-                            </div>
-                            <button onclick="unlinkAccount('${acc.account_id}')" class="text-red-400 hover:text-red-300">
-                                Unlink
-                            </button>
+            // Show accounts from localStorage (source of truth for tokens)
+            const accounts = DerivTokenManager.getAccounts();
+            if (accounts.length > 0) {
+                document.getElementById('linkedAccounts').classList.remove('hidden');
+                const list = document.getElementById('accountsList');
+                list.innerHTML = accounts.map(acc => `
+                    <div class="flex justify-between items-center bg-gray-700 p-3 rounded">
+                        <div>
+                            <span class="font-semibold">${acc.account}</span>
+                            <span class="text-sm text-gray-400 ml-2">${acc.currency}</span>
                         </div>
-                    `).join('');
-                }
-            } catch (err) {
-                console.error('Failed to load accounts:', err);
+                        <button onclick="unlinkAccount('${acc.account}')" class="text-red-400 hover:text-red-300">
+                            Unlink
+                        </button>
+                    </div>
+                `).join('');
             }
         }
 
         async function unlinkAccount(accountId) {
             if (!confirm('Unlink this account?')) return;
-            
-            try {
-                const res = await fetch(`${API_BASE}/deriv/oauth/accounts/${accountId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    loadLinkedAccounts();
-                }
-            } catch (err) {
-                alert('Failed to unlink account: ' + err.message);
+
+            const accounts = DerivTokenManager.getAccounts().filter(a => a.account !== accountId);
+            if (accounts.length === 0) {
+                DerivTokenManager.clear();
+            } else {
+                DerivTokenManager.setAccounts(accounts);
             }
+
+            // Also remove metadata from backend
+            fetch(`${API_BASE}/deriv/oauth/accounts/${accountId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => {});
+
+            loadLinkedAccounts();
         }
 
         document.getElementById('linkDerivBtn').addEventListener('click', linkDerivAccount);

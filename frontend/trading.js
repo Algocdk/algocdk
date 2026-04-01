@@ -22,15 +22,11 @@ class TradingInterface {
 
   async checkDerivConnection() {
     try {
-      const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
-      if (accounts.length === 0) {
+      if (!DerivTokenManager.hasAccounts()) {
         throw new Error('No accounts');
       }
-      
-      // Use first account token to get balance
-      const token = accounts[0].token;
-      const balance = await api.deriv.getBalance({ api_token: token });
-      
+
+      const balance = await api.deriv.getMyBalance();
       this.isConnected = true;
       this.balance = balance.data.balance;
       this.updateConnectionStatus(true);
@@ -187,12 +183,7 @@ class TradingInterface {
     }
 
     try {
-      const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
-      const token = accounts[0].token;
-      
-      // Place trade using stored token
       await api.deriv.placeTrade({
-        api_token: token,
         symbol: this.currentSymbol,
         trade_type: direction === 'buy' ? 'CALL' : 'PUT',
         amount: amount,

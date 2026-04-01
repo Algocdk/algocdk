@@ -82,6 +82,25 @@ const TokenManager = {
   }
 };
 
+// Deriv token manager — tokens stay in localStorage only, never sent to our backend for storage
+const DerivTokenManager = {
+  // Save accounts array returned by Deriv OAuth redirect (?acct1=...&token1=...&cur1=...)
+  setAccounts: (accounts) => localStorage.setItem('deriv_accounts', JSON.stringify(accounts)),
+  getAccounts: () => JSON.parse(localStorage.getItem('deriv_accounts') || '[]'),
+  // Get the active account token (first account, or the one matching a loginid)
+  getToken: (loginid) => {
+    const accounts = DerivTokenManager.getAccounts();
+    if (!accounts.length) return null;
+    if (loginid) {
+      const match = accounts.find(a => a.account === loginid);
+      return match ? match.token : null;
+    }
+    return accounts[0].token;
+  },
+  hasAccounts: () => DerivTokenManager.getAccounts().length > 0,
+  clear: () => localStorage.removeItem('deriv_accounts'),
+};
+
 // Helper function to make API requests
 async function apiRequest(endpoint, method = 'GET', data = null, headers = {}, requireAuth = false) {
   // Try to refresh token if needed
@@ -224,25 +243,32 @@ const api = {
 
   // Deriv Integration API
   deriv: {
-    // Public endpoints
+    // Public endpoints (token passed in body — used for one-off validation)
     authenticate: (data) => apiRequest('/deriv/auth', 'POST', data),
     getUserInfo: (data) => apiRequest('/deriv/user/info', 'POST', data),
     getBalance: (data) => apiRequest('/deriv/user/balance', 'POST', data),
     getAccountList: (data) => apiRequest('/deriv/accounts/list', 'POST', data),
     switchAccount: (data) => apiRequest('/deriv/accounts/switch', 'POST', data),
 
-    // Protected endpoints
-    getAccountDetails: () => apiRequest('/deriv/account/details', 'GET', null, {}, true),
+    // Protected endpoints — token read from localStorage via DerivTokenManager
+    getAccountDetails: () => apiRequest('/deriv/account/details', 'GET', null, { 'X-Deriv-Token': DerivTokenManager.getToken() }, true),
     validateToken: (data) => apiRequest('/deriv/validate', 'POST', data, {}, true),
-    saveToken: (data) => apiRequest('/deriv/token/save', 'POST', data, {}, true),
-    getToken: () => apiRequest('/deriv/token', 'GET', null, {}, true),
+    saveAccountPreference: (data) => apiRequest('/deriv/token/save', 'POST', data, {}, true),
     deleteToken: () => apiRequest('/deriv/token', 'DELETE', null, {}, true),
     updateAccountPreference: (data) => apiRequest('/deriv/account/preference', 'PUT', data, {}, true),
-    
-    // Stored token endpoints
-    getMyInfo: () => apiRequest('/deriv/me/info', 'GET', null, {}, true),
-    getMyBalance: () => apiRequest('/deriv/me/balance', 'GET', null, {}, true),
-    getMyAccounts: () => apiRequest('/deriv/me/accounts', 'GET', null, {}, true),
+
+    // Endpoints that proxy to Deriv using the browser-held token
+    getMyInfo: (loginid) => apiRequest('/deriv/me/info', 'GET', null, { 'X-Deriv-Token': DerivTokenManager.getToken(loginid) }, true),
+    getMyBalance: (loginid) => apiRequest('/deriv/me/balance', 'GET', null, { 'X-Deriv-Token': DerivTokenManager.getToken(loginid) }, true),
+    getMyAccounts: (loginid) => apiRequest('/deriv/me/accounts', 'GET', null, { 'X-Deriv-Token': DerivTokenManager.getToken(loginid) }, true),
+    switchMyAccount: (loginid, data) => apiRequest('/deriv/me/switch', 'POST', data, { 'X-Deriv-Token': DerivTokenManager.getToken(loginid) }, true),
+    placeTrade: (data, loginid) => apiRequest('/deriv/trade', 'POST', data, { 'X-Deriv-Token': DerivTokenManager.getToken(loginid) }, true),
+
+    // OAuth flow
+    initiateOAuth: () => apiRequest('/deriv/oauth/initiate', 'GET', null, {}, true),
+    linkAccounts: (data) => apiRequest('/deriv/oauth/callback', 'POST', data, {}, true),
+    getLinkedAccounts: () => apiRequest('/deriv/oauth/accounts', 'GET', null, {}, true),
+    unlinkAccount: (accountId) => apiRequest(`/deriv/oauth/accounts/${accountId}`, 'DELETE', null, {}, true),
   },
 
   // Bot serving endpoint
@@ -291,6 +317,7 @@ const utils = {
 // Make api and utilities global
 window.api = api;
 window.TokenManager = TokenManager;
+window.DerivTokenManager = DerivTokenManager;
 window.utils = utils;
 
 // Remove auto-redirect logic - let auth.js handle it

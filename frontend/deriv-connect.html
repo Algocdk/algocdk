@@ -56,18 +56,46 @@
         const token = localStorage.getItem('token');
         if (!token) window.location.href = '/auth';
 
+        // Inline DerivTokenManager — mirrors the one in api.js
+        const DerivTokenManager = {
+            setAccounts: (accounts) => localStorage.setItem('deriv_accounts', JSON.stringify(accounts)),
+            getAccounts: () => JSON.parse(localStorage.getItem('deriv_accounts') || '[]'),
+            getToken: (loginid) => {
+                const accounts = DerivTokenManager.getAccounts();
+                if (!accounts.length) return null;
+                if (loginid) return accounts.find(a => a.account === loginid)?.token || null;
+                return accounts[0].token;
+            },
+            hasAccounts: () => DerivTokenManager.getAccounts().length > 0,
+            clear: () => localStorage.removeItem('deriv_accounts'),
+        };
+
         window.addEventListener('load', () => {
             handleOAuthCallback();
             loadLinkedAccounts();
         });
 
-        function initiateOAuth() {
-            const redirectUri = window.location.origin + '/deriv/callback';
-            const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=63623&l=EN&brand=deriv&redirect_uri=${encodeURIComponent(redirectUri)}`;
-            window.location.href = oauthUrl;
+        async function initiateOAuth() {
+            if (!token) {
+                window.location.href = '/auth';
+                return;
+            }
+            try {
+                const res = await fetch('/api/deriv/oauth/initiate', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success && data.oauth_url) {
+                    window.location.href = data.oauth_url;
+                } else {
+                    alert('Failed to initiate OAuth: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Failed to initiate OAuth: ' + err.message);
+            }
         }
 
-        function handleOAuthCallback() {
+        async function handleOAuthCallback() {
             const params = new URLSearchParams(window.location.search);
             const acct1 = params.get('acct1');
             const token1 = params.get('token1');
@@ -82,12 +110,35 @@
             if (acct1 && token1) accounts.push({ account: acct1, token: token1, currency: cur1 || 'USD' });
             if (acct2 && token2) accounts.push({ account: acct2, token: token2, currency: cur2 || 'USD' });
 
-            if (accounts.length > 0) {
-                localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
-                setTimeout(() => {
-                    window.location.href = '/app';
-                }, 500);
+            if (accounts.length === 0) return;
+
+            // Save to localStorage for client-side use
+            localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
+
+            // Clean the URL so tokens don't linger in browser history
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Persist to backend if user is authenticated
+            if (token) {
+                try {
+                    const res = await fetch('/api/deriv/oauth/callback', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ accounts })
+                    });
+                    const data = await res.json();
+                    if (!data.success) {
+                        console.warn('Backend session save failed:', data);
+                    }
+                } catch (err) {
+                    console.warn('Could not persist Deriv session to backend:', err);
+                }
             }
+
+            window.location.href = '/app';
         }
 
         async function saveTokens() {
@@ -103,12 +154,12 @@
             if (demo) accounts.push({ account: 'DEMO', token: demo, currency: 'USD' });
             if (real) accounts.push({ account: 'REAL', token: real, currency: 'USD' });
             
-            localStorage.setItem('deriv_accounts', JSON.stringify(accounts));
+            DerivTokenManager.setAccounts(accounts);
             window.location.href = '/app';
         }
 
         function loadLinkedAccounts() {
-            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            const accounts = DerivTokenManager.getAccounts();
             
             if (accounts.length > 0) {
                 document.getElementById('accountsList').classList.remove('hidden');
@@ -132,15 +183,12 @@
         function unlinkAccount(accountId) {
             if (!confirm('Unlink this account?')) return;
             
-            const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
-            const filtered = accounts.filter(acc => acc.account !== accountId);
-            
-            if (filtered.length === 0) {
-                localStorage.removeItem('deriv_accounts');
+            const accounts = DerivTokenManager.getAccounts().filter(acc => acc.account !== accountId);
+            if (accounts.length === 0) {
+                DerivTokenManager.clear();
             } else {
-                localStorage.setItem('deriv_accounts', JSON.stringify(filtered));
+                DerivTokenManager.setAccounts(accounts);
             }
-            
             loadLinkedAccounts();
         }
     </script>

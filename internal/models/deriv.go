@@ -9,11 +9,10 @@ type DerivTradeResult struct {
 	Status     string  `json:"status"`
 }
 
-// DerivCredentials stores Deriv API token with account type
+// DerivCredentials stores Deriv account metadata only — API token is NOT persisted server-side
 type DerivCredentials struct {
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	UserID      uint      `json:"user_id" gorm:"not null;index"`
-	APIToken    string    `json:"api_token" gorm:"type:text;not null"`
 	LoginID     string    `json:"loginid" gorm:"size:50"`
 	AccountType string    `json:"account_type" gorm:"size:10;default:'demo'"`
 	IsActive    bool      `json:"is_active" gorm:"default:true;index"`
@@ -112,12 +111,6 @@ type DerivWSResponse struct {
 
 func (DerivCredentials) TableName() string {
 	return "deriv_credentials"
-}
-
-// SaveTokenRequest is the request to save API tokens
-type SaveTokenRequest struct {
-	DemoToken string `json:"demo_token"`
-	RealToken string `json:"real_token"`
 }
 
 // UpdateAccountTypeRequest is the request to update preferred account
