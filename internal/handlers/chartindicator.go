@@ -280,3 +280,103 @@ func DeleteChartIndicator(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Indicator deleted successfully"})
 }
+
+// ── User Custom Indicators ──
+
+func CreateUserIndicator(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	var input struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+		Code        string `json:"code" binding:"required"`
+		Category    string `json:"category"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ind := models.UserCustomIndicator{
+		UserID:      userID.(uint),
+		Name:        input.Name,
+		Description: input.Description,
+		Code:        input.Code,
+		Category:    input.Category,
+	}
+	if err := database.DB.Create(&ind).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create indicator"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Indicator created", "indicator": ind})
+}
+
+func GetUserCustomIndicators(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	var indicators []models.UserCustomIndicator
+	database.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&indicators)
+	c.JSON(http.StatusOK, gin.H{"indicators": indicators})
+}
+
+func UpdateUserIndicator(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	var ind models.UserCustomIndicator
+	if err := database.DB.Where("id = ? AND user_id = ?", id, userID).First(&ind).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Indicator not found"})
+		return
+	}
+	var input struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Code        string `json:"code"`
+		Category    string `json:"category"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.Name != "" {
+		ind.Name = input.Name
+	}
+	if input.Description != "" {
+		ind.Description = input.Description
+	}
+	if input.Code != "" {
+		ind.Code = input.Code
+	}
+	if input.Category != "" {
+		ind.Category = input.Category
+	}
+	database.DB.Save(&ind)
+	c.JSON(http.StatusOK, gin.H{"message": "Indicator updated", "indicator": ind})
+}
+
+func DeleteUserIndicator(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	database.DB.Where("id = ? AND user_id = ?", id, userID).Delete(&models.UserCustomIndicator{})
+	c.JSON(http.StatusOK, gin.H{"message": "Indicator deleted"})
+}

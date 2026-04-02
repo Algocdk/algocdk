@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Indicators | Algocdk</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body{background:#000;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;}
+.btn{padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:linear-gradient(135deg,#FF4500,#E63900);color:white;border:none;}
+.btn-primary:hover{transform:scale(1.05);}
+.btn-secondary{background:#2d3748;color:#e2e8f0;border:1px solid #374151;}
+.btn-secondary:hover{background:#374151;}
+textarea{background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:12px;font-family:monospace;font-size:13px;}
+input,select{background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:10px;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#FF4500;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;padding:20px;overflow-y:auto;}
+.modal.show{display:flex;align-items:center;justify-content:center;}
+.modal-content{background:#1a1f2e;border:1px solid #2d3748;border-radius:16px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px;border-bottom:1px solid #2d3748;display:flex;justify-content:space-between;align-items:center;}
+.modal-body{padding:20px;}
+.ind-item{background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:16px;margin-bottom:12px;}
+.ind-item:hover{border-color:#FF4500;}
+</style>
+</head>
+<body>
+<div style="max-width:1200px;margin:0 auto;padding:20px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+<div>
+<h1 style="font-size:28px;font-weight:800;margin-bottom:4px;"><span style="color:#FF4500;">My</span> Indicators</h1>
+<p style="color:#94a3b8;font-size:14px;">Create and manage your custom chart indicators</p>
+</div>
+<div style="display:flex;gap:12px;">
+<button onclick="window.location.href='/app'" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
+<button onclick="showModal()" class="btn btn-primary"><i class="fas fa-plus"></i> New Indicator</button>
+</div>
+</div>
+
+<!-- Stats row -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+<div class="card" style="text-align:center;">
+<div style="font-size:28px;font-weight:800;color:#FF4500;" id="totalCount">0</div>
+<div style="color:#94a3b8;font-size:13px;">Total Indicators</div>
+</div>
+<div class="card" style="text-align:center;">
+<div style="font-size:28px;font-weight:800;color:#10b981;" id="freeCount">0</div>
+<div style="color:#94a3b8;font-size:13px;">From Marketplace</div>
+</div>
+<div class="card" style="text-align:center;">
+<div style="font-size:28px;font-weight:800;color:#818cf8;" id="customCount">0</div>
+<div style="color:#94a3b8;font-size:13px;">Custom Created</div>
+</div>
+</div>
+
+<!-- Tabs -->
+<div style="display:flex;gap:8px;margin-bottom:20px;">
+<button class="btn btn-primary" id="tab-custom" onclick="switchTab('custom')">Custom Indicators</button>
+<button class="btn btn-secondary" id="tab-marketplace" onclick="switchTab('marketplace')">Marketplace Indicators</button>
+</div>
+
+<!-- Custom indicators list -->
+<div id="panel-custom">
+<div id="customList"><div style="text-align:center;padding:40px;color:#64748b;"><i class="fas fa-spinner fa-spin" style="font-size:24px;"></i></div></div>
+</div>
+
+<!-- Marketplace indicators list -->
+<div id="panel-marketplace" style="display:none;">
+<div id="marketplaceList"><div style="text-align:center;padding:40px;color:#64748b;"><i class="fas fa-spinner fa-spin" style="font-size:24px;"></i></div></div>
+</div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal" id="indicatorModal">
+<div class="modal-content">
+<div class="modal-header">
+<h3 id="modalTitle" style="font-size:18px;font-weight:700;">New Indicator</h3>
+<button onclick="closeModal()" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;"><i class="fas fa-times"></i></button>
+</div>
+<div class="modal-body">
+<form id="indicatorForm" onsubmit="saveIndicator(event)">
+<input type="hidden" id="editId">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+<div>
+<label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Name *</label>
+<input type="text" id="indName" placeholder="e.g., My RSI" required style="width:100%;">
+</div>
+<div>
+<label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Category</label>
+<select id="indCategory" style="width:100%;">
+<option value="Trend">Trend</option>
+<option value="Momentum">Momentum</option>
+<option value="Volatility">Volatility</option>
+<option value="Volume">Volume</option>
+<option value="Custom">Custom</option>
+</select>
+</div>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Description</label>
+<input type="text" id="indDesc" placeholder="Brief description" style="width:100%;">
+</div>
+<div style="margin-bottom:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+<label style="font-size:13px;font-weight:600;">Code (JavaScript) *</label>
+<div style="display:flex;gap:8px;">
+<button type="button" onclick="loadTemplate()" style="background:#2d3748;border:none;color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-file-code"></i> Load Template</button>
+<button type="button" onclick="document.getElementById('jsFileInput').click()" style="background:#2d3748;border:none;color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-upload"></i> Upload .js</button>
+</div>
+</div>
+<input type="file" id="jsFileInput" accept=".js" style="display:none" onchange="loadJsFile(this)">
+<textarea id="indCode" rows="14" style="width:100%;resize:vertical;" placeholder="function calculateIndicator(candles, params = {}) {
+  // candles: [{open, high, low, close, volume, time}]
+  const period = params.period || 14;
+  const values = [];
+  for (let i = 0; i < candles.length; i++) {
+    if (i < period - 1) { values.push(null); continue; }
+    let sum = 0;
+    for (let j = 0; j < period; j++) sum += candles[i-j].close;
+    values.push(sum / period);
+  }
+  return { name: 'SMA ' + period, type: 'line', data: values, color: '#FF4500', lineWidth: 2 };
+}" required></textarea>
+</div>
+<div id="codeError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:10px;font-size:12px;color:#ef4444;margin-bottom:12px;"></div>
+<div style="display:flex;gap:12px;margin-top:16px;">
+<button type="button" onclick="testCode()" class="btn btn-secondary" style="flex:1;"><i class="fas fa-play"></i> Test Code</button>
+<button type="submit" class="btn btn-primary" style="flex:2;"><i class="fas fa-save"></i> Save Indicator</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/auth';
+
+let customIndicators = [], marketplaceIndicators = [];
+
+async function load() {
+  const [custom, market] = await Promise.all([
+    fetch('/api/user/indicators/custom', {headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).catch(()=>({indicators:[]})),
+    fetch('/api/user/indicators', {headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).catch(()=>({indicators:[]}))
+  ]);
+  customIndicators = custom.indicators || [];
+  marketplaceIndicators = market.indicators || [];
+  document.getElementById('totalCount').textContent = customIndicators.length + marketplaceIndicators.length;
+  document.getElementById('customCount').textContent = customIndicators.length;
+  document.getElementById('freeCount').textContent = marketplaceIndicators.length;
+  renderCustom();
+  renderMarketplace();
+}
+
+function renderCustom() {
+  const el = document.getElementById('customList');
+  if (!customIndicators.length) {
+    el.innerHTML = '<div style="text-align:center;padding:48px;color:#64748b;"><i class="fas fa-code" style="font-size:36px;margin-bottom:12px;display:block;"></i><p>No custom indicators yet.</p><p style="font-size:13px;margin-top:4px;">Click "New Indicator" to create one.</p></div>';
+    return;
+  }
+  el.innerHTML = customIndicators.map(ind => `
+    <div class="ind-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${ind.name}</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="background:#2d3748;padding:2px 10px;border-radius:12px;font-size:11px;color:#94a3b8;">${ind.category||'Custom'}</span>
+            ${ind.description?`<span style="color:#64748b;font-size:13px;">${ind.description}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="editIndicator(${ind.id})" style="background:#2d3748;border:none;color:#94a3b8;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;"><i class="fas fa-edit"></i></button>
+          <button onclick="deleteIndicator(${ind.id})" style="background:rgba(239,68,68,0.15);border:none;color:#ef4444;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <div style="margin-top:10px;background:#0D1421;border-radius:8px;padding:10px;max-height:80px;overflow:hidden;position:relative;">
+        <pre style="margin:0;font-size:11px;color:#64748b;font-family:monospace;white-space:pre-wrap;">${ind.code.substring(0,200)}${ind.code.length>200?'...':''}</pre>
+      </div>
+    </div>`).join('');
+}
+
+function renderMarketplace() {
+  const el = document.getElementById('marketplaceList');
+  if (!marketplaceIndicators.length) {
+    el.innerHTML = '<div style="text-align:center;padding:48px;color:#64748b;"><i class="fas fa-store" style="font-size:36px;margin-bottom:12px;display:block;"></i><p>No marketplace indicators added yet.</p><a href="/botstore" style="color:#FF4500;font-size:13px;">Browse the marketplace →</a></div>';
+    return;
+  }
+  el.innerHTML = marketplaceIndicators.map(ui => {
+    const ind = ui.Indicator || ui.indicator || ui;
+    return `<div class="ind-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${ind.name||'Indicator'}</div>
+          <div style="display:flex;gap:8px;">
+            <span style="background:#2d3748;padding:2px 10px;border-radius:12px;font-size:11px;color:#94a3b8;">${ind.category||'Custom'}</span>
+            <span style="background:rgba(16,185,129,0.15);padding:2px 10px;border-radius:12px;font-size:11px;color:#10b981;">Marketplace</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchTab(tab) {
+  document.getElementById('panel-custom').style.display = tab==='custom'?'':'none';
+  document.getElementById('panel-marketplace').style.display = tab==='marketplace'?'':'none';
+  document.getElementById('tab-custom').className = 'btn '+(tab==='custom'?'btn-primary':'btn-secondary');
+  document.getElementById('tab-marketplace').className = 'btn '+(tab==='marketplace'?'btn-primary':'btn-secondary');
+}
+
+function showModal(id) {
+  document.getElementById('editId').value = '';
+  document.getElementById('indicatorForm').reset();
+  document.getElementById('modalTitle').textContent = 'New Indicator';
+  document.getElementById('codeError').style.display = 'none';
+  document.getElementById('indicatorModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('indicatorModal').classList.remove('show'); }
+
+function editIndicator(id) {
+  const ind = customIndicators.find(i=>i.id===id);
+  if (!ind) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('indName').value = ind.name;
+  document.getElementById('indCategory').value = ind.category||'Custom';
+  document.getElementById('indDesc').value = ind.description||'';
+  document.getElementById('indCode').value = ind.code;
+  document.getElementById('modalTitle').textContent = 'Edit Indicator';
+  document.getElementById('codeError').style.display = 'none';
+  document.getElementById('indicatorModal').classList.add('show');
+}
+
+async function deleteIndicator(id) {
+  if (!confirm('Delete this indicator?')) return;
+  await fetch('/api/user/indicators/custom/'+id, {method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+  load();
+}
+
+async function saveIndicator(e) {
+  e.preventDefault();
+  const id = document.getElementById('editId').value;
+  const data = {
+    name: document.getElementById('indName').value,
+    category: document.getElementById('indCategory').value,
+    description: document.getElementById('indDesc').value,
+    code: document.getElementById('indCode').value
+  };
+  const url = id ? '/api/user/indicators/custom/'+id : '/api/user/indicators/custom';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {method, headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  if (res.ok) { closeModal(); load(); }
+  else { const d=await res.json(); alert(d.error||'Failed to save'); }
+}
+
+function testCode() {
+  const code = document.getElementById('indCode').value;
+  const errEl = document.getElementById('codeError');
+  try {
+    const fn = new Function('return ('+code+')');
+    const result = fn();
+    if (typeof result !== 'function') throw new Error('Code must define a function named calculateIndicator');
+    const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()+i*60000}));
+    const out = result(sample, {});
+    if (!out||!out.data) throw new Error('Function must return {name, type, data, color}');
+    errEl.style.display='none';
+    alert('✅ Code is valid!\nReturned: '+out.name+' with '+out.data.length+' values');
+  } catch(err) {
+    errEl.textContent = '❌ '+err.message;
+    errEl.style.display='block';
+  }
+}
+
+function loadTemplate() {
+  document.getElementById('indCode').value = `function calculateIndicator(candles, params = {}) {
+  const period = params.period || 14;
+  const color = params.color || '#FF4500';
+  const values = [];
+  for (let i = 0; i < candles.length; i++) {
+    if (i < period - 1) { values.push(null); continue; }
+    let sum = 0;
+    for (let j = 0; j < period; j++) sum += candles[i-j].close;
+    values.push(sum / period);
+  }
+  return { name: 'SMA ' + period, type: 'line', data: values, color, lineWidth: 2 };
+}`;
+}
+
+function loadJsFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('indCode').value = e.target.result; };
+  reader.readAsText(file);
+}
+
+load();
+</script>
+</body>
+</html>

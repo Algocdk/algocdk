@@ -81,6 +81,10 @@ func SetUpRouter(router *gin.Engine) {
 			// Chart Indicators
 			user.GET("/indicators", handlers.GetUserIndicators)
 			user.POST("/indicators/:id/add", handlers.AddIndicatorToUser)
+			user.POST("/indicators/custom", handlers.CreateUserIndicator)
+			user.PUT("/indicators/custom/:id", handlers.UpdateUserIndicator)
+			user.DELETE("/indicators/custom/:id", handlers.DeleteUserIndicator)
+			user.GET("/indicators/custom", handlers.GetUserCustomIndicators)
 
 			// Admin requests
 			user.POST("/request-admin", handlers.RequestAdminStatus)
@@ -347,6 +351,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/mybots", func(c *gin.Context) {
 		c.File(frontendPath + "/mybots.html")
+	})
+	router.GET("/my-indicators", func(c *gin.Context) {
+		c.File(frontendPath + "/my-indicators.html")
 	})
 	router.GET("/botstore", func(c *gin.Context) {
 		c.File(frontendPath + "/botstore.html")
