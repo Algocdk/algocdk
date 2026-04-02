@@ -431,6 +431,40 @@ const IND_NAMES = {
 };
 const PANE2_INDS = new Set(['rsi','macd','stoch','volume','atr','cci','willr','mom']);
 
+// User-customised indicator params — persisted in localStorage
+const IND_PARAMS_KEY = 'updown_ind_params';
+let indParams = {};
+try { indParams = JSON.parse(localStorage.getItem(IND_PARAMS_KEY)||'{}'); } catch(e) {}
+
+function getIndParam(key, field, def) {
+  return indParams[key]?.[field] ?? def;
+}
+function setIndParam(key, field, val) {
+  if (!indParams[key]) indParams[key] = {};
+  indParams[key][field] = val;
+  localStorage.setItem(IND_PARAMS_KEY, JSON.stringify(indParams));
+}
+
+// Indicator settings definitions
+const IND_SETTINGS = {
+  ema9:   [{f:'period',l:'Period',t:'number',d:9},{f:'color',l:'Color',t:'color',d:'#F59E0B'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  ema20:  [{f:'period',l:'Period',t:'number',d:20},{f:'color',l:'Color',t:'color',d:'#3B82F6'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  ema50:  [{f:'period',l:'Period',t:'number',d:50},{f:'color',l:'Color',t:'color',d:'#A855F7'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  ema200: [{f:'period',l:'Period',t:'number',d:200},{f:'color',l:'Color',t:'color',d:'#EC4899'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  sma20:  [{f:'period',l:'Period',t:'number',d:20},{f:'color',l:'Color',t:'color',d:'#10B981'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  sma50:  [{f:'period',l:'Period',t:'number',d:50},{f:'color',l:'Color',t:'color',d:'#06B6D4'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  bb:     [{f:'period',l:'Period',t:'number',d:20},{f:'stddev',l:'Std Dev',t:'number',d:2,min:0.5,max:5},{f:'color',l:'Color',t:'color',d:'#6366F1'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  vwap:   [{f:'color',l:'Color',t:'color',d:'#F97316'},{f:'width',l:'Line Width',t:'number',d:2,min:1,max:5}],
+  rsi:    [{f:'period',l:'Period',t:'number',d:14},{f:'ob',l:'Overbought',t:'number',d:70},{f:'os',l:'Oversold',t:'number',d:30},{f:'color',l:'Color',t:'color',d:'#22D3EE'}],
+  macd:   [{f:'fast',l:'Fast',t:'number',d:12},{f:'slow',l:'Slow',t:'number',d:26},{f:'signal',l:'Signal',t:'number',d:9}],
+  stoch:  [{f:'period',l:'Period',t:'number',d:14},{f:'smooth',l:'Smooth',t:'number',d:3}],
+  atr:    [{f:'period',l:'Period',t:'number',d:14},{f:'color',l:'Color',t:'color',d:'#F87171'}],
+  cci:    [{f:'period',l:'Period',t:'number',d:20},{f:'color',l:'Color',t:'color',d:'#C084FC'}],
+  willr:  [{f:'period',l:'Period',t:'number',d:14},{f:'color',l:'Color',t:'color',d:'#2DD4BF'}],
+  mom:    [{f:'period',l:'Period',t:'number',d:10}],
+  volume: [],
+};
+
 // ─── INIT ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
@@ -1150,105 +1184,119 @@ function renderInd(key) {
 
   const t  = tms();
   const cl = cls();
-  const color = IND_COLORS[key];
+  const color = getIndParam(key,'color',IND_COLORS[key]);
+  const lw    = getIndParam(key,'width',1);
 
   if (!PANE2_INDS.has(key)) {
-    // ── Overlay on main chart ──
     if (key.startsWith('ema')) {
-      const p = parseInt(key.replace('ema',''));
+      const p = getIndParam(key,'period',parseInt(key.replace('ema','')));
       const v = calcEMA(cl, p);
-      const s = mainChart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
       indSeries[key] = s;
     } else if (key.startsWith('sma')) {
-      const p = parseInt(key.replace('sma',''));
+      const p = getIndParam(key,'period',parseInt(key.replace('sma','')));
       const v = calcSMA(cl, p);
-      const s = mainChart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-      s.setData(t.map((ti, i) => v[i] !== null ? { time: ti, value: v[i] } : null).filter(Boolean));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
       indSeries[key] = s;
     } else if (key === 'bb') {
-      const sm = calcSMA(cl, 20), sd = calcSD(cl, 20);
-      const u = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.85)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-      const m = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.45)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      const l = mainChart.addLineSeries({ color: 'rgba(99,102,241,0.85)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-      const dd = t.map((ti, i) => sm[i] !== null ? { time: ti, u: sm[i] + 2*sd[i], m: sm[i], l: sm[i] - 2*sd[i] } : null).filter(Boolean);
-      u.setData(dd.map(d => ({ time: d.time, value: d.u })));
-      m.setData(dd.map(d => ({ time: d.time, value: d.m })));
-      l.setData(dd.map(d => ({ time: d.time, value: d.l })));
-      indSeries[key] = [u, m, l];
+      const p  = getIndParam(key,'period',20);
+      const sd_mult = getIndParam(key,'stddev',2);
+      const sm = calcSMA(cl,p), sd = calcSD(cl,p);
+      const c2 = getIndParam(key,'color','#6366F1');
+      const u = mainChart.addLineSeries({ color:`rgba(${hexToRgb(c2)},0.85)`, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      const m = mainChart.addLineSeries({ color:`rgba(${hexToRgb(c2)},0.45)`, lineWidth:lw, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      const l = mainChart.addLineSeries({ color:`rgba(${hexToRgb(c2)},0.85)`, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      const dd = t.map((ti,i) => sm[i]!==null?{time:ti,u:sm[i]+sd_mult*sd[i],m:sm[i],l:sm[i]-sd_mult*sd[i]}:null).filter(Boolean);
+      u.setData(dd.map(d=>({time:d.time,value:d.u})));
+      m.setData(dd.map(d=>({time:d.time,value:d.m})));
+      l.setData(dd.map(d=>({time:d.time,value:d.l})));
+      indSeries[key] = [u,m,l];
     } else if (key === 'vwap') {
       const v = calcVWAP();
-      const s = mainChart.addLineSeries({ color, lineWidth: 2, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
       indSeries[key] = s;
     }
   } else {
-    // ── Pane 2 oscillators ──
     if (key === 'rsi') {
-      const v = calcRSI(cl, 14);
-      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
-      const ob = pane2Chart.addLineSeries({ color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      const os = pane2Chart.addLineSeries({ color: 'rgba(34,197,94,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      ob.setData(t.map(ti => ({ time: ti, value: 70 })));
-      os.setData(t.map(ti => ({ time: ti, value: 30 })));
-      p2Series[key] = { main: s, ob, os };
-      pane2LabelText = 'RSI 14';
+      const p  = getIndParam(key,'period',14);
+      const ob = getIndParam(key,'ob',70);
+      const os = getIndParam(key,'os',30);
+      const v  = calcRSI(cl, p);
+      const s  = pane2Chart.addLineSeries({ color, lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
+      const obS = pane2Chart.addLineSeries({ color:'rgba(239,68,68,0.3)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      const osS = pane2Chart.addLineSeries({ color:'rgba(34,197,94,0.3)',  lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      obS.setData(t.map(ti => ({ time:ti, value:ob })));
+      osS.setData(t.map(ti => ({ time:ti, value:os })));
+      p2Series[key] = { main:s, ob:obS, os:osS };
+      pane2LabelText = `RSI ${p}`;
     } else if (key === 'macd') {
-      const { macd, signal, hist } = calcMACD(cl);
-      const ms = pane2Chart.addLineSeries({ color: '#34D399', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      const ss = pane2Chart.addLineSeries({ color: '#F97316', lineWidth: 1,   priceLineVisible: false, lastValueVisible: true });
-      const hs = pane2Chart.addHistogramSeries({ priceLineVisible: false });
-      ms.setData(t.map((ti, i) => ({ time: ti, value: macd[i] })));
-      ss.setData(t.map((ti, i) => ({ time: ti, value: signal[i] })));
-      hs.setData(t.map((ti, i) => ({ time: ti, value: hist[i], color: hist[i] >= 0 ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)' })));
+      const fast   = getIndParam(key,'fast',12);
+      const slow   = getIndParam(key,'slow',26);
+      const signal = getIndParam(key,'signal',9);
+      const e1 = calcEMA(cl,fast), e2 = calcEMA(cl,slow);
+      const macdLine = e1.map((v,i) => v-e2[i]);
+      const sigLine  = calcEMA(macdLine, signal);
+      const hist     = macdLine.map((v,i) => v-sigLine[i]);
+      const ms = pane2Chart.addLineSeries({ color:'#34D399', lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      const ss = pane2Chart.addLineSeries({ color:'#F97316', lineWidth:1,   priceLineVisible:false, lastValueVisible:true });
+      const hs = pane2Chart.addHistogramSeries({ priceLineVisible:false });
+      ms.setData(t.map((ti,i) => ({ time:ti, value:macdLine[i] })));
+      ss.setData(t.map((ti,i) => ({ time:ti, value:sigLine[i] })));
+      hs.setData(t.map((ti,i) => ({ time:ti, value:hist[i], color:hist[i]>=0?'rgba(34,197,94,0.55)':'rgba(239,68,68,0.55)' })));
       p2Series[key] = { ms, ss, hs };
-      pane2LabelText = 'MACD';
+      pane2LabelText = `MACD (${fast},${slow},${signal})`;
     } else if (key === 'stoch') {
-      const k = calcStoch();
-      const dRaw = calcSMA(k, 3);
-      const ks = pane2Chart.addLineSeries({ color: '#FBBF24', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      const ds = pane2Chart.addLineSeries({ color: '#F97316', lineWidth: 1,   priceLineVisible: false, lastValueVisible: true });
-      ks.setData(t.map((ti, i) => ({ time: ti, value: k[i] })));
-      ds.setData(t.map((ti, i) => dRaw[i] !== null ? { time: ti, value: dRaw[i] } : null).filter(Boolean));
+      const p  = getIndParam(key,'period',14);
+      const sm = getIndParam(key,'smooth',3);
+      const k  = calcStoch(p);
+      const dRaw = calcSMA(k, sm);
+      const ks = pane2Chart.addLineSeries({ color:'#FBBF24', lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      const ds = pane2Chart.addLineSeries({ color:'#F97316', lineWidth:1,   priceLineVisible:false, lastValueVisible:true });
+      ks.setData(t.map((ti,i) => ({ time:ti, value:k[i] })));
+      ds.setData(t.map((ti,i) => dRaw[i]!==null?{time:ti,value:dRaw[i]}:null).filter(Boolean));
       p2Series[key] = { ks, ds };
-      pane2LabelText = 'Stochastic';
+      pane2LabelText = `Stoch (${p},${sm})`;
     } else if (key === 'volume') {
-      const hs = pane2Chart.addHistogramSeries({ priceLineVisible: false });
-      hs.setData(candles.map(c => ({
-        time: c.time, value: Math.abs(c.close - c.open) * 1000,
-        color: c.close >= c.open ? 'rgba(38,166,154,0.55)' : 'rgba(239,83,80,0.55)'
-      })));
+      const hs = pane2Chart.addHistogramSeries({ priceLineVisible:false });
+      hs.setData(candles.map(c => ({ time:c.time, value:Math.abs(c.close-c.open)*1000, color:c.close>=c.open?'rgba(38,166,154,0.55)':'rgba(239,83,80,0.55)' })));
       p2Series[key] = hs;
       pane2LabelText = 'Volume';
     } else if (key === 'atr') {
-      const v = calcATR(14);
-      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      s.setData(t.map((ti, i) => v[i] !== null ? { time: ti, value: v[i] } : null).filter(Boolean));
+      const p = getIndParam(key,'period',14);
+      const v = calcATR(p);
+      const s = pane2Chart.addLineSeries({ color, lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
       p2Series[key] = s;
-      pane2LabelText = 'ATR 14';
+      pane2LabelText = `ATR ${p}`;
     } else if (key === 'cci') {
-      const v = calcCCI(20);
-      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
-      const ob = pane2Chart.addLineSeries({ color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      const os = pane2Chart.addLineSeries({ color: 'rgba(34,197,94,0.3)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      ob.setData(t.map(ti => ({ time: ti, value:  100 })));
-      os.setData(t.map(ti => ({ time: ti, value: -100 })));
-      p2Series[key] = { main: s, ob, os };
-      pane2LabelText = 'CCI 20';
+      const p = getIndParam(key,'period',20);
+      const v = calcCCI(p);
+      const s = pane2Chart.addLineSeries({ color, lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
+      const ob = pane2Chart.addLineSeries({ color:'rgba(239,68,68,0.3)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      const os = pane2Chart.addLineSeries({ color:'rgba(34,197,94,0.3)',  lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      ob.setData(t.map(ti => ({ time:ti, value: 100 })));
+      os.setData(t.map(ti => ({ time:ti, value:-100 })));
+      p2Series[key] = { main:s, ob, os };
+      pane2LabelText = `CCI ${p}`;
     } else if (key === 'willr') {
-      const v = calcWillR(14);
-      const s = pane2Chart.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i] })));
+      const p = getIndParam(key,'period',14);
+      const v = calcWillR(p);
+      const s = pane2Chart.addLineSeries({ color, lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
       p2Series[key] = s;
-      pane2LabelText = 'Williams %R';
+      pane2LabelText = `Williams %R ${p}`;
     } else if (key === 'mom') {
-      const v = calcMom(10);
-      const s = pane2Chart.addHistogramSeries({ priceLineVisible: false });
-      s.setData(t.map((ti, i) => ({ time: ti, value: v[i], color: v[i] >= 0 ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)' })));
+      const p = getIndParam(key,'period',10);
+      const v = calcMom(p);
+      const s = pane2Chart.addHistogramSeries({ priceLineVisible:false });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i], color:v[i]>=0?'rgba(34,197,94,0.6)':'rgba(239,68,68,0.6)' })));
       p2Series[key] = s;
-      pane2LabelText = 'Momentum';
+      pane2LabelText = `Momentum ${p}`;
     }
     const lbl = document.getElementById('pane2Label');
     if (lbl) lbl.textContent = pane2LabelText;
@@ -1280,7 +1328,9 @@ function updateIndChips() {
   activeInds.forEach(key => {
     const c = document.createElement('span');
     c.className = 'ind-chip';
-    c.innerHTML = `<span class="color-dot" style="background:${IND_COLORS[key]}"></span>${IND_NAMES[key]}<span class="rm" onclick="toggleInd('${key}')">✕</span>`;
+    const color = getIndParam(key,'color',IND_COLORS[key]);
+    const settings = IND_SETTINGS[key];
+    c.innerHTML = `<span class="color-dot" style="background:${color}"></span>${IND_NAMES[key]}${settings&&settings.length?`<span style="cursor:pointer;color:#94a3b8;font-size:10px;padding:0 3px;" onclick="openIndSettings('${key}')">⚙</span>`:''}<span class="rm" onclick="toggleInd('${key}')">✕</span>`;
     el.appendChild(c);
   });
 }
@@ -2244,6 +2294,86 @@ async function ciSave() {
 
 // Load custom indicators on page ready
 document.addEventListener('DOMContentLoaded', () => { setTimeout(loadCustomIndicators, 500); });
+</script>
+
+<!-- Indicator Settings Modal -->
+<div id="indSettingsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10001;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#1a1f2e;border:1px solid #2d3748;border-radius:14px;width:100%;max-width:380px;">
+    <div style="padding:16px 20px;border-bottom:1px solid #2d3748;display:flex;justify-content:space-between;align-items:center;">
+      <h3 id="indSettingsTitle" style="color:#e2e8f0;font-weight:700;font-size:15px;margin:0;"></h3>
+      <button onclick="closeIndSettings()" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="indSettingsBody" style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;"></div>
+    <div style="padding:12px 20px;border-top:1px solid #2d3748;display:flex;gap:10px;">
+      <button onclick="resetIndSettings()" style="flex:1;background:#2d3748;border:none;color:#94a3b8;padding:9px;border-radius:8px;font-weight:600;cursor:pointer;">Reset</button>
+      <button onclick="applyIndSettings()" style="flex:2;background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;padding:9px;border-radius:8px;font-weight:700;cursor:pointer;">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _settingsKey = null;
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function openIndSettings(key) {
+  const settings = IND_SETTINGS[key];
+  if (!settings || !settings.length) return;
+  _settingsKey = key;
+  document.getElementById('indSettingsTitle').textContent = '⚙ ' + IND_NAMES[key];
+  const body = document.getElementById('indSettingsBody');
+  body.innerHTML = settings.map(s => {
+    const val = getIndParam(key, s.f, s.d);
+    if (s.t === 'color') {
+      return `<div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="color:#94a3b8;font-size:13px;">${s.l}</label>
+        <input type="color" id="isp_${s.f}" value="${val}" style="width:40px;height:28px;border:none;border-radius:6px;cursor:pointer;background:none;">
+      </div>`;
+    }
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <label style="color:#94a3b8;font-size:13px;white-space:nowrap;">${s.l}</label>
+      <input type="number" id="isp_${s.f}" value="${val}" min="${s.min??1}" max="${s.max??500}" step="1"
+        style="width:80px;background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;text-align:right;">
+    </div>`;
+  }).join('');
+  document.getElementById('indSettingsModal').style.display = 'flex';
+}
+
+function closeIndSettings() {
+  document.getElementById('indSettingsModal').style.display = 'none';
+  _settingsKey = null;
+}
+
+function applyIndSettings() {
+  if (!_settingsKey) return;
+  const settings = IND_SETTINGS[_settingsKey];
+  settings.forEach(s => {
+    const el = document.getElementById('isp_'+s.f);
+    if (!el) return;
+    const val = s.t === 'color' ? el.value : (s.t === 'number' ? parseFloat(el.value) : el.value);
+    setIndParam(_settingsKey, s.f, val);
+  });
+  // Update color in IND_COLORS so chip reflects it
+  const newColor = getIndParam(_settingsKey,'color',IND_COLORS[_settingsKey]);
+  IND_COLORS[_settingsKey] = newColor;
+  // Re-render
+  renderInd(_settingsKey);
+  updateIndChips();
+  closeIndSettings();
+}
+
+function resetIndSettings() {
+  if (!_settingsKey) return;
+  delete indParams[_settingsKey];
+  localStorage.setItem(IND_PARAMS_KEY, JSON.stringify(indParams));
+  IND_COLORS[_settingsKey] = IND_SETTINGS[_settingsKey].find(s=>s.f==='color')?.d || IND_COLORS[_settingsKey];
+  renderInd(_settingsKey);
+  updateIndChips();
+  closeIndSettings();
+}
 </script>
 </body>
 </html>
