@@ -565,13 +565,11 @@ function initCharts() {
 
   createMainSeries();
 
-  // Sync timescales bidirectionally
+  // Sync timescales bidirectionally + redraw canvas drawings on pan/zoom
   mainChart.timeScale().subscribeVisibleLogicalRangeChange(r => {
     if (r && pane2Chart) pane2Chart.timeScale().setVisibleLogicalRange(r);
-    // Load more data when scrolling to the left edge
-    if (r && r.from < 10 && !isLoadingMore && candles.length > 0) {
-      loadMoreHistory();
-    }
+    if (r && r.from < 10 && !isLoadingMore && candles.length > 0) loadMoreHistory();
+    redrawCanvas();
   });
   pane2Chart.timeScale().subscribeVisibleLogicalRangeChange(r => {
     if (r && mainChart) mainChart.timeScale().setVisibleLogicalRange(r);
@@ -579,6 +577,12 @@ function initCharts() {
 
   // Crosshair OHLC
   mainChart.subscribeCrosshairMove(onCrosshairMove);
+
+  // Redraw canvas drawings when price scale changes (zoom in/out vertically)
+  mainChart.priceScale('right').applyOptions({});
+  setTimeout(() => {
+    try { mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas()); } catch(e) {}
+  }, 500);
 
   // Resize observer
   new ResizeObserver(resizeCharts).observe(document.getElementById('chartWrap'));
@@ -1428,31 +1432,16 @@ function loadDrawings() {
 // Convert pixel position to chart coordinates (time + price)
 function pixelToChart(pos) {
   try {
-    const price = mainChart.priceScale('right').coordinateToPrice(pos.y);
+    const price = mainSeries.coordinateToPrice(pos.y);
     const logical = mainChart.timeScale().coordinateToLogical(pos.x);
-    const time = logical !== null && candles[Math.round(logical)] ? candles[Math.round(logical)].time : null;
-    return { price, time, logical, px: pos.x, py: pos.y };
+    return { price, logical, px: pos.x, py: pos.y };
   } catch(e) { return { px: pos.x, py: pos.y }; }
 }
 
-// Convert chart coordinates back to pixels for drawing
-function chartToPixel(coord) {
-  try {
-    if (coord.time !== undefined && coord.price !== undefined) {
-      const x = mainChart.timeScale().logicalToCoordinate(coord.logical ?? 0);
-      const y = mainSeries.priceToCoordinate(coord.price);
-      return { x: x ?? coord.px ?? 0, y: y ?? coord.py ?? 0 };
-    }
-  } catch(e) {}
-  return { x: coord.px ?? 0, y: coord.py ?? 0 };
-}
-
-// Subscribe to chart pan/zoom to redraw
+// Subscribe to chart pan/zoom/scale to redraw canvas drawings
 function subscribeChartRedraw() {
   mainChart.timeScale().subscribeVisibleLogicalRangeChange(() => redrawCanvas());
-  mainChart.priceScale('right').applyOptions({});
-  // Also redraw on price scale change
-  mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas());
+  try { mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas()); } catch(e) {}
 }
 
 function initCanvas() {
@@ -1484,7 +1473,6 @@ function initCanvas() {
   drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMove(touchToMouse(e)); }, { passive: false });
   drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawUp(touchToMouse(e));   }, { passive: false });
   loadDrawings();
-  setTimeout(subscribeChartRedraw, 800);
 }
 function touchToMouse(e) {
   const t = e.touches[0] || e.changedTouches[0];
@@ -1658,17 +1646,17 @@ function redrawCanvas() {
 function resolveDrawingCoords(d) {
   const r = { ...d };
   try {
-    if (d.chartStart && d.chartStart.price !== undefined) {
+    if (d.chartStart && d.chartStart.price !== null && d.chartStart.logical !== null) {
       const x = mainChart.timeScale().logicalToCoordinate(d.chartStart.logical);
       const y = mainSeries.priceToCoordinate(d.chartStart.price);
       if (x !== null && y !== null) r.start = { x, y };
     }
-    if (d.chartEnd && d.chartEnd.price !== undefined) {
+    if (d.chartEnd && d.chartEnd.price !== null && d.chartEnd.logical !== null) {
       const x = mainChart.timeScale().logicalToCoordinate(d.chartEnd.logical);
       const y = mainSeries.priceToCoordinate(d.chartEnd.price);
       if (x !== null && y !== null) r.end = { x, y };
     }
-    if (d.chartX && d.chartX.price !== undefined) {
+    if (d.chartX && d.chartX.price !== null && d.chartX.logical !== null) {
       const x = mainChart.timeScale().logicalToCoordinate(d.chartX.logical);
       const y = mainSeries.priceToCoordinate(d.chartX.price);
       if (x !== null && y !== null) { r.x = x; r.y = y; }
