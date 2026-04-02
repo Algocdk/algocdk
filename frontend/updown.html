@@ -392,6 +392,7 @@ select option{background:#0f1923}
   <button onclick="openMobileSection('trade')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FF4500;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(255,69,0,.6);cursor:pointer"><i class="fas fa-chart-line"></i></button>
   <button onclick="openMobileSection('indicators')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#3B82F6;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(59,130,246,.6);cursor:pointer"><i class="fas fa-wave-square"></i></button>
   <button onclick="showMobileDrawTools()" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#A855F7;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(168,85,247,.6);cursor:pointer"><i class="fas fa-pen"></i></button>
+  <button onclick="toggleStrategyPanel();document.getElementById('mobileMenu').style.display='none';" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#10b981;border:2px solid #fff;color:#fff;font-size:20px;margin-bottom:12px;box-shadow:0 4px 15px rgba(16,185,129,.6);cursor:pointer"><i class="fas fa-robot"></i></button>
   <button onclick="openMobileSection('alerts')" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#FBBF24;border:2px solid #fff;color:#000;font-size:20px;box-shadow:0 4px 15px rgba(251,191,36,.6);cursor:pointer"><i class="fas fa-bell"></i></button>
 </div>
 
@@ -1472,6 +1473,18 @@ function initCanvas() {
   drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDrawDown(touchToMouse(e)); }, { passive: false });
   drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMove(touchToMouse(e)); }, { passive: false });
   drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawUp(touchToMouse(e));   }, { passive: false });
+
+  // Long-press on mobile to edit selected drawing
+  let longPressTimer = null;
+  drawCanvas.addEventListener('touchstart', e => {
+    const pos = getPos(touchToMouse(e));
+    const idx = hitTest(pos);
+    if (idx >= 0) {
+      longPressTimer = setTimeout(() => { openDrawingEdit(idx); }, 600);
+    }
+  }, { passive: true });
+  drawCanvas.addEventListener('touchend',   () => clearTimeout(longPressTimer), { passive: true });
+  drawCanvas.addEventListener('touchmove',  () => clearTimeout(longPressTimer), { passive: true });
   loadDrawings();
 }
 function touchToMouse(e) {
@@ -1845,11 +1858,11 @@ function renderDrawingsPanel() {
   }
   const icons = {line:'slash',extline:'arrows-alt-h',ray:'long-arrow-alt-right',hline:'minus',vline:'grip-lines-vertical',arrow:'arrow-right',rect:'square',circle:'circle',channel:'equals',fib:'chart-line',text:'font',pricelabel:'tag'};
   list.innerHTML = drawings.map((d,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${i===selectedDrawingIdx?'rgba(255,69,0,0.1)':'#0D1421'};border:1px solid ${i===selectedDrawingIdx?'#FF4500':'#2d3748'};cursor:pointer;" onclick="selectDrawing(${i})">
-      <i class="fas fa-${icons[d.type]||'draw-polygon'}" style="color:${d.color||'#FF4500'};font-size:12px;width:14px;"></i>
+    <div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:${i===selectedDrawingIdx?'rgba(255,69,0,0.1)':'#0D1421'};border:1px solid ${i===selectedDrawingIdx?'#FF4500':'#2d3748'};cursor:pointer;" onclick="selectDrawing(${i})">
+      <i class="fas fa-${icons[d.type]||'draw-polygon'}" style="color:${d.color||'#FF4500'};font-size:13px;width:16px;flex-shrink:0;"></i>
       <span style="flex:1;font-size:12px;color:#e2e8f0;text-transform:capitalize;">${d.type}${d.text?' — '+d.text:''}</span>
-      <button onclick="event.stopPropagation();openDrawingEdit(${i})" style="background:#2d3748;border:none;color:#94a3b8;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;"><i class="fas fa-edit"></i></button>
-      <button onclick="event.stopPropagation();deleteDrawing(${i})" style="background:rgba(239,68,68,0.15);border:none;color:#ef4444;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;"><i class="fas fa-trash"></i></button>
+      <button onclick="event.stopPropagation();openDrawingEdit(${i})" style="background:#2d3748;border:none;color:#e2e8f0;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;min-width:44px;min-height:36px;"><i class="fas fa-edit"></i></button>
+      <button onclick="event.stopPropagation();deleteDrawing(${i})" style="background:rgba(239,68,68,0.15);border:none;color:#ef4444;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;min-width:44px;min-height:36px;"><i class="fas fa-trash"></i></button>
     </div>`).join('');
 }
 
@@ -1857,6 +1870,8 @@ function selectDrawing(i) {
   selectedDrawingIdx = i;
   redrawCanvas();
   renderDrawingsPanel();
+  // On mobile, auto-open edit modal for the selected drawing
+  if (window.innerWidth <= 768) openDrawingEdit(i);
 }
 
 function deleteDrawing(i) {
@@ -2327,9 +2342,11 @@ document.addEventListener('DOMContentLoaded', initDraggableButton);
     </div>
     <div class="sp-tc active" id="sp-load">
       <div class="sp-load">
-        <div class="sp-drop" id="spDrop" onclick="document.getElementById('spFileInput').click()">
+        <div class="sp-drop" id="spDrop">
           <i class="fas fa-cloud-upload-alt"></i>
-          Drop your strategy file here<br><small style="color:#475569">HTML / JS / CSS supported</small>
+          <label for="spFileInput" style="cursor:pointer;display:block;">
+            Tap to load strategy file<br><small style="color:#475569">HTML / JS / CSS supported</small>
+          </label>
         </div>
         <input type="file" id="spFileInput" accept=".html,.js,.css" style="display:none" multiple onchange="spHandleFiles(this.files)">
         <div class="sp-files" id="spFileList"></div>
