@@ -590,8 +590,7 @@ function initCharts() {
 
 function makeChartOpts(el, isMain) {
   return {
-    width:  el.clientWidth  || 800,
-    height: el.clientHeight || (isMain ? 500 : 150),
+    autoSize: true,
     layout: { background: { color: '#0A0E1A' }, textColor: '#94a3b8', fontSize: 11 },
     grid:   { vertLines: { color: '#0c1220' }, horzLines: { color: '#0c1220' } },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
@@ -603,7 +602,7 @@ function makeChartOpts(el, isMain) {
       borderColor: '#1E293B',
       timeVisible: true,
       secondsVisible: currentTF < 3600,
-      rightOffset: 8,
+      rightOffset: 12,
       barSpacing: 8,
       visible: true
     }
@@ -614,7 +613,6 @@ function resizeCharts() {
   const wrap   = document.getElementById('chartWrap');
   const mainEl = document.getElementById('mainChart');
   const p2Wrap = document.getElementById('pane2Wrap');
-  const rb     = document.getElementById('resizeBar');
   if (!wrap || !mainEl) return;
   const totalH = wrap.clientHeight;
   const p2H  = pane2Visible ? (p2Wrap?.offsetHeight || 150) : 0;
@@ -622,14 +620,15 @@ function resizeCharts() {
   const mainH = Math.max(180, totalH - p2H - rbH);
 
   mainEl.style.height = mainH + 'px';
-  if (mainChart) mainChart.applyOptions({ width: mainEl.clientWidth, height: mainH });
+  // autoSize handles width; only set height explicitly
+  if (mainChart) mainChart.applyOptions({ height: mainH });
 
   if (pane2Chart && pane2Visible && p2Wrap) {
     const p2El = document.getElementById('pane2Chart');
     if (p2El) {
       const h = Math.max(80, p2Wrap.offsetHeight);
       p2El.style.height = h + 'px';
-      pane2Chart.applyOptions({ width: p2El.clientWidth, height: h });
+      pane2Chart.applyOptions({ height: h });
     }
   }
   resizeCanvas();
@@ -1006,7 +1005,8 @@ function renderMainSeries() {
       ? candles
       : candles.map(c => ({ time: c.time, value: c.close }));
   mainSeries.setData(data);
-  mainChart.timeScale().fitContent();
+  // Scroll to latest candle, show last ~100 bars
+  mainChart.timeScale().scrollToRealTime();
 }
 
 function computeHeikin() {
@@ -1079,8 +1079,8 @@ function onMarketChange() {
 }
 
 function resetZoom() {
-  if (mainChart)  mainChart.timeScale().fitContent();
-  if (pane2Chart) pane2Chart.timeScale().fitContent();
+  if (mainChart)  mainChart.timeScale().scrollToRealTime();
+  if (pane2Chart) pane2Chart.timeScale().scrollToRealTime();
 }
 
 function toggleDD(id) {
