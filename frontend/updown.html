@@ -187,6 +187,9 @@ select option{background:#0f1923}
       <div class="dropdown-item" onclick="toggleInd('cci')"><span class="color-dot" style="background:#C084FC"></span>CCI 20</div>
       <div class="dropdown-item" onclick="toggleInd('willr')"><span class="color-dot" style="background:#2DD4BF"></span>Williams %R 14</div>
       <div class="dropdown-item" onclick="toggleInd('mom')"><span class="color-dot" style="background:#FB923C"></span>Momentum 10</div>
+      <div class="dropdown-sep" id="customIndSep" style="display:none">Custom Indicators</div>
+      <div id="customIndItems"></div>
+      <div class="dropdown-item" onclick="window.location.href='/my-indicators'" style="color:#FF4500;font-size:11px;"><i class="fas fa-plus" style="margin-right:4px"></i>Manage My Indicators</div>
     </div>
   </div>
   <div class="tb-sep"></div>
@@ -1988,6 +1991,203 @@ document.addEventListener('DOMContentLoaded', initDraggableButton);
   spDropEl.addEventListener('drop',e=>{e.preventDefault();spDropEl.classList.remove('drag-over');spHandleFiles(e.dataTransfer.files);});
 
   spLoad();
+</script>
+
+<!-- Custom Indicator Edit Modal -->
+<div id="ciModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;padding:20px;overflow-y:auto;align-items:center;justify-content:center;">
+  <div style="background:#1a1f2e;border:1px solid #2d3748;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="padding:18px 20px;border-bottom:1px solid #2d3748;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#e2e8f0;font-weight:700;font-size:16px;margin:0;"><i class="fas fa-code" style="color:#FF4500;margin-right:8px;"></i>Edit Indicator</h3>
+      <button onclick="closeCIModal()" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="padding:20px;">
+      <input type="hidden" id="ciEditId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:5px;">Name</label>
+          <input id="ciName" type="text" style="width:100%;background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:9px;font-size:13px;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:5px;">Category</label>
+          <select id="ciCategory" style="width:100%;background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:9px;font-size:13px;">
+            <option>Trend</option><option>Momentum</option><option>Volatility</option><option>Volume</option><option>Custom</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <label style="font-size:12px;font-weight:600;color:#94a3b8;">Code (JavaScript)</label>
+          <button onclick="document.getElementById('ciFileInput').click()" style="background:#2d3748;border:none;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-upload"></i> Upload .js</button>
+        </div>
+        <input type="file" id="ciFileInput" accept=".js" style="display:none" onchange="ciLoadFile(this)">
+        <textarea id="ciCode" rows="12" style="width:100%;background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;resize:vertical;"></textarea>
+      </div>
+      <div id="ciError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:10px;font-size:12px;color:#ef4444;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="ciTest()" style="flex:1;background:#2d3748;border:none;color:#e2e8f0;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-play"></i> Test</button>
+        <button onclick="ciSave()" style="flex:2;background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;"><i class="fas fa-save"></i> Save & Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Custom Indicators on Chart ──
+const CI_STORAGE = 'updown_custom_indicators';
+let userCustomInds = [];
+let activeCustomInds = new Set();
+let customIndSeries = {};
+
+async function loadCustomIndicators() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const res = await fetch('/api/user/indicators/custom', {headers:{'Authorization':'Bearer '+token}});
+    const data = await res.json();
+    userCustomInds = data.indicators || [];
+    renderCustomIndDropdown();
+  } catch(e) { console.warn('Could not load custom indicators:', e); }
+}
+
+function renderCustomIndDropdown() {
+  const sep = document.getElementById('customIndSep');
+  const items = document.getElementById('customIndItems');
+  if (!userCustomInds.length) { sep.style.display='none'; items.innerHTML=''; return; }
+  sep.style.display='';
+  const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+  items.innerHTML = userCustomInds.map((ind,i) => {
+    const color = colors[i % colors.length];
+    const key = 'custom_'+ind.id;
+    const isActive = activeCustomInds.has(key);
+    return `<div class="dropdown-item ${isActive?'active-ind':''}" id="ci-dd-${ind.id}" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:8px;" onclick="toggleCustomInd(${ind.id},'${color}')">
+        <span class="color-dot" style="background:${color}"></span>${ind.name}
+      </span>
+      <button onclick="event.stopPropagation();openCIModal(${ind.id})" style="background:#2d3748;border:none;color:#94a3b8;padding:2px 8px;border-radius:5px;font-size:10px;cursor:pointer;"><i class="fas fa-edit"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function toggleCustomInd(id, color) {
+  const key = 'custom_'+id;
+  if (activeCustomInds.has(key)) {
+    activeCustomInds.delete(key);
+    if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
+    removeCustomChip(key);
+  } else {
+    activeCustomInds.add(key);
+    renderCustomIndOnChart(id, color);
+    addCustomChip(id, key, color);
+  }
+  renderCustomIndDropdown();
+  document.querySelectorAll('.dropdown-menu').forEach(d=>d.style.display='none');
+}
+
+function renderCustomIndOnChart(id, color) {
+  const ind = userCustomInds.find(i=>i.id===id);
+  if (!ind || !candles.length) return;
+  try {
+    const fn = new Function('return ('+ind.code+')')();
+    const candleData = candles.map(c=>({open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume||0,time:c.time}));
+    const result = fn(candleData, {});
+    if (!result||!result.data) return;
+    const series = mainChart.addLineSeries({color: result.color||color, lineWidth: result.lineWidth||2, priceLineVisible:false, lastValueVisible:true, title:result.name||ind.name});
+    const seriesData = result.data.map((v,i)=>v!==null?{time:candles[i].time,value:v}:null).filter(Boolean);
+    series.setData(seriesData);
+    customIndSeries['custom_'+id] = series;
+  } catch(e) { console.error('Custom indicator error:', e); alert('Error running indicator: '+e.message); }
+}
+
+function addCustomChip(id, key, color) {
+  const ind = userCustomInds.find(i=>i.id===id);
+  if (!ind) return;
+  const el = document.getElementById('indicatorChips');
+  const chip = document.createElement('span');
+  chip.className = 'ind-chip';
+  chip.id = 'chip-'+key;
+  chip.innerHTML = `<span class="color-dot" style="background:${color}"></span>${ind.name}<span class="rm" onclick="toggleCustomInd(${id},'${color}')">✕</span>`;
+  el.appendChild(chip);
+}
+
+function removeCustomChip(key) {
+  const chip = document.getElementById('chip-'+key);
+  if (chip) chip.remove();
+}
+
+// Re-render custom indicators when new candles load
+const _origRenderAllInds = window.renderAllInds;
+function reRenderCustomInds() {
+  activeCustomInds.forEach(key => {
+    const id = parseInt(key.replace('custom_',''));
+    const ind = userCustomInds.find(i=>i.id===id);
+    if (!ind) return;
+    const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+    const color = colors[userCustomInds.indexOf(ind) % colors.length];
+    if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
+    renderCustomIndOnChart(id, color);
+  });
+}
+
+// ── Edit Modal ──
+function openCIModal(id) {
+  const ind = userCustomInds.find(i=>i.id===id);
+  if (!ind) return;
+  document.getElementById('ciEditId').value = id;
+  document.getElementById('ciName').value = ind.name;
+  document.getElementById('ciCategory').value = ind.category||'Custom';
+  document.getElementById('ciCode').value = ind.code;
+  document.getElementById('ciError').style.display='none';
+  document.getElementById('ciModal').style.display='flex';
+  document.querySelectorAll('.dropdown-menu').forEach(d=>d.style.display='none');
+}
+
+function closeCIModal() { document.getElementById('ciModal').style.display='none'; }
+
+function ciLoadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { document.getElementById('ciCode').value = e.target.result; };
+  r.readAsText(file);
+}
+
+function ciTest() {
+  const code = document.getElementById('ciCode').value;
+  const errEl = document.getElementById('ciError');
+  try {
+    const fn = new Function('return ('+code+')')();
+    const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()/1000+i*60}));
+    const out = fn(sample,{});
+    if (!out||!out.data) throw new Error('Must return {name, type, data, color}');
+    errEl.style.display='none';
+    alert('✅ Valid! Returns: '+out.name+' with '+out.data.length+' values');
+  } catch(e) { errEl.textContent='❌ '+e.message; errEl.style.display='block'; }
+}
+
+async function ciSave() {
+  const token = localStorage.getItem('token');
+  const id = document.getElementById('ciEditId').value;
+  const data = {name:document.getElementById('ciName').value, category:document.getElementById('ciCategory').value, code:document.getElementById('ciCode').value};
+  const res = await fetch('/api/user/indicators/custom/'+id, {method:'PUT', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  if (res.ok) {
+    // Update local cache
+    const idx = userCustomInds.findIndex(i=>i.id==id);
+    if (idx>=0) userCustomInds[idx] = {...userCustomInds[idx], ...data};
+    // Re-render if active
+    const key = 'custom_'+id;
+    if (activeCustomInds.has(key)) {
+      const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+      const color = colors[userCustomInds.findIndex(i=>i.id==id) % colors.length];
+      if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
+      renderCustomIndOnChart(parseInt(id), color);
+    }
+    closeCIModal();
+    renderCustomIndDropdown();
+  } else { alert('Failed to save'); }
+}
+
+// Load custom indicators on page ready
+document.addEventListener('DOMContentLoaded', () => { setTimeout(loadCustomIndicators, 500); });
 </script>
 </body>
 </html>
