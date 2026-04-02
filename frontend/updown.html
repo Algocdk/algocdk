@@ -178,6 +178,12 @@ select option{background:#0f1923}
       <div class="dropdown-item" onclick="toggleInd('sma50')"><span class="color-dot" style="background:#06B6D4"></span>SMA 50</div>
       <div class="dropdown-item" onclick="toggleInd('bb')"><span class="color-dot" style="background:#6366F1"></span>Bollinger Bands (20,2)</div>
       <div class="dropdown-item" onclick="toggleInd('vwap')"><span class="color-dot" style="background:#F97316"></span>VWAP</div>
+      <div class="dropdown-item" onclick="toggleInd('dema')"><span class="color-dot" style="background:#84cc16"></span>DEMA 21</div>
+      <div class="dropdown-item" onclick="toggleInd('tema')"><span class="color-dot" style="background:#f43f5e"></span>TEMA 21</div>
+      <div class="dropdown-item" onclick="toggleInd('hma')"><span class="color-dot" style="background:#0ea5e9"></span>HMA 20</div>
+      <div class="dropdown-item" onclick="toggleInd('kc')"><span class="color-dot" style="background:#d97706"></span>Keltner Channel</div>
+      <div class="dropdown-item" onclick="toggleInd('psar')"><span class="color-dot" style="background:#e879f9"></span>Parabolic SAR</div>
+      <div class="dropdown-item" onclick="toggleInd('ichimoku')"><span class="color-dot" style="background:#38bdf8"></span>Ichimoku Cloud</div>
       <div class="dropdown-sep">Oscillators — Pane 2</div>
       <div class="dropdown-item" onclick="toggleInd('rsi')"><span class="color-dot" style="background:#22D3EE"></span>RSI 14</div>
       <div class="dropdown-item" onclick="toggleInd('macd')"><span class="color-dot" style="background:#34D399"></span>MACD (12,26,9)</div>
@@ -187,6 +193,10 @@ select option{background:#0f1923}
       <div class="dropdown-item" onclick="toggleInd('cci')"><span class="color-dot" style="background:#C084FC"></span>CCI 20</div>
       <div class="dropdown-item" onclick="toggleInd('willr')"><span class="color-dot" style="background:#2DD4BF"></span>Williams %R 14</div>
       <div class="dropdown-item" onclick="toggleInd('mom')"><span class="color-dot" style="background:#FB923C"></span>Momentum 10</div>
+      <div class="dropdown-item" onclick="toggleInd('roc')"><span class="color-dot" style="background:#a3e635"></span>ROC 12</div>
+      <div class="dropdown-item" onclick="toggleInd('mfi')"><span class="color-dot" style="background:#fb7185"></span>MFI 14</div>
+      <div class="dropdown-item" onclick="toggleInd('obv')"><span class="color-dot" style="background:#67e8f9"></span>OBV</div>
+      <div class="dropdown-item" onclick="toggleInd('adx')"><span class="color-dot" style="background:#fde68a"></span>ADX 14</div>
       <div class="dropdown-sep" id="customIndSep" style="display:none">Custom Indicators</div>
       <div id="customIndItems"></div>
       <div class="dropdown-item" onclick="window.location.href='/my-indicators'" style="color:#FF4500;font-size:11px;"><i class="fas fa-plus" style="margin-right:4px"></i>Manage My Indicators</div>
@@ -450,16 +460,20 @@ let priceAlerts = [];
 const IND_COLORS = {
   ema9:'#F59E0B',ema20:'#3B82F6',ema50:'#A855F7',ema200:'#EC4899',
   sma20:'#10B981',sma50:'#06B6D4',bb:'#6366F1',vwap:'#F97316',
+  dema:'#84cc16',tema:'#f43f5e',hma:'#0ea5e9',kc:'#d97706',psar:'#e879f9',ichimoku:'#38bdf8',
   rsi:'#22D3EE',macd:'#34D399',stoch:'#FBBF24',volume:'#64748b',
-  atr:'#F87171',cci:'#C084FC',willr:'#2DD4BF',mom:'#FB923C'
+  atr:'#F87171',cci:'#C084FC',willr:'#2DD4BF',mom:'#FB923C',
+  roc:'#a3e635',mfi:'#fb7185',obv:'#67e8f9',adx:'#fde68a'
 };
 const IND_NAMES = {
   ema9:'EMA 9',ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',
   sma20:'SMA 20',sma50:'SMA 50',bb:'Bollinger Bands',vwap:'VWAP',
+  dema:'DEMA 21',tema:'TEMA 21',hma:'HMA 20',kc:'Keltner Channel',psar:'Parabolic SAR',ichimoku:'Ichimoku',
   rsi:'RSI 14',macd:'MACD',stoch:'Stochastic',volume:'Volume',
-  atr:'ATR 14',cci:'CCI 20',willr:'Williams %R',mom:'Momentum'
+  atr:'ATR 14',cci:'CCI 20',willr:'Williams %R',mom:'Momentum',
+  roc:'ROC 12',mfi:'MFI 14',obv:'OBV',adx:'ADX 14'
 };
-const PANE2_INDS = new Set(['rsi','macd','stoch','volume','atr','cci','willr','mom']);
+const PANE2_INDS = new Set(['rsi','macd','stoch','volume','atr','cci','willr','mom','roc','mfi','obv','adx']);
 
 // User-customised indicator params — persisted in localStorage
 const IND_PARAMS_KEY = 'updown_ind_params';
@@ -493,6 +507,16 @@ const IND_SETTINGS = {
   willr:  [{f:'period',l:'Period',t:'number',d:14},{f:'color',l:'Color',t:'color',d:'#2DD4BF'}],
   mom:    [{f:'period',l:'Period',t:'number',d:10}],
   volume: [],
+  dema:   [{f:'period',l:'Period',t:'number',d:21},{f:'color',l:'Color',t:'color',d:'#84cc16'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  tema:   [{f:'period',l:'Period',t:'number',d:21},{f:'color',l:'Color',t:'color',d:'#f43f5e'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  hma:    [{f:'period',l:'Period',t:'number',d:20},{f:'color',l:'Color',t:'color',d:'#0ea5e9'},{f:'width',l:'Line Width',t:'number',d:1,min:1,max:5}],
+  kc:     [{f:'period',l:'Period',t:'number',d:20},{f:'mult',l:'Multiplier',t:'number',d:1.5,min:0.5,max:5}],
+  psar:   [{f:'step',l:'Step',t:'number',d:0.02},{f:'max',l:'Max',t:'number',d:0.2}],
+  ichimoku: [],
+  roc:    [{f:'period',l:'Period',t:'number',d:12}],
+  mfi:    [{f:'period',l:'Period',t:'number',d:14},{f:'color',l:'Color',t:'color',d:'#fb7185'}],
+  obv:    [{f:'color',l:'Color',t:'color',d:'#67e8f9'}],
+  adx:    [{f:'period',l:'Period',t:'number',d:14},{f:'color',l:'Color',t:'color',d:'#fde68a'}],
 };
 
 // ─── INIT ─────────────────────────────────────────────────────────────
@@ -1205,6 +1229,103 @@ function calcVWAP() {
   });
 }
 
+// ── New indicator calculations ──
+function calcDEMA(data, p = 21) {
+  const e1 = calcEMA(data, p);
+  const e2 = calcEMA(e1, p);
+  return e1.map((v, i) => v !== null && e2[i] !== null ? 2*v - e2[i] : null);
+}
+function calcTEMA(data, p = 21) {
+  const e1 = calcEMA(data, p);
+  const e2 = calcEMA(e1, p);
+  const e3 = calcEMA(e2, p);
+  return e1.map((v, i) => v !== null && e2[i] !== null && e3[i] !== null ? 3*v - 3*e2[i] + e3[i] : null);
+}
+function calcHMA(data, p = 20) {
+  const half = calcEMA(data, Math.floor(p/2));
+  const full = calcEMA(data, p);
+  const diff = half.map((v, i) => v !== null && full[i] !== null ? 2*v - full[i] : null);
+  return calcEMA(diff, Math.round(Math.sqrt(p)));
+}
+function calcKeltner(p = 20, mult = 1.5) {
+  const mid = calcEMA(cls(), p);
+  const atr = calcATR(p);
+  return mid.map((m, i) => m !== null && atr[i] !== null ? ({ upper: m + mult*atr[i], mid: m, lower: m - mult*atr[i] }) : null);
+}
+function calcPSAR(step = 0.02, max = 0.2) {
+  const result = new Array(candles.length).fill(null);
+  if (candles.length < 2) return result;
+  let bull = true, af = step, ep = candles[0].low, sar = candles[0].high;
+  for (let i = 1; i < candles.length; i++) {
+    const c = candles[i], p2 = candles[i-1];
+    sar = sar + af * (ep - sar);
+    if (bull) {
+      sar = Math.min(sar, p2.low, i > 1 ? candles[i-2].low : p2.low);
+      if (c.low < sar) { bull = false; sar = ep; ep = c.low; af = step; }
+      else { if (c.high > ep) { ep = c.high; af = Math.min(af + step, max); } }
+    } else {
+      sar = Math.max(sar, p2.high, i > 1 ? candles[i-2].high : p2.high);
+      if (c.high > sar) { bull = true; sar = ep; ep = c.high; af = step; }
+      else { if (c.low < ep) { ep = c.low; af = Math.min(af + step, max); } }
+    }
+    result[i] = { value: sar, bull };
+  }
+  return result;
+}
+function calcROC(p = 12) {
+  return candles.map((_, i) => i < p ? null : ((candles[i].close - candles[i-p].close) / candles[i-p].close) * 100);
+}
+function calcMFI(p = 14) {
+  const tp = candles.map(c => (c.high + c.low + c.close) / 3);
+  const mf = tp.map((t, i) => t * Math.abs(candles[i].close - candles[i].open + 0.001));
+  return candles.map((_, i) => {
+    if (i < p) return 50;
+    let pmf = 0, nmf = 0;
+    for (let j = i - p + 1; j <= i; j++) {
+      if (tp[j] > tp[j-1]) pmf += mf[j]; else nmf += mf[j];
+    }
+    return nmf === 0 ? 100 : 100 - 100 / (1 + pmf / nmf);
+  });
+}
+function calcOBV() {
+  let obv = 0;
+  return candles.map((c, i) => {
+    if (i > 0) obv += c.close > candles[i-1].close ? c.volume||1 : c.close < candles[i-1].close ? -(c.volume||1) : 0;
+    return obv;
+  });
+}
+function calcADX(p = 14) {
+  const result = new Array(candles.length).fill(0);
+  if (candles.length < p + 1) return result;
+  const tr = calcATR(p);
+  const pdm = candles.map((c, i) => i === 0 ? 0 : Math.max(c.high - candles[i-1].high, 0));
+  const ndm = candles.map((c, i) => i === 0 ? 0 : Math.max(candles[i-1].low - c.low, 0));
+  const pdi = pdm.map((v, i) => tr[i] ? (v / tr[i]) * 100 : 0);
+  const ndi = ndm.map((v, i) => tr[i] ? (v / tr[i]) * 100 : 0);
+  const dx  = pdi.map((v, i) => (v + ndi[i]) ? Math.abs(v - ndi[i]) / (v + ndi[i]) * 100 : 0);
+  const adx = calcSMA(dx, p);
+  return adx;
+}
+function calcIchimoku() {
+  const tenkan = candles.map((_, i) => {
+    if (i < 8) return null;
+    const sl = candles.slice(i-8, i+1);
+    return (Math.max(...sl.map(c=>c.high)) + Math.min(...sl.map(c=>c.low))) / 2;
+  });
+  const kijun = candles.map((_, i) => {
+    if (i < 25) return null;
+    const sl = candles.slice(i-25, i+1);
+    return (Math.max(...sl.map(c=>c.high)) + Math.min(...sl.map(c=>c.low))) / 2;
+  });
+  const senkouA = tenkan.map((t, i) => t !== null && kijun[i] !== null ? (t + kijun[i]) / 2 : null);
+  const senkouB = candles.map((_, i) => {
+    if (i < 51) return null;
+    const sl = candles.slice(i-51, i+1);
+    return (Math.max(...sl.map(c=>c.high)) + Math.min(...sl.map(c=>c.low))) / 2;
+  });
+  return { tenkan, kijun, senkouA, senkouB };
+}
+
 // ─── INDICATOR RENDER ─────────────────────────────────────────────────
 function renderAllInds() {
   if (candles.length < 30) return;
@@ -1262,6 +1383,48 @@ function renderInd(key) {
       const s = mainChart.addLineSeries({ color, lineWidth:lw, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
       s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
       indSeries[key] = s;
+    } else if (key === 'dema') {
+      const v = calcDEMA(cl, getIndParam(key,'period',21));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
+      indSeries[key] = s;
+    } else if (key === 'tema') {
+      const v = calcTEMA(cl, getIndParam(key,'period',21));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
+      indSeries[key] = s;
+    } else if (key === 'hma') {
+      const v = calcHMA(cl, getIndParam(key,'period',20));
+      const s = mainChart.addLineSeries({ color, lineWidth:lw, priceLineVisible:false, lastValueVisible:false });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
+      indSeries[key] = s;
+    } else if (key === 'kc') {
+      const kd = calcKeltner(getIndParam(key,'period',20), getIndParam(key,'mult',1.5));
+      const u = mainChart.addLineSeries({ color:'rgba(217,119,6,0.9)', lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+      const m = mainChart.addLineSeries({ color:'rgba(217,119,6,0.5)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      const l = mainChart.addLineSeries({ color:'rgba(217,119,6,0.9)', lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+      u.setData(t.map((ti,i) => kd[i]?{time:ti,value:kd[i].upper}:null).filter(Boolean));
+      m.setData(t.map((ti,i) => kd[i]?{time:ti,value:kd[i].mid}:null).filter(Boolean));
+      l.setData(t.map((ti,i) => kd[i]?{time:ti,value:kd[i].lower}:null).filter(Boolean));
+      indSeries[key] = [u,m,l];
+    } else if (key === 'psar') {
+      const v = calcPSAR();
+      const bullS = mainChart.addLineSeries({ color:'#22c55e', lineWidth:0, priceLineVisible:false, lastValueVisible:false });
+      const bearS = mainChart.addLineSeries({ color:'#ef4444', lineWidth:0, priceLineVisible:false, lastValueVisible:false });
+      bullS.setData(t.map((ti,i) => v[i]&&v[i].bull?{time:ti,value:v[i].value}:null).filter(Boolean));
+      bearS.setData(t.map((ti,i) => v[i]&&!v[i].bull?{time:ti,value:v[i].value}:null).filter(Boolean));
+      indSeries[key] = [bullS, bearS];
+    } else if (key === 'ichimoku') {
+      const ich = calcIchimoku();
+      const tenS = mainChart.addLineSeries({ color:'#38bdf8', lineWidth:1, priceLineVisible:false, lastValueVisible:false, title:'Tenkan' });
+      const kijS = mainChart.addLineSeries({ color:'#f97316', lineWidth:1, priceLineVisible:false, lastValueVisible:false, title:'Kijun' });
+      const saS  = mainChart.addLineSeries({ color:'rgba(34,197,94,0.4)', lineWidth:1, priceLineVisible:false, lastValueVisible:false, title:'Senkou A' });
+      const sbS  = mainChart.addLineSeries({ color:'rgba(239,68,68,0.4)', lineWidth:1, priceLineVisible:false, lastValueVisible:false, title:'Senkou B' });
+      tenS.setData(t.map((ti,i) => ich.tenkan[i]!==null?{time:ti,value:ich.tenkan[i]}:null).filter(Boolean));
+      kijS.setData(t.map((ti,i) => ich.kijun[i]!==null?{time:ti,value:ich.kijun[i]}:null).filter(Boolean));
+      saS.setData(t.map((ti,i) => ich.senkouA[i]!==null?{time:ti,value:ich.senkouA[i]}:null).filter(Boolean));
+      sbS.setData(t.map((ti,i) => ich.senkouB[i]!==null?{time:ti,value:ich.senkouB[i]}:null).filter(Boolean));
+      indSeries[key] = [tenS,kijS,saS,sbS];
     }
   } else {
     if (key === 'rsi') {
@@ -1341,6 +1504,39 @@ function renderInd(key) {
       s.setData(t.map((ti,i) => ({ time:ti, value:v[i], color:v[i]>=0?'rgba(34,197,94,0.6)':'rgba(239,68,68,0.6)' })));
       p2Series[key] = s;
       pane2LabelText = `Momentum ${p}`;
+    } else if (key === 'roc') {
+      const p = getIndParam(key,'period',12);
+      const v = calcROC(p);
+      const s = pane2Chart.addHistogramSeries({ priceLineVisible:false });
+      s.setData(t.map((ti,i) => v[i]!==null?{ time:ti, value:v[i], color:v[i]>=0?'rgba(163,230,53,0.7)':'rgba(251,113,133,0.7)' }:null).filter(Boolean));
+      p2Series[key] = s;
+      pane2LabelText = `ROC ${p}`;
+    } else if (key === 'mfi') {
+      const p = getIndParam(key,'period',14);
+      const v = calcMFI(p);
+      const s = pane2Chart.addLineSeries({ color:'#fb7185', lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
+      const ob = pane2Chart.addLineSeries({ color:'rgba(239,68,68,0.3)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      const os = pane2Chart.addLineSeries({ color:'rgba(34,197,94,0.3)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      ob.setData(t.map(ti => ({ time:ti, value:80 })));
+      os.setData(t.map(ti => ({ time:ti, value:20 })));
+      p2Series[key] = { main:s, ob, os };
+      pane2LabelText = `MFI ${p}`;
+    } else if (key === 'obv') {
+      const v = calcOBV();
+      const s = pane2Chart.addLineSeries({ color:'#67e8f9', lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => ({ time:ti, value:v[i] })));
+      p2Series[key] = s;
+      pane2LabelText = 'OBV';
+    } else if (key === 'adx') {
+      const p = getIndParam(key,'period',14);
+      const v = calcADX(p);
+      const s = pane2Chart.addLineSeries({ color:'#fde68a', lineWidth:1.5, priceLineVisible:false, lastValueVisible:true });
+      s.setData(t.map((ti,i) => v[i]!==null?{time:ti,value:v[i]}:null).filter(Boolean));
+      const ref = pane2Chart.addLineSeries({ color:'rgba(253,230,138,0.3)', lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false });
+      ref.setData(t.map(ti => ({ time:ti, value:25 })));
+      p2Series[key] = { main:s, ref };
+      pane2LabelText = `ADX ${p}`;
     }
     const lbl = document.getElementById('pane2Label');
     if (lbl) lbl.textContent = pane2LabelText;
@@ -1655,7 +1851,40 @@ function drawSingleDrawing(d, isSelected) {
     case 'rectangle': ctx.strokeRect(sx,sy,ex-sx,ey-sy); break;
     case 'circle': { const r=Math.abs(ex-sx)/2,cx2=(sx+ex)/2,cy2=(sy+ey)/2; ctx.beginPath(); ctx.arc(cx2,cy2,r||1,0,2*Math.PI); ctx.stroke(); break; }
     case 'arrow': { const ang=Math.atan2(ey-sy,ex-sx),hl=14; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-hl*Math.cos(ang-Math.PI/6),ey-hl*Math.sin(ang-Math.PI/6)); ctx.moveTo(ex,ey); ctx.lineTo(ex-hl*Math.cos(ang+Math.PI/6),ey-hl*Math.sin(ang+Math.PI/6)); ctx.stroke(); break; }
-    case 'fib': case 'fibonacci': { const levels=[0,0.236,0.382,0.5,0.618,0.786,1],dh=ey-sy; levels.forEach(l=>{ const fy=ey-dh*l; ctx.beginPath(); ctx.moveTo(Math.min(sx,ex),fy); ctx.lineTo(Math.max(sx,ex),fy); ctx.strokeStyle=l===0.618?'#fbbf24':l===0||l===1?'#ef4444':'#6366f1'; ctx.lineWidth=l===0.618?2:1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText(`${(l*100).toFixed(1)}%`,Math.min(sx,ex)+4,fy-2); }); break; }
+    case 'fib': case 'fibonacci': {
+      const fibLevels = [
+        { l: 0,     color: '#ef4444', label: '0%',     lw: 1.5 },
+        { l: 0.236, color: '#f97316', label: '23.6%',  lw: 1 },
+        { l: 0.382, color: '#eab308', label: '38.2%',  lw: 1.5 },
+        { l: 0.5,   color: '#22c55e', label: '50%',    lw: 2 },
+        { l: 0.618, color: '#3b82f6', label: '61.8%',  lw: 2 },
+        { l: 0.786, color: '#a855f7', label: '78.6%',  lw: 1 },
+        { l: 1,     color: '#ef4444', label: '100%',   lw: 1.5 },
+      ];
+      const dh = ey - sy;
+      const x1 = Math.min(sx, ex), x2 = Math.max(sx, ex);
+      fibLevels.forEach(({ l, color, label, lw }) => {
+        const fy = ey - dh * l;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw;
+        ctx.setLineDash([6, 3]);
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.moveTo(x1, fy); ctx.lineTo(x2, fy); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        // Label background
+        const labelText = `${label}  ${(d.startPrice - (d.startPrice - d.endPrice) * l).toFixed(4)}`;
+        ctx.font = 'bold 10px sans-serif';
+        const tw = ctx.measureText(labelText).width;
+        ctx.fillStyle = 'rgba(10,14,26,0.75)';
+        ctx.fillRect(x1 + 4, fy - 13, tw + 6, 14);
+        ctx.fillStyle = color;
+        ctx.fillText(labelText, x1 + 7, fy - 2);
+        ctx.restore();
+      });
+      break;
+    }
     case 'channel': { ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); const off=(ey-sy)*0.3; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(sx,sy-off); ctx.lineTo(ex,ey-off); ctx.stroke(); break; }
     case 'text': case 'pricelabel': ctx.setLineDash([]); ctx.font=`bold ${d.fontSize||12}px sans-serif`; if(d.type==='pricelabel'){const tw=ctx.measureText(d.text||'').width;ctx.fillStyle=d.color||'#FF4500';ctx.fillRect(sx-4,sy-(d.fontSize||12)-2,tw+8,(d.fontSize||12)+6);ctx.fillStyle='#fff';}else{ctx.fillStyle=d.color||'#FFD700';} ctx.fillText(d.text||'',sx,sy); break;
   }
