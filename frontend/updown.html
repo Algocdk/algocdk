@@ -568,7 +568,7 @@ function initCharts() {
   // Sync timescales bidirectionally + redraw canvas drawings on pan/zoom
   mainChart.timeScale().subscribeVisibleLogicalRangeChange(r => {
     if (r && pane2Chart) pane2Chart.timeScale().setVisibleLogicalRange(r);
-    if (r && r.from < 10 && !isLoadingMore && candles.length > 0) loadMoreHistory();
+    if (r && r.from < 50 && !isLoadingMore && candles.length > 0) loadMoreHistory();
     redrawCanvas();
   });
   pane2Chart.timeScale().subscribeVisibleLogicalRangeChange(r => {
@@ -605,7 +605,10 @@ function makeChartOpts(el, isMain) {
       secondsVisible: currentTF < 3600,
       rightOffset: 12,
       barSpacing: 8,
-      visible: true
+      visible: true,
+      fixLeftEdge: false,
+      fixRightEdge: false,
+      lockVisibleTimeRangeOnResize: true
     }
   };
 }
@@ -757,12 +760,14 @@ function loadMoreHistory() {
   ws.send(JSON.stringify({
     ticks_history: mkt,
     adjust_start_time: 1,
-    count: 500,
+    count: 1000,
     end: oldestCandleTime - 1,
     start: 1,
     style: 'candles',
     granularity: currentTF
   }));
+  // Safety reset in case response never comes
+  setTimeout(() => { isLoadingMore = false; }, 8000);
 }
 
 // Step 2: after history arrives, subscribe to live OHLC stream + tick stream
@@ -1421,34 +1426,36 @@ function togglePane2() {
   }
 }
 
-// ─── DRAWING TOOLS ────────────────────────────────────────────────────
+// ─── DRAWING TOOLS (same approach as /app — store candle index + price) ──────
 const DRAW_STORAGE = 'updown_drawings';
-let selectedDrawingIdx = -1;
+
+let currentDrawing = null;
+let isDrawing = false;
+let selectedDrawing = null;
+let isDraggingDrawing = false;
+let dragPoint = null;
+let dragStartX = 0, dragStartY = 0;
+let objStartIndex1 = 0, objStartPrice1 = 0;
+let objStartIndex2 = 0, objStartPrice2 = 0;
 
 function saveDrawings() {
   try { localStorage.setItem(DRAW_STORAGE, JSON.stringify(drawings)); } catch(e) {}
 }
 function loadDrawings() {
-  try {
-    const s = localStorage.getItem(DRAW_STORAGE);
-    if (s) { drawings = JSON.parse(s); }
-    // Don't redraw yet — wait until candles are loaded and mainSeries is ready
-  } catch(e) {}
+  try { const s = localStorage.getItem(DRAW_STORAGE); if (s) drawings = JSON.parse(s); } catch(e) { drawings = []; }
 }
 
-// Convert pixel position to chart coordinates (time + price)
-function pixelToChart(pos) {
-  try {
-    const price = mainSeries.coordinateToPrice(pos.y);
-    const logical = mainChart.timeScale().coordinateToLogical(pos.x);
-    return { price, logical, px: pos.x, py: pos.y };
-  } catch(e) { return { px: pos.x, py: pos.y }; }
+function getXFromLogical(logical) {
+  try { return mainChart.timeScale().logicalToCoordinate(logical) ?? 0; } catch(e) { return 0; }
 }
-
-// Subscribe to chart pan/zoom/scale to redraw canvas drawings
-function subscribeChartRedraw() {
-  mainChart.timeScale().subscribeVisibleLogicalRangeChange(() => redrawCanvas());
-  try { mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas()); } catch(e) {}
+function getYFromPrice(price) {
+  try { return mainSeries.priceToCoordinate(price) ?? 0; } catch(e) { return 0; }
+}
+function getLogicalFromX(x) {
+  try { return mainChart.timeScale().coordinateToLogical(x) ?? 0; } catch(e) { return 0; }
+}
+function getPriceFromY(y) {
+  try { return mainSeries.coordinateToPrice(y) ?? 0; } catch(e) { return 0; }
 }
 
 function initCanvas() {
@@ -1456,113 +1463,57 @@ function initCanvas() {
   drawCtx = drawCanvas.getContext('2d');
   resizeCanvas();
   drawCanvas.style.pointerEvents = 'all';
-
-  // Forward events to chart when in pointer mode with no active drag
-  function shouldPassThrough(e) {
-    return drawTool === 'none' && !drawingIP;
-  }
-  function forwardToChart(e) {
-    const chartEl = document.querySelector('#mainChart canvas');
-    if (!chartEl) return;
-    chartEl.dispatchEvent(new MouseEvent(e.type, {
-      bubbles: true, cancelable: true,
-      clientX: e.clientX, clientY: e.clientY,
-      screenX: e.screenX, screenY: e.screenY,
-      button: e.button, buttons: e.buttons,
-      ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey
-    }));
-  }
-
-  drawCanvas.addEventListener('mousedown', e => {
-    if (drawTool === 'none') {
-      // Check if a drawing was hit — if yes, handle it; if no, pass to chart
-      const pos = getPos(e);
-      const idx = hitTest(pos);
-      if (idx >= 0) {
-        onDrawDown(e); // select / start drag
-      } else {
-        selectedDrawingIdx = -1;
-        redrawCanvas();
-        forwardToChart(e); // pan chart
-      }
-    } else {
-      onDrawDown(e);
-    }
-  });
-
-  drawCanvas.addEventListener('mousemove', e => {
-    if (drawingIP?._moving) {
-      onDrawMove(e);
-    } else if (drawTool === 'none' && !drawingIP) {
-      // Update cursor + forward for crosshair
-      onDrawMove(e);
-      forwardToChart(e);
-    } else {
-      onDrawMove(e);
-    }
-  });
-
-  drawCanvas.addEventListener('mouseup', e => {
-    if (drawingIP?._moving) {
-      onDrawUp(e);
-    } else if (drawTool === 'none') {
-      onDrawUp(e);
-      forwardToChart(e);
-    } else {
-      onDrawUp(e);
-    }
-  });
-  drawCanvas.addEventListener('wheel',     e => { const c = document.querySelector('#mainChart canvas'); if(c) c.dispatchEvent(new WheelEvent(e.type,e)); }, { passive: true });
-  drawCanvas.addEventListener('mouseleave', e => { if (drawingIP) onDrawUp(e); });
-  drawCanvas.addEventListener('contextmenu', e => { e.preventDefault(); cancelDraw(); });
-  drawCanvas.addEventListener('dblclick', onDrawDblClick);
-  drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDrawDown(touchToMouse(e)); }, { passive: false });
-  drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMove(touchToMouse(e)); }, { passive: false });
-  drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawUp(touchToMouse(e));   }, { passive: false });
-
-  // Long-press on mobile to edit selected drawing
-  let longPressTimer = null;
-  drawCanvas.addEventListener('touchstart', e => {
-    const pos = getPos(touchToMouse(e));
-    const idx = hitTest(pos);
-    if (idx >= 0) {
-      longPressTimer = setTimeout(() => { openDrawingEdit(idx); }, 600);
-    }
+  drawCanvas.addEventListener('mousedown', onDrawMouseDown);
+  window.addEventListener('mouseup', onDrawMouseUp);
+  window.addEventListener('mousemove', onDrawMouseMove);
+  drawCanvas.addEventListener('wheel', e => {
+    const c = document.querySelector('#mainChart canvas');
+    if (c) c.dispatchEvent(new WheelEvent(e.type, { bubbles:true, cancelable:true, deltaX:e.deltaX, deltaY:e.deltaY, deltaMode:e.deltaMode, clientX:e.clientX, clientY:e.clientY }));
   }, { passive: true });
-  drawCanvas.addEventListener('touchend',   () => clearTimeout(longPressTimer), { passive: true });
-  drawCanvas.addEventListener('touchmove',  () => clearTimeout(longPressTimer), { passive: true });
+  drawCanvas.addEventListener('dblclick', e => {
+    const rect = drawCanvas.getBoundingClientRect();
+    const d = findDrawingAt(e.clientX - rect.left, e.clientY - rect.top);
+    if (d) { selectedDrawing = d; openDrawingEdit(drawings.indexOf(d)); }
+  });
+  drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDrawMouseDown(touchEvt(e)); }, { passive: false });
+  drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMouseMove(touchEvt(e)); }, { passive: false });
+  drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawMouseUp(touchEvt(e));   }, { passive: false });
+  let lpTimer = null;
+  drawCanvas.addEventListener('touchstart', e => {
+    const t = e.touches[0], rect = drawCanvas.getBoundingClientRect();
+    const d = findDrawingAt(t.clientX - rect.left, t.clientY - rect.top);
+    if (d) lpTimer = setTimeout(() => { selectedDrawing = d; openDrawingEdit(drawings.indexOf(d)); }, 600);
+  }, { passive: true });
+  drawCanvas.addEventListener('touchend',  () => clearTimeout(lpTimer), { passive: true });
+  drawCanvas.addEventListener('touchmove', () => clearTimeout(lpTimer), { passive: true });
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(() => redrawCanvas());
+  setTimeout(() => { try { mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas()); } catch(e) {} }, 500);
   loadDrawings();
 }
-function touchToMouse(e) {
+
+function touchEvt(e) {
   const t = e.touches[0] || e.changedTouches[0];
-  return { clientX: t.clientX, clientY: t.clientY };
-}
-function resizeCanvas() {
-  const wrap = document.getElementById('chartWrap');
-  const mainEl = document.getElementById('mainChart');
-  if (!wrap || !mainEl) return;
-  const w = mainEl.offsetWidth  || wrap.clientWidth  || 800;
-  const h = mainEl.offsetHeight || 400;
-  if (w === 0 || h === 0) return;
-  drawCanvas.width  = w;
-  drawCanvas.height = h;
-  drawCanvas.style.width  = w + 'px';
-  drawCanvas.style.height = h + 'px';
-  drawCanvas.style.top  = mainEl.offsetTop  + 'px';
-  drawCanvas.style.left = mainEl.offsetLeft + 'px';
-}
-function setDrawTool(tool, btn) {
-  drawTool = tool;
-  // Use cursor to indicate mode — canvas always receives events
-  drawCanvas.style.cursor = tool === 'none' ? 'default' : 'crosshair';
-  document.querySelectorAll('[id^="tool"]').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  selectedDrawingIdx = -1;
-  cancelDraw();
-  document.getElementById('drawStyleControls').style.display = tool !== 'none' ? 'flex' : 'none';
+  return { clientX: t.clientX, clientY: t.clientY, button: 0, buttons: 1 };
 }
 
-// Current draw style — read from toolbar controls
+function resizeCanvas() {
+  const mainEl = document.getElementById('mainChart');
+  if (!mainEl) return;
+  const w = mainEl.offsetWidth || 800, h = mainEl.offsetHeight || 400;
+  if (!w || !h) return;
+  drawCanvas.width = w; drawCanvas.height = h;
+  drawCanvas.style.width = w + 'px'; drawCanvas.style.height = h + 'px';
+  drawCanvas.style.top = mainEl.offsetTop + 'px'; drawCanvas.style.left = mainEl.offsetLeft + 'px';
+}
+
+function setDrawTool(tool, btn) {
+  drawTool = tool; currentDrawing = null; isDrawing = false; selectedDrawing = null;
+  drawCanvas.style.cursor = (tool && tool !== 'none') ? 'crosshair' : 'default';
+  document.querySelectorAll('[id^="tool"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('drawStyleControls').style.display = (tool && tool !== 'none') ? 'flex' : 'none';
+}
+
 function getDrawStyle() {
   return {
     color:     document.getElementById('drawColor')?.value     || '#FF4500',
@@ -1571,451 +1522,209 @@ function getDrawStyle() {
   };
 }
 function updateDrawStyle() {
-  // If a drawing is selected, apply style to it immediately
-  if (selectedDrawingIdx >= 0 && drawings[selectedDrawingIdx]) {
+  if (selectedDrawing) {
     const s = getDrawStyle();
-    drawings[selectedDrawingIdx].color     = s.color;
-    drawings[selectedDrawingIdx].lineStyle = s.lineStyle;
-    drawings[selectedDrawingIdx].lineWidth = s.lineWidth;
-    saveDrawings(); redrawCanvas(); renderDrawingsPanel();
+    Object.assign(selectedDrawing, s);
+    saveDrawings(); redrawCanvas();
   }
 }
-function cancelDraw() { drawingIP = null; redrawCanvas(); }
-function getPos(e) { const r = drawCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 
-function onDrawDown(e) {
-  const pos = getPos(e);
-  if (drawTool === 'none') {
-    const idx = hitTest(pos);
-    if (idx >= 0) {
-      selectedDrawingIdx = idx;
-      const d = drawings[idx];
-      if (d.color) document.getElementById('drawColor').value = d.color;
-      if (d.lineStyle) document.getElementById('drawLineStyle').value = d.lineStyle;
-      if (d.lineWidth) document.getElementById('drawLineWidth').value = d.lineWidth;
-
-      // Resolve current pixel positions for endpoint detection
-      const resolved = resolveDrawingCoords(d);
-      const HANDLE_R = 12; // px radius to detect handle click
-
-      // Check if clicking near start handle
-      if (resolved.start && Math.hypot(pos.x - resolved.start.x, pos.y - resolved.start.y) < HANDLE_R) {
-        drawingIP = { _endpoint: 'start', _idx: idx };
-      }
-      // Check if clicking near end handle
-      else if (resolved.end && Math.hypot(pos.x - resolved.end.x, pos.y - resolved.end.y) < HANDLE_R) {
-        drawingIP = { _endpoint: 'end', _idx: idx };
-      }
-      // Check if clicking near text/label position
-      else if (resolved.x !== undefined && Math.hypot(pos.x - resolved.x, pos.y - resolved.y) < HANDLE_R) {
-        drawingIP = { _endpoint: 'xy', _idx: idx };
-      }
-      // Otherwise drag the whole drawing
-      else {
-        drawingIP = { _moving: true, _idx: idx, _startPos: pos, _origDrawing: JSON.parse(JSON.stringify(d)) };
-      }
+function onDrawMouseDown(e) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  if (!drawTool || drawTool === 'none') {
+    const d = findDrawingAt(x, y);
+    if (d) {
+      selectedDrawing = d; isDraggingDrawing = true; dragStartX = x; dragStartY = y;
+      objStartIndex1 = d.startIndex; objStartPrice1 = d.startPrice;
+      objStartIndex2 = d.endIndex;   objStartPrice2 = d.endPrice;
+      const sx = getXFromLogical(d.startIndex), sy2 = getYFromPrice(d.startPrice);
+      const ex = getXFromLogical(d.endIndex),   ey  = getYFromPrice(d.endPrice);
+      dragPoint = Math.hypot(x-sx,y-sy2) < 15 ? 'start' : (Math.hypot(x-ex,y-ey) < 15 ? 'end' : 'move');
+      drawCanvas.style.cursor = 'move'; redrawCanvas();
     } else {
-      selectedDrawingIdx = -1;
-      drawingIP = null;
+      selectedDrawing = null; redrawCanvas();
+      const c = document.querySelector('#mainChart canvas');
+      if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY, button:e.button, buttons:e.buttons }));
     }
-    redrawCanvas();
+    return;
+  }
+  if (drawTool === 'delete') {
+    const d = findDrawingAt(x, y);
+    if (d) { drawings.splice(drawings.indexOf(d),1); saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
     return;
   }
   const style = getDrawStyle();
-  const chartCoord = pixelToChart(pos);
-  if (drawTool === 'text' || drawTool === 'pricelabel') {
-    const t = prompt(drawTool === 'pricelabel' ? 'Price label:' : 'Annotation:');
-    if (t) {
-      drawings.push({ type: drawTool, x: pos.x, y: pos.y, chartX: chartCoord, text: t, ...style, fontSize: 12 });
-      saveDrawings(); redrawCanvas(); renderDrawingsPanel();
+  const logical = getLogicalFromX(x), price = getPriceFromY(y);
+  isDrawing = true; selectedDrawing = null;
+  currentDrawing = { id: Date.now(), type: drawTool, startIndex: logical, startPrice: price, endIndex: logical, endPrice: price, ...style };
+}
+
+function onDrawMouseMove(e) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  if (isDraggingDrawing && selectedDrawing) {
+    const nl = getLogicalFromX(x), np = getPriceFromY(y);
+    if (dragPoint === 'start') { selectedDrawing.startIndex = nl; selectedDrawing.startPrice = np; }
+    else if (dragPoint === 'end') { selectedDrawing.endIndex = nl; selectedDrawing.endPrice = np; }
+    else {
+      const dL = nl - getLogicalFromX(dragStartX), dP = np - getPriceFromY(dragStartY);
+      selectedDrawing.startIndex = objStartIndex1 + dL; selectedDrawing.startPrice = objStartPrice1 + dP;
+      selectedDrawing.endIndex   = objStartIndex2 + dL; selectedDrawing.endPrice   = objStartPrice2 + dP;
     }
-    return;
+    redrawCanvas(); return;
   }
-  drawingIP = { type: drawTool, start: pos, end: pos, chartStart: chartCoord, chartEnd: chartCoord, ...style };
+  if (isDrawing && currentDrawing) {
+    currentDrawing.endIndex = getLogicalFromX(x); currentDrawing.endPrice = getPriceFromY(y);
+    redrawCanvas(); return;
+  }
+  if (!drawTool || drawTool === 'none') {
+    const c = document.querySelector('#mainChart canvas');
+    if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY, buttons:e.buttons }));
+    drawCanvas.style.cursor = findDrawingAt(x, y) ? 'move' : 'default';
+  }
 }
 
-function onDrawMove(e) {
-  const pos = getPos(e);
-
-  if (drawTool === 'none') {
-    // Update cursor based on what's under the pointer
-    if (!drawingIP) {
-      const idx = hitTest(pos);
-      if (idx >= 0) {
-        const resolved = resolveDrawingCoords(drawings[idx]);
-        const HANDLE_R = 12;
-        const nearStart = resolved.start && Math.hypot(pos.x-resolved.start.x, pos.y-resolved.start.y) < HANDLE_R;
-        const nearEnd   = resolved.end   && Math.hypot(pos.x-resolved.end.x,   pos.y-resolved.end.y)   < HANDLE_R;
-        drawCanvas.style.cursor = (nearStart || nearEnd) ? 'crosshair' : 'move';
-      } else {
-        drawCanvas.style.cursor = 'default';
-      }
-    }
+function onDrawMouseUp(e) {
+  if (isDrawing && currentDrawing) {
+    drawings.push({ ...currentDrawing }); currentDrawing = null; isDrawing = false;
+    saveDrawings(); redrawCanvas(); renderDrawingsPanel();
   }
-
-  // Drag endpoint
-  if (drawingIP?._endpoint) {
-    const d = drawings[drawingIP._idx];
-    const chartCoord = pixelToChart(pos);
-    if (drawingIP._endpoint === 'start') {
-      d.start = pos;
-      d.chartStart = chartCoord;
-    } else if (drawingIP._endpoint === 'end') {
-      d.end = pos;
-      d.chartEnd = chartCoord;
-    } else if (drawingIP._endpoint === 'xy') {
-      d.x = pos.x; d.y = pos.y;
-      d.chartX = chartCoord;
-    }
-    redrawCanvas();
-    return;
+  if (isDraggingDrawing) {
+    isDraggingDrawing = false; dragPoint = null;
+    drawCanvas.style.cursor = (!drawTool || drawTool === 'none') ? 'default' : 'crosshair';
+    saveDrawings();
   }
-
-  // Drag whole drawing
-  if (drawingIP?._moving) {
-    const dx = pos.x - drawingIP._startPos.x;
-    const dy = pos.y - drawingIP._startPos.y;
-    const orig = drawingIP._origDrawing;
-    const d = drawings[drawingIP._idx];
-    if (orig.start) { d.start = { x: orig.start.x+dx, y: orig.start.y+dy }; }
-    if (orig.end)   { d.end   = { x: orig.end.x+dx,   y: orig.end.y+dy   }; }
-    if (orig.x !== undefined) { d.x = orig.x+dx; d.y = orig.y+dy; }
-    if (orig.chartStart) d.chartStart = pixelToChart(d.start);
-    if (orig.chartEnd)   d.chartEnd   = pixelToChart(d.end);
-    if (orig.chartX)     d.chartX     = pixelToChart({x:d.x,y:d.y});
-    redrawCanvas();
-    return;
+  if (!drawTool || drawTool === 'none') {
+    const c = document.querySelector('#mainChart canvas');
+    if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY }));
   }
-
-  if (!drawingIP) return;
-  drawingIP.end = pos;
-  drawingIP.chartEnd = pixelToChart(pos);
-  redrawCanvas();
-  drawShape(drawingIP, true);
 }
 
-function onDrawUp(e) {
-  if (drawingIP?._endpoint || drawingIP?._moving) {
-    saveDrawings(); renderDrawingsPanel();
-    drawingIP = null;
-    return;
-  }
-  if (!drawingIP) return;
-  const pos = getPos(e);
-  drawingIP.end = pos;
-  drawingIP.chartEnd = pixelToChart(pos);
-  const d = { ...drawingIP, id: Date.now() };
-  drawings.push(d);
-  drawingIP = null;
-  saveDrawings(); redrawCanvas(); renderDrawingsPanel();
-}
-function onDrawDblClick(e) {
-  if (drawTool !== 'none') return;
-  const pos = getPos(e);
-  const idx = hitTest(pos);
-  if (idx >= 0) openDrawingEdit(idx);
-}
-
-// Hit test — find which drawing was clicked
-function hitTest(pos) {
+function findDrawingAt(x, y) {
+  const tol = window.innerWidth < 768 ? 20 : 12;
   for (let i = drawings.length - 1; i >= 0; i--) {
-    if (isNearDrawing(drawings[i], pos)) return i;
+    const d = drawings[i];
+    const sx = getXFromLogical(d.startIndex), sy = getYFromPrice(d.startPrice);
+    const ex = getXFromLogical(d.endIndex),   ey = getYFromPrice(d.endPrice);
+    let hit = false;
+    switch (d.type) {
+      case 'line': case 'ray': case 'arrow': case 'extline':
+        hit = distToSeg(x,y,sx,sy,ex,ey) < tol; break;
+      case 'horizontal': hit = Math.abs(y-sy) < tol; break;
+      case 'vertical':   hit = Math.abs(x-sx) < tol; break;
+      case 'rectangle':
+        hit = Math.abs(x-Math.min(sx,ex)) < tol || Math.abs(x-Math.max(sx,ex)) < tol ||
+              Math.abs(y-Math.min(sy,ey)) < tol || Math.abs(y-Math.max(sy,ey)) < tol; break;
+      case 'circle': { const r=Math.abs(ex-sx)/2,cx2=(sx+ex)/2,cy2=(sy+ey)/2; hit=Math.abs(Math.hypot(x-cx2,y-cy2)-r)<tol; break; }
+      default: hit = x>=Math.min(sx,ex)-tol && x<=Math.max(sx,ex)+tol && y>=Math.min(sy,ey)-tol && y<=Math.max(sy,ey)+tol;
+    }
+    if (hit) return drawings[i];
   }
-  return -1;
+  return null;
 }
-function isNearDrawing(d, pos) {
-  const tol = 8;
-  if (d.type === 'text' || d.type === 'pricelabel') return Math.abs(pos.x - d.x) < 60 && Math.abs(pos.y - d.y) < 16;
-  if (d.type === 'hline') return Math.abs(pos.y - d.start.y) < tol;
-  if (d.type === 'vline') return Math.abs(pos.x - d.start.x) < tol;
-  if (d.type === 'rect' || d.type === 'circle') {
-    const minX = Math.min(d.start.x,d.end.x), maxX = Math.max(d.start.x,d.end.x);
-    const minY = Math.min(d.start.y,d.end.y), maxY = Math.max(d.start.y,d.end.y);
-    return pos.x >= minX-tol && pos.x <= maxX+tol && pos.y >= minY-tol && pos.y <= maxY+tol;
-  }
-  // Line distance
-  if (d.start && d.end) return distToSegment(pos, d.start, d.end) < tol;
-  return false;
-}
-function distToSegment(p, a, b) {
-  const dx = b.x-a.x, dy = b.y-a.y, len2 = dx*dx+dy*dy;
-  if (len2 === 0) return Math.hypot(p.x-a.x, p.y-a.y);
-  const t = Math.max(0, Math.min(1, ((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
-  return Math.hypot(p.x-(a.x+t*dx), p.y-(a.y+t*dy));
+function distToSeg(px,py,ax,ay,bx,by) {
+  const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+  if (!len2) return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len2));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
 }
 
 function redrawCanvas() {
-  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-  drawings.forEach((d, i) => {
-    // Convert stored chart coords back to current pixel positions
-    const resolved = resolveDrawingCoords(d);
-    drawShape(resolved, false, i === selectedDrawingIdx);
-  });
+  if (!drawCtx) return;
+  drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  drawings.forEach(d => drawSingleDrawing(d, d===selectedDrawing));
+  if (currentDrawing) drawSingleDrawing(currentDrawing, false);
 }
 
-// Convert chart-space coords to current pixel coords for rendering
-function resolveDrawingCoords(d) {
-  const r = { ...d };
-  try {
-    if (d.chartStart && d.chartStart.price !== null && d.chartStart.logical !== null) {
-      const x = mainChart.timeScale().logicalToCoordinate(d.chartStart.logical);
-      const y = mainSeries.priceToCoordinate(d.chartStart.price);
-      if (x !== null && y !== null) r.start = { x, y };
-    }
-    if (d.chartEnd && d.chartEnd.price !== null && d.chartEnd.logical !== null) {
-      const x = mainChart.timeScale().logicalToCoordinate(d.chartEnd.logical);
-      const y = mainSeries.priceToCoordinate(d.chartEnd.price);
-      if (x !== null && y !== null) r.end = { x, y };
-    }
-    if (d.chartX && d.chartX.price !== null && d.chartX.logical !== null) {
-      const x = mainChart.timeScale().logicalToCoordinate(d.chartX.logical);
-      const y = mainSeries.priceToCoordinate(d.chartX.price);
-      if (x !== null && y !== null) { r.x = x; r.y = y; }
-    }
-  } catch(e) {}
-  return r;
-}
-
-function applyStyle(ctx, d, preview) {
-  ctx.strokeStyle = preview ? 'rgba(255,165,0,.85)' : (d.color || '#FF4500');
-  ctx.lineWidth   = d.lineWidth || 1.5;
-  ctx.fillStyle   = (d.color || '#FF4500').replace(')',',0.07)').replace('rgb','rgba') || 'rgba(255,69,0,.07)';
-  if (d.lineStyle === 'dashed') ctx.setLineDash([7,5]);
-  else if (d.lineStyle === 'dotted') ctx.setLineDash([2,4]);
-  else ctx.setLineDash([]);
-}
-
-function drawShape(d, preview, selected) {
+function drawSingleDrawing(d, isSelected) {
   const ctx = drawCtx;
-  const { start, end } = d;
+  const sx=getXFromLogical(d.startIndex), sy=getYFromPrice(d.startPrice);
+  const ex=getXFromLogical(d.endIndex),   ey=getYFromPrice(d.endPrice);
   ctx.save();
-  applyStyle(ctx, d, preview);
-
-  // Selection highlight
-  if (selected) {
-    ctx.shadowColor = '#FF4500';
-    ctx.shadowBlur  = 8;
+  ctx.strokeStyle = isSelected ? '#00FF00' : (d.color||'#FF4500');
+  ctx.fillStyle   = d.color||'#FF4500';
+  ctx.lineWidth   = (d.lineWidth||1.5) + (isSelected?1:0);
+  switch(d.lineStyle) { case 'dashed': ctx.setLineDash([8,5]); break; case 'dotted': ctx.setLineDash([2,4]); break; default: ctx.setLineDash([]); }
+  switch(d.type) {
+    case 'line': ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); break;
+    case 'extline': { const dx=ex-sx,dy=ey-sy,len=Math.hypot(dx,dy)||1; ctx.beginPath(); ctx.moveTo(sx-(dx/len)*3000,sy-(dy/len)*3000); ctx.lineTo(sx+(dx/len)*3000,sy+(dy/len)*3000); ctx.stroke(); break; }
+    case 'ray': { const dx=ex-sx,dy=ey-sy,len=Math.hypot(dx,dy)||1; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+(dx/len)*3000,sy+(dy/len)*3000); ctx.stroke(); break; }
+    case 'horizontal': ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(drawCanvas.width,sy); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=d.color||'#FF4500'; ctx.font='10px sans-serif'; ctx.fillText((d.startPrice||0).toFixed(4),drawCanvas.width-70,sy-3); break;
+    case 'vertical': ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,drawCanvas.height); ctx.stroke(); break;
+    case 'rectangle': ctx.strokeRect(sx,sy,ex-sx,ey-sy); break;
+    case 'circle': { const r=Math.abs(ex-sx)/2,cx2=(sx+ex)/2,cy2=(sy+ey)/2; ctx.beginPath(); ctx.arc(cx2,cy2,r||1,0,2*Math.PI); ctx.stroke(); break; }
+    case 'arrow': { const ang=Math.atan2(ey-sy,ex-sx),hl=14; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-hl*Math.cos(ang-Math.PI/6),ey-hl*Math.sin(ang-Math.PI/6)); ctx.moveTo(ex,ey); ctx.lineTo(ex-hl*Math.cos(ang+Math.PI/6),ey-hl*Math.sin(ang+Math.PI/6)); ctx.stroke(); break; }
+    case 'fib': case 'fibonacci': { const levels=[0,0.236,0.382,0.5,0.618,0.786,1],dh=ey-sy; levels.forEach(l=>{ const fy=ey-dh*l; ctx.beginPath(); ctx.moveTo(Math.min(sx,ex),fy); ctx.lineTo(Math.max(sx,ex),fy); ctx.strokeStyle=l===0.618?'#fbbf24':l===0||l===1?'#ef4444':'#6366f1'; ctx.lineWidth=l===0.618?2:1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#94a3b8'; ctx.font='10px sans-serif'; ctx.fillText(`${(l*100).toFixed(1)}%`,Math.min(sx,ex)+4,fy-2); }); break; }
+    case 'channel': { ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); const off=(ey-sy)*0.3; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(sx,sy-off); ctx.lineTo(ex,ey-off); ctx.stroke(); break; }
+    case 'text': case 'pricelabel': ctx.setLineDash([]); ctx.font=`bold ${d.fontSize||12}px sans-serif`; if(d.type==='pricelabel'){const tw=ctx.measureText(d.text||'').width;ctx.fillStyle=d.color||'#FF4500';ctx.fillRect(sx-4,sy-(d.fontSize||12)-2,tw+8,(d.fontSize||12)+6);ctx.fillStyle='#fff';}else{ctx.fillStyle=d.color||'#FFD700';} ctx.fillText(d.text||'',sx,sy); break;
   }
-
-  switch (d.type) {
-    case 'line':
-      ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
-      if (selected) drawHandles(ctx, [start, end]);
-      break;
-    case 'extline': {
-      // Extend line infinitely in both directions
-      const dx = end.x-start.x, dy = end.y-start.y, len = Math.sqrt(dx*dx+dy*dy)||1;
-      const ex1 = start.x-(dx/len)*3000, ey1 = start.y-(dy/len)*3000;
-      const ex2 = start.x+(dx/len)*3000, ey2 = start.y+(dy/len)*3000;
-      ctx.beginPath(); ctx.moveTo(ex1,ey1); ctx.lineTo(ex2,ey2); ctx.stroke();
-      if (selected) drawHandles(ctx, [start, end]);
-      break;
-    }
-    case 'ray': {
-      const dx = end.x-start.x, dy = end.y-start.y, len = Math.sqrt(dx*dx+dy*dy)||1;
-      const ex = start.x+(dx/len)*3000, ey = start.y+(dy/len)*3000;
-      ctx.beginPath(); ctx.moveTo(start.x,start.y); ctx.lineTo(ex,ey); ctx.stroke();
-      if (selected) drawHandles(ctx, [start, end]);
-      break;
-    }
-    case 'hline':
-      ctx.strokeStyle = d.color || '#FFD700';
-      ctx.setLineDash(d.lineStyle==='solid'?[]:[7,5]);
-      ctx.beginPath(); ctx.moveTo(0,start.y); ctx.lineTo(drawCanvas.width,start.y); ctx.stroke();
-      ctx.fillStyle = d.color || '#FFD700'; ctx.font = `${d.fontSize||10}px sans-serif`;
-      if (!preview) ctx.fillText(d.label||'', drawCanvas.width-50, start.y-4);
-      if (selected) drawHandles(ctx, [{x:drawCanvas.width/2,y:start.y}]);
-      break;
-    case 'vline':
-      ctx.strokeStyle = d.color || '#a78bfa';
-      ctx.setLineDash(d.lineStyle==='solid'?[]:[5,4]);
-      ctx.beginPath(); ctx.moveTo(start.x,0); ctx.lineTo(start.x,drawCanvas.height); ctx.stroke();
-      if (selected) drawHandles(ctx, [{x:start.x,y:drawCanvas.height/2}]);
-      break;
-    case 'arrow': {
-      const dx = end.x-start.x, dy = end.y-start.y;
-      const angle = Math.atan2(dy,dx);
-      const headLen = 12;
-      ctx.beginPath(); ctx.moveTo(start.x,start.y); ctx.lineTo(end.x,end.y); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(end.x,end.y);
-      ctx.lineTo(end.x-headLen*Math.cos(angle-Math.PI/6), end.y-headLen*Math.sin(angle-Math.PI/6));
-      ctx.lineTo(end.x-headLen*Math.cos(angle+Math.PI/6), end.y-headLen*Math.sin(angle+Math.PI/6));
-      ctx.closePath(); ctx.fillStyle = d.color||'#FF4500'; ctx.fill();
-      if (selected) drawHandles(ctx, [start, end]);
-      break;
-    }
-    case 'rect':
-      ctx.beginPath(); ctx.rect(start.x,start.y,end.x-start.x,end.y-start.y);
-      ctx.fill(); ctx.stroke();
-      if (selected) drawHandles(ctx, [start,{x:end.x,y:start.y},end,{x:start.x,y:end.y}]);
-      break;
-    case 'circle': {
-      const rx = Math.abs(end.x-start.x)/2, ry = Math.abs(end.y-start.y)/2;
-      const cx = (start.x+end.x)/2, cy = (start.y+end.y)/2;
-      ctx.beginPath(); ctx.ellipse(cx,cy,rx||1,ry||1,0,0,2*Math.PI);
-      ctx.fill(); ctx.stroke();
-      if (selected) drawHandles(ctx, [start,end,{x:cx,y:start.y},{x:cx,y:end.y}]);
-      break;
-    }
-    case 'channel': {
-      // Parallel channel: draw two parallel lines
-      const dx = end.x-start.x, dy = end.y-start.y;
-      const offset = d.channelOffset || 40;
-      const len = Math.sqrt(dx*dx+dy*dy)||1;
-      const nx = -dy/len*offset, ny = dx/len*offset;
-      ctx.beginPath(); ctx.moveTo(start.x,start.y); ctx.lineTo(end.x,end.y); ctx.stroke();
-      ctx.setLineDash([5,4]);
-      ctx.beginPath(); ctx.moveTo(start.x+nx,start.y+ny); ctx.lineTo(end.x+nx,end.y+ny); ctx.stroke();
-      if (selected) drawHandles(ctx, [start,end]);
-      break;
-    }
-    case 'fib': {
-      const levels = [0,0.236,0.382,0.5,0.618,0.786,1];
-      const dy2 = end.y-start.y;
-      levels.forEach(l => {
-        const y = end.y-dy2*l;
-        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(drawCanvas.width,y);
-        ctx.strokeStyle = l===0||l===1?'#ef4444':l===0.618?'#fbbf24':'#6366f1';
-        ctx.lineWidth = l===0.618?2:1; ctx.setLineDash([4,4]); ctx.stroke();
-        ctx.fillStyle='#94a3b8'; ctx.font=`${d.fontSize||10}px sans-serif`;
-        ctx.fillText(`${(l*100).toFixed(1)}%`, 4, y-2);
-      });
-      if (selected) drawHandles(ctx, [start,end]);
-      break;
-    }
-    case 'text':
-      ctx.fillStyle = d.color||'#FFD700';
-      ctx.font = `bold ${d.fontSize||12}px sans-serif`;
-      ctx.fillText(d.text, d.x, d.y);
-      if (selected) drawHandles(ctx, [{x:d.x,y:d.y}]);
-      break;
-    case 'pricelabel': {
-      const fs = d.fontSize||12;
-      ctx.font = `bold ${fs}px sans-serif`;
-      const tw = ctx.measureText(d.text).width;
-      ctx.fillStyle = d.color||'#FF4500';
-      ctx.fillRect(d.x-4, d.y-fs-2, tw+8, fs+6);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(d.text, d.x, d.y);
-      if (selected) drawHandles(ctx, [{x:d.x,y:d.y}]);
-      break;
-    }
+  if (isSelected) {
+    ctx.setLineDash([]); ctx.fillStyle='#fff'; ctx.strokeStyle='#00FF00'; ctx.lineWidth=2;
+    [[sx,sy],[ex,ey]].forEach(([hx,hy])=>{ ctx.beginPath(); ctx.arc(hx,hy,6,0,2*Math.PI); ctx.fill(); ctx.stroke(); });
   }
   ctx.restore();
 }
 
-function drawHandles(ctx, points) {
-  ctx.save();
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#FF4500';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([]);
-  points.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 5, 0, 2*Math.PI);
-    ctx.fill(); ctx.stroke();
-  });
-  ctx.restore();
-}
+function clearDrawings() { drawings=[]; selectedDrawing=null; saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
+function undoDrawing()   { drawings.pop(); selectedDrawing=null; saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
 
-function clearDrawings() { drawings = []; selectedDrawingIdx = -1; saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
-function undoDrawing()   { drawings.pop(); selectedDrawingIdx = -1; saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
-
-// Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDrawingIdx >= 0) {
-    deleteDrawing(selectedDrawingIdx);
-  }
-  if (e.key === 'Escape') {
-    cancelDraw();
-    selectedDrawingIdx = -1;
-    setDrawTool('none', document.getElementById('toolNone'));
-    redrawCanvas();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-    e.preventDefault();
-    undoDrawing();
-  }
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  if ((e.key==='Delete'||e.key==='Backspace') && selectedDrawing) { drawings.splice(drawings.indexOf(selectedDrawing),1); selectedDrawing=null; saveDrawings(); redrawCanvas(); renderDrawingsPanel(); }
+  if (e.key==='Escape') setDrawTool('none', document.getElementById('toolNone'));
+  if ((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); undoDrawing(); }
 });
 
-// ─── DRAWINGS PANEL ───────────────────────────────────────────────────
 function toggleDrawingsPanel() {
-  const panel = document.getElementById('drawingsPanel');
-  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-  if (panel.style.display === 'flex') renderDrawingsPanel();
+  const p = document.getElementById('drawingsPanel');
+  p.style.display = p.style.display==='none' ? 'flex' : 'none';
+  if (p.style.display==='flex') renderDrawingsPanel();
 }
-
 function renderDrawingsPanel() {
   const list = document.getElementById('drawingsList');
   if (!list) return;
-  if (!drawings.length) {
-    list.innerHTML = '<div style="color:#64748b;font-size:12px;text-align:center;padding:16px;">No drawings yet</div>';
-    return;
-  }
-  const icons = {line:'slash',extline:'arrows-alt-h',ray:'long-arrow-alt-right',hline:'minus',vline:'grip-lines-vertical',arrow:'arrow-right',rect:'square',circle:'circle',channel:'equals',fib:'chart-line',text:'font',pricelabel:'tag'};
+  if (!drawings.length) { list.innerHTML='<div style="color:#64748b;font-size:12px;text-align:center;padding:16px;">No drawings yet</div>'; return; }
+  const icons={line:'slash',extline:'arrows-alt-h',ray:'long-arrow-alt-right',horizontal:'minus',vertical:'grip-lines-vertical',arrow:'arrow-right',rectangle:'square',circle:'circle',channel:'equals',fib:'chart-line',fibonacci:'chart-line',text:'font',pricelabel:'tag'};
   list.innerHTML = drawings.map((d,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:${i===selectedDrawingIdx?'rgba(255,69,0,0.1)':'#0D1421'};border:1px solid ${i===selectedDrawingIdx?'#FF4500':'#2d3748'};cursor:pointer;" onclick="selectDrawing(${i})">
+    <div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:${d===selectedDrawing?'rgba(255,69,0,0.1)':'#0D1421'};border:1px solid ${d===selectedDrawing?'#FF4500':'#2d3748'};cursor:pointer;" onclick="selectedDrawing=drawings[${i}];redrawCanvas();renderDrawingsPanel();">
       <i class="fas fa-${icons[d.type]||'draw-polygon'}" style="color:${d.color||'#FF4500'};font-size:13px;width:16px;flex-shrink:0;"></i>
       <span style="flex:1;font-size:12px;color:#e2e8f0;text-transform:capitalize;">${d.type}${d.text?' — '+d.text:''}</span>
       <button onclick="event.stopPropagation();openDrawingEdit(${i})" style="background:#2d3748;border:none;color:#e2e8f0;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;min-width:44px;min-height:36px;"><i class="fas fa-edit"></i></button>
-      <button onclick="event.stopPropagation();deleteDrawing(${i})" style="background:rgba(239,68,68,0.15);border:none;color:#ef4444;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;min-width:44px;min-height:36px;"><i class="fas fa-trash"></i></button>
+      <button onclick="event.stopPropagation();drawings.splice(${i},1);selectedDrawing=null;saveDrawings();redrawCanvas();renderDrawingsPanel();" style="background:rgba(239,68,68,0.15);border:none;color:#ef4444;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;min-width:44px;min-height:36px;"><i class="fas fa-trash"></i></button>
     </div>`).join('');
 }
 
-function selectDrawing(i) {
-  selectedDrawingIdx = i;
-  redrawCanvas();
-  renderDrawingsPanel();
-  // On mobile, auto-open edit modal for the selected drawing
-  if (window.innerWidth <= 768) openDrawingEdit(i);
-}
-
-function deleteDrawing(i) {
-  drawings.splice(i, 1);
-  if (selectedDrawingIdx >= drawings.length) selectedDrawingIdx = -1;
-  saveDrawings(); redrawCanvas(); renderDrawingsPanel();
-}
-
 function openDrawingEdit(i) {
-  const d = drawings[i];
-  if (!d) return;
-  selectedDrawingIdx = i;
+  const d = drawings[i]; if (!d) return;
+  selectedDrawing = d;
   document.getElementById('deIdx').value = i;
   document.getElementById('deColor').value = d.color || '#FF4500';
   document.getElementById('deWidth').value = d.lineWidth || 1.5;
   document.getElementById('deStyle').value = d.lineStyle || 'solid';
-  document.getElementById('deText').value = d.text || d.label || '';
+  document.getElementById('deText').value = d.text || '';
   document.getElementById('deFontSize').value = d.fontSize || 12;
-  document.getElementById('deTextRow').style.display = (d.type==='text'||d.type==='pricelabel'||d.type==='hline') ? '' : 'none';
+  document.getElementById('deTextRow').style.display = (d.type==='text'||d.type==='pricelabel'||d.type==='horizontal') ? '' : 'none';
   document.getElementById('deFontRow').style.display = (d.type==='text'||d.type==='pricelabel') ? '' : 'none';
-  // Bring modal above everything including the canvas
   const modal = document.getElementById('drawingEditModal');
-  modal.style.display = 'flex';
-  modal.style.zIndex = '999999';
-  drawCanvas.style.pointerEvents = 'none';
-  redrawCanvas();
+  modal.style.display = 'flex'; modal.style.zIndex = '999999';
+  drawCanvas.style.pointerEvents = 'none'; redrawCanvas();
 }
-
 function applyDrawingEdit() {
   const i = parseInt(document.getElementById('deIdx').value);
   if (i < 0 || i >= drawings.length) return;
-  drawings[i].color     = document.getElementById('deColor').value;
+  drawings[i].color = document.getElementById('deColor').value;
   drawings[i].lineWidth = parseFloat(document.getElementById('deWidth').value);
   drawings[i].lineStyle = document.getElementById('deStyle').value;
-  const txt = document.getElementById('deText').value;
-  if (txt) { drawings[i].text = txt; drawings[i].label = txt; }
+  const txt = document.getElementById('deText').value; if (txt) drawings[i].text = txt;
   drawings[i].fontSize = parseInt(document.getElementById('deFontSize').value);
-  saveDrawings(); redrawCanvas(); renderDrawingsPanel();
-  document.getElementById('drawingEditModal').style.display = 'none';
-  drawCanvas.style.pointerEvents = 'all';
+  saveDrawings(); redrawCanvas(); renderDrawingsPanel(); closeDrawingEditModal();
 }
-
 function closeDrawingEditModal() {
   document.getElementById('drawingEditModal').style.display = 'none';
   drawCanvas.style.pointerEvents = 'all';
 }
+
 
 // ─── RESIZE BAR ───────────────────────────────────────────────────────
 function initResizeBar() {
