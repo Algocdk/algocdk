@@ -1593,7 +1593,27 @@ function onDrawDown(e) {
       if (d.color) document.getElementById('drawColor').value = d.color;
       if (d.lineStyle) document.getElementById('drawLineStyle').value = d.lineStyle;
       if (d.lineWidth) document.getElementById('drawLineWidth').value = d.lineWidth;
-      drawingIP = { _moving: true, _idx: idx, _startPos: pos, _origDrawing: JSON.parse(JSON.stringify(d)) };
+
+      // Resolve current pixel positions for endpoint detection
+      const resolved = resolveDrawingCoords(d);
+      const HANDLE_R = 12; // px radius to detect handle click
+
+      // Check if clicking near start handle
+      if (resolved.start && Math.hypot(pos.x - resolved.start.x, pos.y - resolved.start.y) < HANDLE_R) {
+        drawingIP = { _endpoint: 'start', _idx: idx };
+      }
+      // Check if clicking near end handle
+      else if (resolved.end && Math.hypot(pos.x - resolved.end.x, pos.y - resolved.end.y) < HANDLE_R) {
+        drawingIP = { _endpoint: 'end', _idx: idx };
+      }
+      // Check if clicking near text/label position
+      else if (resolved.x !== undefined && Math.hypot(pos.x - resolved.x, pos.y - resolved.y) < HANDLE_R) {
+        drawingIP = { _endpoint: 'xy', _idx: idx };
+      }
+      // Otherwise drag the whole drawing
+      else {
+        drawingIP = { _moving: true, _idx: idx, _startPos: pos, _origDrawing: JSON.parse(JSON.stringify(d)) };
+      }
     } else {
       selectedDrawingIdx = -1;
       drawingIP = null;
@@ -1601,6 +1621,7 @@ function onDrawDown(e) {
     redrawCanvas();
     return;
   }
+  const style = getDrawStyle();
   const chartCoord = pixelToChart(pos);
   if (drawTool === 'text' || drawTool === 'pricelabel') {
     const t = prompt(drawTool === 'pricelabel' ? 'Price label:' : 'Annotation:');
@@ -1615,10 +1636,42 @@ function onDrawDown(e) {
 
 function onDrawMove(e) {
   const pos = getPos(e);
-  // Update cursor in pointer mode
+
   if (drawTool === 'none') {
-    drawCanvas.style.cursor = hitTest(pos) >= 0 ? 'move' : 'default';
+    // Update cursor based on what's under the pointer
+    if (!drawingIP) {
+      const idx = hitTest(pos);
+      if (idx >= 0) {
+        const resolved = resolveDrawingCoords(drawings[idx]);
+        const HANDLE_R = 12;
+        const nearStart = resolved.start && Math.hypot(pos.x-resolved.start.x, pos.y-resolved.start.y) < HANDLE_R;
+        const nearEnd   = resolved.end   && Math.hypot(pos.x-resolved.end.x,   pos.y-resolved.end.y)   < HANDLE_R;
+        drawCanvas.style.cursor = (nearStart || nearEnd) ? 'crosshair' : 'move';
+      } else {
+        drawCanvas.style.cursor = 'default';
+      }
+    }
   }
+
+  // Drag endpoint
+  if (drawingIP?._endpoint) {
+    const d = drawings[drawingIP._idx];
+    const chartCoord = pixelToChart(pos);
+    if (drawingIP._endpoint === 'start') {
+      d.start = pos;
+      d.chartStart = chartCoord;
+    } else if (drawingIP._endpoint === 'end') {
+      d.end = pos;
+      d.chartEnd = chartCoord;
+    } else if (drawingIP._endpoint === 'xy') {
+      d.x = pos.x; d.y = pos.y;
+      d.chartX = chartCoord;
+    }
+    redrawCanvas();
+    return;
+  }
+
+  // Drag whole drawing
   if (drawingIP?._moving) {
     const dx = pos.x - drawingIP._startPos.x;
     const dy = pos.y - drawingIP._startPos.y;
@@ -1627,13 +1680,13 @@ function onDrawMove(e) {
     if (orig.start) { d.start = { x: orig.start.x+dx, y: orig.start.y+dy }; }
     if (orig.end)   { d.end   = { x: orig.end.x+dx,   y: orig.end.y+dy   }; }
     if (orig.x !== undefined) { d.x = orig.x+dx; d.y = orig.y+dy; }
-    // Update chart coords too
     if (orig.chartStart) d.chartStart = pixelToChart(d.start);
     if (orig.chartEnd)   d.chartEnd   = pixelToChart(d.end);
     if (orig.chartX)     d.chartX     = pixelToChart({x:d.x,y:d.y});
     redrawCanvas();
     return;
   }
+
   if (!drawingIP) return;
   drawingIP.end = pos;
   drawingIP.chartEnd = pixelToChart(pos);
@@ -1642,7 +1695,7 @@ function onDrawMove(e) {
 }
 
 function onDrawUp(e) {
-  if (drawingIP?._moving) {
+  if (drawingIP?._endpoint || drawingIP?._moving) {
     saveDrawings(); renderDrawingsPanel();
     drawingIP = null;
     return;
