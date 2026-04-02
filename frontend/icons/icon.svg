@@ -1,21 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background -->
-  <rect width="512" height="512" rx="96" fill="#0A0E1A"/>
-  <!-- Orange accent bar at top -->
-  <rect x="0" y="0" width="512" height="8" rx="4" fill="#FF4500"/>
-  <!-- Orange square badge -->
-  <rect x="80" y="160" width="140" height="140" rx="24" fill="url(#grad)"/>
-  <!-- "A" letter in badge -->
-  <text x="150" y="272" font-family="Arial Black, Arial" font-weight="900" font-size="110" fill="#ffffff" text-anchor="middle">A</text>
-  <!-- "Algo" text -->
-  <text x="80" y="390" font-family="Arial Black, Arial" font-weight="900" font-size="88" fill="#FF4500">Algo</text>
-  <!-- "cdk" text -->
-  <text x="310" y="390" font-family="Arial Black, Arial" font-weight="900" font-size="88" fill="#ffffff">cdk</text>
-  <!-- Gradient definition -->
-  <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FF4500"/>
-      <stop offset="100%" style="stop-color:#E63900"/>
-    </linearGradient>
-  </defs>
+  <rect width="512" height="512" rx="80" fill="#0A0E1A"/>
+  <text x="256" y="300" font-family="Arial Black, Arial" font-weight="900" font-size="140" fill="#FF4500" text-anchor="middle">Algo</text>
+  <text x="256" y="420" font-family="Arial Black, Arial" font-weight="900" font-size="140" fill="#ffffff" text-anchor="middle">cdk</text>
 </svg>
