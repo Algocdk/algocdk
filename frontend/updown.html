@@ -117,6 +117,9 @@ select option{background:#0f1923}
       <div style="font-size:10px;color:#94a3b8" id="balanceLabel">Demo Balance</div>
       <div style="font-size:16px;font-weight:700" id="accountBalance">--</div>
     </div>
+    <button onclick="toggleStrategyPanel()" style="background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      <i class="fas fa-robot"></i><span class="strat-btn-label">Strategy</span>
+    </button>
     <button onclick="exitApp()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px"><i class="fas fa-sign-out-alt"></i></button>
   </div>
 </header>
@@ -1815,6 +1818,176 @@ function initDraggableButton() {
 
 window.addEventListener('resize', () => { resizeCharts(); resizeCanvas(); redrawCanvas(); });
 document.addEventListener('DOMContentLoaded', initDraggableButton);
+</script>
+
+<style>
+  .sp{position:fixed;top:70px;right:20px;width:460px;height:540px;background:#1a1f2e;border:1px solid #2d3748;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.6);z-index:9999;display:none;flex-direction:column;overflow:hidden;min-width:300px;min-height:240px;}
+  .sp.open{display:flex;}
+  .sp-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0D1421;border-bottom:1px solid #2d3748;cursor:grab;user-select:none;flex-shrink:0;}
+  .sp-hdr:active{cursor:grabbing;}
+  .sp-title{display:flex;align-items:center;gap:8px;color:#e2e8f0;font-weight:700;font-size:14px;}
+  .sp-title i{color:#FF4500;}
+  .sp-actions{display:flex;gap:6px;}
+  .sp-actions button{background:#2d3748;border:none;color:#94a3b8;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .sp-actions button:hover{background:#FF4500;color:white;}
+  .sp-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .sp-tabs{display:flex;border-bottom:1px solid #2d3748;flex-shrink:0;}
+  .sp-tab{flex:1;padding:10px;background:none;border:none;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;}
+  .sp-tab.active{color:#FF4500;border-bottom-color:#FF4500;}
+  .sp-tc{display:none;flex:1;flex-direction:column;overflow:hidden;}
+  .sp-tc.active{display:flex;}
+  .sp-load{flex:1;display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;}
+  .sp-drop{border:2px dashed #2d3748;border-radius:10px;padding:28px 16px;text-align:center;color:#64748b;font-size:13px;cursor:pointer;transition:all 0.2s;flex-shrink:0;}
+  .sp-drop:hover,.sp-drop.drag-over{border-color:#FF4500;background:rgba(255,69,0,0.05);color:#FF4500;}
+  .sp-drop i{font-size:26px;margin-bottom:8px;display:block;}
+  .sp-files{display:flex;flex-direction:column;gap:8px;}
+  .sp-file{display:flex;align-items:center;justify-content:space-between;background:#0D1421;border:1px solid #2d3748;border-radius:9px;padding:10px 12px;font-size:13px;color:#e2e8f0;}
+  .sp-file .fi{display:flex;align-items:center;gap:8px;}
+  .sp-file .fi i{color:#FF4500;}
+  .sp-file .fa-btns{display:flex;gap:6px;}
+  .sp-file .fa-btns button{background:#2d3748;border:none;color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;}
+  .sp-file .fa-btns button:hover{background:#FF4500;color:white;}
+  .sp-file .fa-btns button.run:hover{background:#10b981;color:white;}
+  .sp-runner{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .sp-frame{flex:1;border:none;background:white;}
+  .sp-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#64748b;font-size:13px;gap:8px;}
+  .sp-empty i{font-size:34px;color:#2d3748;}
+  .sp-resize{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;color:#2d3748;display:flex;align-items:flex-end;justify-content:flex-end;padding:2px;}
+  .sp-resize:hover{color:#FF4500;}
+  @media(max-width:768px){
+    .sp{top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;border-radius:0;min-width:unset;min-height:unset;}
+    .sp-resize{display:none;}
+    .strat-btn-label{display:none;}
+  }
+</style>
+
+<!-- Strategy Panel -->
+<div class="sp" id="stratPanel">
+  <div class="sp-hdr" id="stratHdr">
+    <div class="sp-title"><i class="fas fa-robot"></i> Strategy Runner</div>
+    <div class="sp-actions">
+      <button onclick="document.getElementById('stratPanel').classList.remove('open')" title="Close"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div class="sp-body">
+    <div class="sp-tabs">
+      <button class="sp-tab active" onclick="spTab('load')"><i class="fas fa-folder-open"></i> Load</button>
+      <button class="sp-tab" onclick="spTab('run')"><i class="fas fa-play"></i> Runner</button>
+    </div>
+    <div class="sp-tc active" id="sp-load">
+      <div class="sp-load">
+        <div class="sp-drop" id="spDrop" onclick="document.getElementById('spFileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          Drop your strategy file here<br><small style="color:#475569">HTML / JS / CSS supported</small>
+        </div>
+        <input type="file" id="spFileInput" accept=".html,.js,.css" style="display:none" multiple onchange="spHandleFiles(this.files)">
+        <div class="sp-files" id="spFileList"></div>
+      </div>
+    </div>
+    <div class="sp-tc" id="sp-run">
+      <div class="sp-runner">
+        <div class="sp-empty" id="spEmpty"><i class="fas fa-robot"></i><span>No strategy loaded</span><small>Load an HTML file from the Load tab</small></div>
+        <iframe class="sp-frame" id="spFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+      </div>
+    </div>
+  </div>
+  <div class="sp-resize" id="spResize"><i class="fas fa-grip-lines-vertical" style="transform:rotate(45deg)"></i></div>
+</div>
+
+<script>
+  const SP_KEY = 'updown_bot_strategies';
+  let spFiles = [], spActive = -1;
+
+  function toggleStrategyPanel() {
+    document.getElementById('stratPanel').classList.toggle('open');
+  }
+
+  function spTab(t) {
+    document.querySelectorAll('.sp-tab').forEach((b,i)=>b.classList.toggle('active',['load','run'][i]===t));
+    document.querySelectorAll('.sp-tc').forEach(c=>c.classList.remove('active'));
+    document.getElementById('sp-'+t).classList.add('active');
+  }
+
+  function spSave() {
+    try { localStorage.setItem(SP_KEY, JSON.stringify(spFiles)); } catch(e) {}
+  }
+
+  function spLoad() {
+    try {
+      const s = localStorage.getItem(SP_KEY);
+      if (!s) return;
+      spFiles = JSON.parse(s);
+      spRender();
+      const a = parseInt(localStorage.getItem(SP_KEY+'_active')||'-1');
+      if (a >= 0 && a < spFiles.length && spFiles[a].type==='html') spRun(a, false);
+    } catch(e) {}
+  }
+
+  function spHandleFiles(files) {
+    Array.from(files).forEach(f => {
+      const r = new FileReader();
+      r.onload = e => {
+        const idx = spFiles.findIndex(x=>x.name===f.name);
+        const entry = {name:f.name, content:e.target.result, type:f.name.split('.').pop()};
+        if (idx>=0) spFiles[idx]=entry; else spFiles.push(entry);
+        spSave(); spRender();
+      };
+      r.readAsText(f);
+    });
+  }
+
+  function spRender() {
+    document.getElementById('spFileList').innerHTML = spFiles.map((f,i)=>`
+      <div class="sp-file">
+        <div class="fi"><i class="fas fa-${f.type==='html'?'file-code':f.type==='js'?'file-alt':'palette'}"></i><span title="${f.name}">${f.name}</span></div>
+        <div class="fa-btns">
+          ${f.type==='html'?`<button class="run" onclick="spRun(${i})"><i class="fas fa-play"></i> Run</button>`:''}
+          <button onclick="spRemove(${i})"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`).join('');
+  }
+
+  function spRemove(i) {
+    spFiles.splice(i,1);
+    if (spActive===i) { spActive=-1; localStorage.removeItem(SP_KEY+'_active'); document.getElementById('spFrame').style.display='none'; document.getElementById('spEmpty').style.display=''; }
+    else if (spActive>i) { spActive--; localStorage.setItem(SP_KEY+'_active',spActive); }
+    spSave(); spRender();
+  }
+
+  function spRun(i, switchTab=true) {
+    const f = spFiles[i];
+    if (!f||f.type!=='html') return;
+    spActive=i; localStorage.setItem(SP_KEY+'_active',i);
+    const fr=document.getElementById('spFrame'), em=document.getElementById('spEmpty');
+    fr.style.display=''; em.style.display='none'; fr.srcdoc=f.content;
+    if (switchTab) spTab('run');
+  }
+
+  // Drag to move
+  let spDragging=false, spDX=0, spDY=0;
+  const spPanel=document.getElementById('stratPanel'), spHdr=document.getElementById('stratHdr');
+  function spStartDrag(cx,cy){spDragging=true;const r=spPanel.getBoundingClientRect();spDX=cx-r.left;spDY=cy-r.top;spPanel.style.transition='none';}
+  function spMoveDrag(cx,cy){if(!spDragging||window.innerWidth<=768)return;spPanel.style.left=Math.max(0,Math.min(window.innerWidth-spPanel.offsetWidth,cx-spDX))+'px';spPanel.style.top=Math.max(0,Math.min(window.innerHeight-spPanel.offsetHeight,cy-spDY))+'px';spPanel.style.right='auto';}
+  spHdr.addEventListener('mousedown',e=>{if(!e.target.closest('button'))spStartDrag(e.clientX,e.clientY);});
+  spHdr.addEventListener('touchstart',e=>{if(!e.target.closest('button')){const t=e.touches[0];spStartDrag(t.clientX,t.clientY);}},{passive:true});
+  document.addEventListener('mousemove',e=>spMoveDrag(e.clientX,e.clientY));
+  document.addEventListener('touchmove',e=>{if(spDragging){e.preventDefault();spMoveDrag(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
+  document.addEventListener('mouseup',()=>spDragging=false);
+  document.addEventListener('touchend',()=>spDragging=false);
+
+  // Resize
+  let spResizing=false,spRX=0,spRY=0,spRW=0,spRH=0;
+  document.getElementById('spResize').addEventListener('mousedown',e=>{e.preventDefault();spResizing=true;spRX=e.clientX;spRY=e.clientY;spRW=spPanel.offsetWidth;spRH=spPanel.offsetHeight;});
+  document.addEventListener('mousemove',e=>{if(!spResizing)return;spPanel.style.width=Math.max(300,spRW+(e.clientX-spRX))+'px';spPanel.style.height=Math.max(240,spRH+(e.clientY-spRY))+'px';});
+  document.addEventListener('mouseup',()=>spResizing=false);
+
+  // Dropzone drag & drop
+  const spDropEl=document.getElementById('spDrop');
+  spDropEl.addEventListener('dragover',e=>{e.preventDefault();spDropEl.classList.add('drag-over');});
+  spDropEl.addEventListener('dragleave',()=>spDropEl.classList.remove('drag-over'));
+  spDropEl.addEventListener('drop',e=>{e.preventDefault();spDropEl.classList.remove('drag-over');spHandleFiles(e.dataTransfer.files);});
+
+  spLoad();
 </script>
 </body>
 </html>
