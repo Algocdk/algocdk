@@ -499,8 +499,7 @@ const IND_SETTINGS = {
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initCanvas();
-  // Re-sync canvas size after chart renders
-  setTimeout(() => { resizeCanvas(); redrawCanvas(); }, 300);
+  setTimeout(() => { resizeCharts(); resizeCanvas(); redrawCanvas(); }, 100);
   initResizeBar();
   connectWebSocket();
   updateCalculations();
@@ -591,7 +590,8 @@ function initCharts() {
 
 function makeChartOpts(el, isMain) {
   return {
-    autoSize: true,
+    width:  el.clientWidth  || 800,
+    height: el.clientHeight || (isMain ? 500 : 150),
     layout: { background: { color: '#0A0E1A' }, textColor: '#94a3b8', fontSize: 11 },
     grid:   { vertLines: { color: '#0c1220' }, horzLines: { color: '#0c1220' } },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
@@ -614,22 +614,26 @@ function resizeCharts() {
   const wrap   = document.getElementById('chartWrap');
   const mainEl = document.getElementById('mainChart');
   const p2Wrap = document.getElementById('pane2Wrap');
+  const toolbar = document.getElementById('toolbar');
   if (!wrap || !mainEl) return;
-  const totalH = wrap.clientHeight;
+
+  // Use appBody height as source of truth, subtract toolbar and pane2
+  const appBody = document.getElementById('appBody');
+  const totalAvail = appBody ? appBody.clientHeight : window.innerHeight - 52;
+  const toolbarH = toolbar ? toolbar.offsetHeight : 40;
   const p2H  = pane2Visible ? (p2Wrap?.offsetHeight || 150) : 0;
   const rbH  = pane2Visible ? 5 : 0;
-  const mainH = Math.max(180, totalH - p2H - rbH);
+  const mainH = Math.max(200, totalAvail - toolbarH - p2H - rbH);
 
   mainEl.style.height = mainH + 'px';
-  // autoSize handles width; only set height explicitly
-  if (mainChart) mainChart.applyOptions({ height: mainH });
+  if (mainChart) mainChart.applyOptions({ width: mainEl.clientWidth || wrap.clientWidth, height: mainH });
 
   if (pane2Chart && pane2Visible && p2Wrap) {
     const p2El = document.getElementById('pane2Chart');
     if (p2El) {
       const h = Math.max(80, p2Wrap.offsetHeight);
       p2El.style.height = h + 'px';
-      pane2Chart.applyOptions({ height: h });
+      pane2Chart.applyOptions({ width: p2El.clientWidth || wrap.clientWidth, height: h });
     }
   }
   resizeCanvas();
