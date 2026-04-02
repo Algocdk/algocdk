@@ -1006,8 +1006,9 @@ function renderMainSeries() {
       ? candles
       : candles.map(c => ({ time: c.time, value: c.close }));
   mainSeries.setData(data);
-  // Scroll to latest candle, show last ~100 bars
   mainChart.timeScale().scrollToRealTime();
+  // Now that chart is rendered, redraw saved drawings with correct coordinates
+  setTimeout(() => redrawCanvas(), 100);
 }
 
 function computeHeikin() {
@@ -1426,7 +1427,8 @@ function saveDrawings() {
 function loadDrawings() {
   try {
     const s = localStorage.getItem(DRAW_STORAGE);
-    if (s) { drawings = JSON.parse(s); redrawCanvas(); }
+    if (s) { drawings = JSON.parse(s); }
+    // Don't redraw yet — wait until candles are loaded and mainSeries is ready
   } catch(e) {}
 }
 
@@ -1459,7 +1461,13 @@ function initCanvas() {
     if (!shouldPassThrough(e)) return false;
     const chartEl = document.querySelector('#mainChart canvas');
     if (!chartEl) return false;
-    chartEl.dispatchEvent(new MouseEvent(e.type, e));
+    chartEl.dispatchEvent(new MouseEvent(e.type, {
+      bubbles: true, cancelable: true,
+      clientX: e.clientX, clientY: e.clientY,
+      screenX: e.screenX, screenY: e.screenY,
+      button: e.button, buttons: e.buttons,
+      ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey
+    }));
     return true;
   }
 
@@ -1893,6 +1901,8 @@ function openDrawingEdit(i) {
   document.getElementById('deTextRow').style.display = (d.type==='text'||d.type==='pricelabel'||d.type==='hline') ? '' : 'none';
   document.getElementById('deFontRow').style.display = (d.type==='text'||d.type==='pricelabel') ? '' : 'none';
   document.getElementById('drawingEditModal').style.display = 'flex';
+  // Disable canvas so modal buttons are clickable
+  drawCanvas.style.pointerEvents = 'none';
   redrawCanvas();
 }
 
@@ -1907,6 +1917,7 @@ function applyDrawingEdit() {
   drawings[i].fontSize = parseInt(document.getElementById('deFontSize').value);
   saveDrawings(); redrawCanvas(); renderDrawingsPanel();
   document.getElementById('drawingEditModal').style.display = 'none';
+  drawCanvas.style.pointerEvents = 'all';
 }
 
 // ─── RESIZE BAR ───────────────────────────────────────────────────────
@@ -2475,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', initDraggableButton);
   <div style="background:#1a1f2e;border:1px solid #2d3748;border-radius:14px;width:100%;max-width:340px;">
     <div style="padding:14px 18px;border-bottom:1px solid #2d3748;display:flex;justify-content:space-between;align-items:center;">
       <span style="color:#e2e8f0;font-weight:700;font-size:14px;"><i class="fas fa-edit" style="color:#FF4500;margin-right:6px;"></i>Edit Drawing</span>
-      <button onclick="document.getElementById('drawingEditModal').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;"><i class="fas fa-times"></i></button>
+      <button onclick="document.getElementById('drawingEditModal').style.display='none';drawCanvas.style.pointerEvents='all';" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;"><i class="fas fa-times"></i></button>
     </div>
     <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
       <input type="hidden" id="deIdx">
@@ -2505,7 +2516,7 @@ document.addEventListener('DOMContentLoaded', initDraggableButton);
       </div>
     </div>
     <div style="padding:12px 18px;border-top:1px solid #2d3748;display:flex;gap:10px;">
-      <button onclick="document.getElementById('drawingEditModal').style.display='none'" style="flex:1;background:#2d3748;border:none;color:#94a3b8;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
+      <button onclick="document.getElementById('drawingEditModal').style.display='none';drawCanvas.style.pointerEvents='all';" style="flex:1;background:#2d3748;border:none;color:#94a3b8;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
       <button onclick="applyDrawingEdit()" style="flex:2;background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">Apply</button>
     </div>
   </div>
