@@ -442,7 +442,7 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 8px 8px 80px; }
+            body { padding: 8px 8px 20px; }
             .container { padding: 0; max-width: 100%; }
 
             /* Compact price box */
@@ -529,6 +529,9 @@
             .bot-panel-actions button { width: 36px; height: 36px; font-size: 16px; }
             /* Hide standalone FAB on mobile — bot accessible via bottom nav */
             .bot-fab { display: none !important; }
+
+            /* Strategy button — hide text on tiny screens */
+            .strategy-btn-text { display: none; }
 
             /* Bot load area touch friendly */
             .bot-dropzone { padding: 24px 16px; }
@@ -829,6 +832,9 @@
             <div style="display: flex; gap: 8px; align-items: center;">
                 <button class="back-btn" onclick="toggleAccountType()" id="accountTypeBtn" style="padding: 8px 16px;">Demo</button>
                 <div class="balance" id="accountBalance">$10,000</div>
+                <button onclick="toggleBotPanel()" style="background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+                    <i class="fas fa-robot"></i><span class="strategy-btn-text">Strategy</span>
+                </button>
             </div>
         </div>
         
@@ -1385,21 +1391,10 @@
         }
     </script>
 
-    <!-- Bot FAB -->
+    <!-- Bot FAB (desktop only) -->
     <button class="bot-fab" onclick="toggleBotPanel()" title="Strategy Bot">
         <i class="fas fa-robot"></i>
     </button>
-
-    <!-- Bottom Nav (mobile) -->
-    <nav class="bottom-nav">
-        <a href="/trading"><i class="fas fa-arrow-left"></i>Back</a>
-        <a href="#trade-section" onclick="document.querySelector('.card').scrollIntoView({behavior:'smooth'});return false;" class="active"><i class="fas fa-bolt"></i>Trade</a>
-        <a href="#analysis-section" onclick="document.querySelector('.analysis-card').scrollIntoView({behavior:'smooth'});return false;"><i class="fas fa-chart-bar"></i>Analysis</a>
-        <button class="bot-nav-btn" onclick="toggleBotPanel()">
-            <div class="bot-icon-wrap"><i class="fas fa-robot"></i></div>
-            <span>Strategy</span>
-        </button>
-    </nav>
 
     <!-- Bot Panel -->
     <div class="bot-panel" id="botPanel">
