@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Binaries
 algocdk
 *.exe
@@ -76,3 +77,8 @@ node_modules/
 # Build artifacts
 dist/
 build/
+=======
+.env
+*.db
+uploads/
+>>>>>>> eaaa234 (Ignore env , db , and uploads)
