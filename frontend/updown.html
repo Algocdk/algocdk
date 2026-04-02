@@ -2042,9 +2042,45 @@ async function loadCustomIndicators() {
   const token = localStorage.getItem('token');
   if (!token) return;
   try {
-    const res = await fetch('/api/user/indicators/custom', {headers:{'Authorization':'Bearer '+token}});
-    const data = await res.json();
-    userCustomInds = data.indicators || [];
+    const [customRes, marketRes] = await Promise.all([
+      fetch('/api/user/indicators/custom', {headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).catch(()=>({indicators:[]})),
+      fetch('/api/user/indicators', {headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).catch(()=>({indicators:[]}))
+    ]);
+
+    userCustomInds = customRes.indicators || [];
+
+    // Marketplace indicators — normalise to same shape as custom
+    const marketInds = (marketRes.indicators || []).map(ui => {
+      const ind = ui.Indicator || ui.indicator || ui;
+      return { id: 'mkt_'+ind.id, name: ind.name, code: ind.code, category: ind.category, _source: 'marketplace' };
+    }).filter(i => i.code);
+
+    // Merge into one list for rendering — keep separate arrays for edit logic
+    userCustomInds = [...userCustomInds, ...marketInds];
+
+    // Restore previously active custom indicators
+    const saved = localStorage.getItem('activeCustomInds');
+    if (saved) {
+      const savedKeys = JSON.parse(saved);
+      const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+      savedKeys.forEach(key => {
+        const rawId = key.replace('custom_','');
+        const ind = userCustomInds.find(i=>String(i.id)===rawId);
+        if (!ind) return;
+        activeCustomInds.add(key);
+        const color = colors[userCustomInds.indexOf(ind) % colors.length];
+        const tryRender = () => {
+          if (candles.length > 0) {
+            renderCustomIndOnChart(ind.id, color);
+            addCustomChip(ind.id, key, color);
+          } else {
+            setTimeout(tryRender, 500);
+          }
+        };
+        tryRender();
+      });
+    }
+
     renderCustomIndDropdown();
   } catch(e) { console.warn('Could not load custom indicators:', e); }
 }
@@ -2055,17 +2091,36 @@ function renderCustomIndDropdown() {
   if (!userCustomInds.length) { sep.style.display='none'; items.innerHTML=''; return; }
   sep.style.display='';
   const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
-  items.innerHTML = userCustomInds.map((ind,i) => {
-    const color = colors[i % colors.length];
-    const key = 'custom_'+ind.id;
-    const isActive = activeCustomInds.has(key);
-    return `<div class="dropdown-item ${isActive?'active-ind':''}" id="ci-dd-${ind.id}" style="justify-content:space-between;">
-      <span style="display:flex;align-items:center;gap:8px;" onclick="toggleCustomInd(${ind.id},'${color}')">
+
+  const customOnly = userCustomInds.filter(i=>!i._source);
+  const marketOnly = userCustomInds.filter(i=>i._source==='marketplace');
+
+  let html = '';
+  if (customOnly.length) {
+    html += `<div class="dropdown-sep" style="font-size:9px;">My Custom</div>`;
+    html += customOnly.map((ind,i) => {
+      const color = colors[i % colors.length];
+      const key = 'custom_'+ind.id;
+      return `<div class="dropdown-item ${activeCustomInds.has(key)?'active-ind':''}" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:8px;flex:1;" onclick="toggleCustomInd('${ind.id}','${color}')">
+          <span class="color-dot" style="background:${color}"></span>${ind.name}
+        </span>
+        <button onclick="event.stopPropagation();openCIModal('${ind.id}')" style="background:#2d3748;border:none;color:#94a3b8;padding:2px 8px;border-radius:5px;font-size:10px;cursor:pointer;"><i class="fas fa-edit"></i></button>
+      </div>`;
+    }).join('');
+  }
+  if (marketOnly.length) {
+    html += `<div class="dropdown-sep" style="font-size:9px;">Marketplace</div>`;
+    html += marketOnly.map((ind,i) => {
+      const color = colors[(customOnly.length + i) % colors.length];
+      const key = 'custom_'+ind.id;
+      return `<div class="dropdown-item ${activeCustomInds.has(key)?'active-ind':''}" onclick="toggleCustomInd('${ind.id}','${color}')">
         <span class="color-dot" style="background:${color}"></span>${ind.name}
-      </span>
-      <button onclick="event.stopPropagation();openCIModal(${ind.id})" style="background:#2d3748;border:none;color:#94a3b8;padding:2px 8px;border-radius:5px;font-size:10px;cursor:pointer;"><i class="fas fa-edit"></i></button>
-    </div>`;
-  }).join('');
+        <span style="margin-left:auto;font-size:9px;color:#475569;">marketplace</span>
+      </div>`;
+    }).join('');
+  }
+  items.innerHTML = html;
 }
 
 function toggleCustomInd(id, color) {
@@ -2079,19 +2134,20 @@ function toggleCustomInd(id, color) {
     renderCustomIndOnChart(id, color);
     addCustomChip(id, key, color);
   }
+  localStorage.setItem('activeCustomInds', JSON.stringify([...activeCustomInds]));
   renderCustomIndDropdown();
   document.querySelectorAll('.dropdown-menu').forEach(d=>d.style.display='none');
 }
 
 function renderCustomIndOnChart(id, color) {
-  const ind = userCustomInds.find(i=>i.id===id);
+  const ind = userCustomInds.find(i=>String(i.id)===String(id));
   if (!ind || !candles.length) return;
   try {
     const fn = new Function('return ('+ind.code+')')();
     const candleData = candles.map(c=>({open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume||0,time:c.time}));
     const result = fn(candleData, {});
     if (!result||!result.data) return;
-    const series = mainChart.addLineSeries({color: result.color||color, lineWidth: result.lineWidth||2, priceLineVisible:false, lastValueVisible:true, title:result.name||ind.name});
+    const series = mainChart.addLineSeries({color:result.color||color,lineWidth:result.lineWidth||2,priceLineVisible:false,lastValueVisible:true,title:result.name||ind.name});
     const seriesData = result.data.map((v,i)=>v!==null?{time:candles[i].time,value:v}:null).filter(Boolean);
     series.setData(seriesData);
     customIndSeries['custom_'+id] = series;
@@ -2099,13 +2155,13 @@ function renderCustomIndOnChart(id, color) {
 }
 
 function addCustomChip(id, key, color) {
-  const ind = userCustomInds.find(i=>i.id===id);
+  const ind = userCustomInds.find(i=>String(i.id)===String(id));
   if (!ind) return;
   const el = document.getElementById('indicatorChips');
   const chip = document.createElement('span');
   chip.className = 'ind-chip';
   chip.id = 'chip-'+key;
-  chip.innerHTML = `<span class="color-dot" style="background:${color}"></span>${ind.name}<span class="rm" onclick="toggleCustomInd(${id},'${color}')">✕</span>`;
+  chip.innerHTML = `<span class="color-dot" style="background:${color}"></span>${ind.name}<span class="rm" onclick="toggleCustomInd('${id}','${color}')">✕</span>`;
   el.appendChild(chip);
 }
 
