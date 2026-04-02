@@ -34,8 +34,8 @@ body{background:#0D1421;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 #pane2Label{position:absolute;top:5px;left:8px;font-size:10px;color:#64748b;z-index:10;pointer-events:none;background:rgba(10,14,26,.7);padding:1px 5px;border-radius:3px}
 #resizeBar{height:5px;background:#1E293B;cursor:ns-resize;flex-shrink:0;transition:background .2s}
 #resizeBar:hover{background:#FF4500}
-#drawCanvas{position:absolute;top:0;left:0;pointer-events:none;z-index:100}
-#drawCanvas.drawing{pointer-events:all;cursor:crosshair}
+#drawCanvas{position:absolute;top:0;left:0;pointer-events:all;z-index:100;cursor:default}
+#drawCanvas.drawing{cursor:crosshair}
 #ohlcBar{position:absolute;top:6px;left:8px;z-index:30;font-size:11px;pointer-events:none;display:flex;gap:10px;background:rgba(10,14,26,.6);padding:2px 8px;border-radius:4px}
 .ohlc-item{display:flex;gap:3px;align-items:center}
 #chartLogo{position:absolute;bottom:12px;right:12px;z-index:25;pointer-events:none;opacity:0.15;font-size:32px;font-weight:900;letter-spacing:-1px}
@@ -1419,16 +1419,64 @@ function saveDrawings() {
   try { localStorage.setItem(DRAW_STORAGE, JSON.stringify(drawings)); } catch(e) {}
 }
 function loadDrawings() {
-  try { const s = localStorage.getItem(DRAW_STORAGE); if (s) { drawings = JSON.parse(s); redrawCanvas(); } } catch(e) {}
+  try {
+    const s = localStorage.getItem(DRAW_STORAGE);
+    if (s) { drawings = JSON.parse(s); redrawCanvas(); }
+  } catch(e) {}
+}
+
+// Convert pixel position to chart coordinates (time + price)
+function pixelToChart(pos) {
+  try {
+    const price = mainChart.priceScale('right').coordinateToPrice(pos.y);
+    const logical = mainChart.timeScale().coordinateToLogical(pos.x);
+    const time = logical !== null && candles[Math.round(logical)] ? candles[Math.round(logical)].time : null;
+    return { price, time, logical, px: pos.x, py: pos.y };
+  } catch(e) { return { px: pos.x, py: pos.y }; }
+}
+
+// Convert chart coordinates back to pixels for drawing
+function chartToPixel(coord) {
+  try {
+    if (coord.time !== undefined && coord.price !== undefined) {
+      const x = mainChart.timeScale().logicalToCoordinate(coord.logical ?? 0);
+      const y = mainSeries.priceToCoordinate(coord.price);
+      return { x: x ?? coord.px ?? 0, y: y ?? coord.py ?? 0 };
+    }
+  } catch(e) {}
+  return { x: coord.px ?? 0, y: coord.py ?? 0 };
+}
+
+// Subscribe to chart pan/zoom to redraw
+function subscribeChartRedraw() {
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(() => redrawCanvas());
+  mainChart.priceScale('right').applyOptions({});
+  // Also redraw on price scale change
+  mainSeries.priceScale().subscribeVisiblePriceRangeChange(() => redrawCanvas());
 }
 
 function initCanvas() {
   drawCanvas = document.getElementById('drawCanvas');
   drawCtx = drawCanvas.getContext('2d');
   resizeCanvas();
-  drawCanvas.addEventListener('mousedown', onDrawDown);
-  drawCanvas.addEventListener('mousemove', onDrawMove);
-  drawCanvas.addEventListener('mouseup',   onDrawUp);
+  drawCanvas.style.pointerEvents = 'all';
+
+  // Forward events to chart when in pointer mode with no active drag
+  function shouldPassThrough(e) {
+    return drawTool === 'none' && !drawingIP;
+  }
+  function forwardToChart(e) {
+    if (!shouldPassThrough(e)) return false;
+    const chartEl = document.querySelector('#mainChart canvas');
+    if (!chartEl) return false;
+    chartEl.dispatchEvent(new MouseEvent(e.type, e));
+    return true;
+  }
+
+  drawCanvas.addEventListener('mousedown', e => { if (!forwardToChart(e)) onDrawDown(e); });
+  drawCanvas.addEventListener('mousemove', e => { forwardToChart(e); onDrawMove(e); });
+  drawCanvas.addEventListener('mouseup',   e => { if (!forwardToChart(e)) onDrawUp(e); });
+  drawCanvas.addEventListener('wheel',     e => { const c = document.querySelector('#mainChart canvas'); if(c) c.dispatchEvent(new WheelEvent(e.type,e)); }, { passive: true });
   drawCanvas.addEventListener('mouseleave', e => { if (drawingIP) onDrawUp(e); });
   drawCanvas.addEventListener('contextmenu', e => { e.preventDefault(); cancelDraw(); });
   drawCanvas.addEventListener('dblclick', onDrawDblClick);
@@ -1436,6 +1484,7 @@ function initCanvas() {
   drawCanvas.addEventListener('touchmove',  e => { e.preventDefault(); onDrawMove(touchToMouse(e)); }, { passive: false });
   drawCanvas.addEventListener('touchend',   e => { e.preventDefault(); onDrawUp(touchToMouse(e));   }, { passive: false });
   loadDrawings();
+  setTimeout(subscribeChartRedraw, 800);
 }
 function touchToMouse(e) {
   const t = e.touches[0] || e.changedTouches[0];
@@ -1457,12 +1506,12 @@ function resizeCanvas() {
 }
 function setDrawTool(tool, btn) {
   drawTool = tool;
-  drawCanvas.className = tool !== 'none' ? 'drawing' : '';
+  // Use cursor to indicate mode — canvas always receives events
+  drawCanvas.style.cursor = tool === 'none' ? 'default' : 'crosshair';
   document.querySelectorAll('[id^="tool"]').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   selectedDrawingIdx = -1;
   cancelDraw();
-  // Show style controls when a draw tool is active
   document.getElementById('drawStyleControls').style.display = tool !== 'none' ? 'flex' : 'none';
 }
 
@@ -1493,12 +1542,10 @@ function onDrawDown(e) {
     const idx = hitTest(pos);
     if (idx >= 0) {
       selectedDrawingIdx = idx;
-      // Sync style controls to selected drawing
       const d = drawings[idx];
       if (d.color) document.getElementById('drawColor').value = d.color;
       if (d.lineStyle) document.getElementById('drawLineStyle').value = d.lineStyle;
       if (d.lineWidth) document.getElementById('drawLineWidth').value = d.lineWidth;
-      // Start drag-to-move
       drawingIP = { _moving: true, _idx: idx, _startPos: pos, _origDrawing: JSON.parse(JSON.stringify(d)) };
     } else {
       selectedDrawingIdx = -1;
@@ -1508,21 +1555,25 @@ function onDrawDown(e) {
     return;
   }
   const style = getDrawStyle();
+  const chartCoord = pixelToChart(pos);
   if (drawTool === 'text' || drawTool === 'pricelabel') {
     const t = prompt(drawTool === 'pricelabel' ? 'Price label:' : 'Annotation:');
     if (t) {
-      drawings.push({ type: drawTool, x: pos.x, y: pos.y, text: t, ...style, fontSize: 12 });
+      drawings.push({ type: drawTool, x: pos.x, y: pos.y, chartX: chartCoord, text: t, ...style, fontSize: 12 });
       saveDrawings(); redrawCanvas(); renderDrawingsPanel();
     }
     return;
   }
-  drawingIP = { type: drawTool, start: pos, end: pos, ...style };
+  drawingIP = { type: drawTool, start: pos, end: pos, chartStart: chartCoord, chartEnd: chartCoord, ...style };
 }
 
 function onDrawMove(e) {
   const pos = getPos(e);
+  // Update cursor in pointer mode
+  if (drawTool === 'none') {
+    drawCanvas.style.cursor = hitTest(pos) >= 0 ? 'move' : 'default';
+  }
   if (drawingIP?._moving) {
-    // Drag selected drawing
     const dx = pos.x - drawingIP._startPos.x;
     const dy = pos.y - drawingIP._startPos.y;
     const orig = drawingIP._origDrawing;
@@ -1530,11 +1581,16 @@ function onDrawMove(e) {
     if (orig.start) { d.start = { x: orig.start.x+dx, y: orig.start.y+dy }; }
     if (orig.end)   { d.end   = { x: orig.end.x+dx,   y: orig.end.y+dy   }; }
     if (orig.x !== undefined) { d.x = orig.x+dx; d.y = orig.y+dy; }
+    // Update chart coords too
+    if (orig.chartStart) d.chartStart = pixelToChart(d.start);
+    if (orig.chartEnd)   d.chartEnd   = pixelToChart(d.end);
+    if (orig.chartX)     d.chartX     = pixelToChart({x:d.x,y:d.y});
     redrawCanvas();
     return;
   }
   if (!drawingIP) return;
   drawingIP.end = pos;
+  drawingIP.chartEnd = pixelToChart(pos);
   redrawCanvas();
   drawShape(drawingIP, true);
 }
@@ -1546,7 +1602,9 @@ function onDrawUp(e) {
     return;
   }
   if (!drawingIP) return;
-  drawingIP.end = getPos(e);
+  const pos = getPos(e);
+  drawingIP.end = pos;
+  drawingIP.chartEnd = pixelToChart(pos);
   const d = { ...drawingIP, id: Date.now() };
   drawings.push(d);
   drawingIP = null;
@@ -1589,7 +1647,34 @@ function distToSegment(p, a, b) {
 
 function redrawCanvas() {
   drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-  drawings.forEach((d, i) => drawShape(d, false, i === selectedDrawingIdx));
+  drawings.forEach((d, i) => {
+    // Convert stored chart coords back to current pixel positions
+    const resolved = resolveDrawingCoords(d);
+    drawShape(resolved, false, i === selectedDrawingIdx);
+  });
+}
+
+// Convert chart-space coords to current pixel coords for rendering
+function resolveDrawingCoords(d) {
+  const r = { ...d };
+  try {
+    if (d.chartStart && d.chartStart.price !== undefined) {
+      const x = mainChart.timeScale().logicalToCoordinate(d.chartStart.logical);
+      const y = mainSeries.priceToCoordinate(d.chartStart.price);
+      if (x !== null && y !== null) r.start = { x, y };
+    }
+    if (d.chartEnd && d.chartEnd.price !== undefined) {
+      const x = mainChart.timeScale().logicalToCoordinate(d.chartEnd.logical);
+      const y = mainSeries.priceToCoordinate(d.chartEnd.price);
+      if (x !== null && y !== null) r.end = { x, y };
+    }
+    if (d.chartX && d.chartX.price !== undefined) {
+      const x = mainChart.timeScale().logicalToCoordinate(d.chartX.logical);
+      const y = mainSeries.priceToCoordinate(d.chartX.price);
+      if (x !== null && y !== null) { r.x = x; r.y = y; }
+    }
+  } catch(e) {}
+  return r;
 }
 
 function applyStyle(ctx, d, preview) {
