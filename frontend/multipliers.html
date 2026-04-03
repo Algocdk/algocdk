@@ -187,10 +187,17 @@ select option{background:#0f1923}
       <div class="dropdown-item" onclick="toggleInd('cci')"><span class="color-dot" style="background:#C084FC"></span>CCI 20</div>
       <div class="dropdown-item" onclick="toggleInd('willr')"><span class="color-dot" style="background:#2DD4BF"></span>Williams %R 14</div>
       <div class="dropdown-item" onclick="toggleInd('mom')"><span class="color-dot" style="background:#FB923C"></span>Momentum 10</div>
+      <div class="dropdown-sep" id="customIndSep" style="display:none">Custom Indicators</div>
+      <div id="customIndItems"></div>
+      <div class="dropdown-item" onclick="window.location.href='/my-indicators'" style="color:#FF4500;font-size:11px;"><i class="fas fa-plus" style="margin-right:4px"></i>Manage My Indicators</div>
     </div>
   </div>
   <div class="tb-sep"></div>
-  <!-- Drawing tools -->
+  <!-- Strategy Runner button -->
+  <div class="tb-group">
+    <button class="tb-btn" onclick="toggleBotPanel()" title="Strategy Runner"><i class="fas fa-robot"></i> Strategy</button>
+  </div>
+  <div class="tb-sep"></div>
   <div class="tb-group">
     <button class="tb-btn active" id="toolNone" onclick="setDrawTool('none',this)" title="Pointer"><i class="fas fa-mouse-pointer"></i></button>
     <button class="tb-btn" id="toolLine" onclick="setDrawTool('line',this)" title="Trend Line"><i class="fas fa-slash"></i></button>
@@ -1837,7 +1844,247 @@ function initDraggableButton() {
 }
 
 window.addEventListener('resize', () => { resizeCharts(); resizeCanvas(); redrawCanvas(); });
-document.addEventListener('DOMContentLoaded', initDraggableButton);
+document.addEventListener('DOMContentLoaded', () => {
+  initDraggableButton();
+  setTimeout(loadSharedCustomIndicators, 100);
+  setTimeout(async () => { await loadServerCustomIndicators(); restoreActiveCustomInds(); }, 500);
+});
+</script>
+
+<!-- ── Bot Panel ── -->
+<button class="bot-fab" onclick="toggleBotPanel()" title="Strategy Runner" style="position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#FF4500,#E63900);border:none;color:white;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(255,69,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;">
+  <i class="fas fa-robot"></i>
+</button>
+<div id="botPanel" style="position:fixed;top:80px;right:24px;width:480px;height:560px;background:#1a1f2e;border:1px solid #2d3748;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);z-index:999;display:none;flex-direction:column;overflow:hidden;min-width:320px;min-height:260px;">
+  <div id="botPanelHeader" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0D1421;border-bottom:1px solid #2d3748;cursor:grab;user-select:none;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:8px;color:#e2e8f0;font-weight:700;font-size:14px;"><i class="fas fa-robot" style="color:#FF4500"></i> Strategy Runner</div>
+    <div style="display:flex;gap:6px;">
+      <button onclick="document.getElementById('botPanel').style.display='none'" style="background:#2d3748;border:none;color:#94a3b8;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;border-bottom:1px solid #2d3748;flex-shrink:0;">
+      <button class="bot-tab-btn active" onclick="switchBotTab('load',this)" style="flex:1;padding:10px;background:none;border:none;color:#FF4500;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid #FF4500;"><i class="fas fa-folder-open"></i> Load</button>
+      <button class="bot-tab-btn" onclick="switchBotTab('run',this)" style="flex:1;padding:10px;background:none;border:none;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"><i class="fas fa-play"></i> Runner</button>
+    </div>
+    <div id="bot-tab-load" style="flex:1;display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto;">
+      <div id="botDropzone" onclick="document.getElementById('botFileInput').click()" style="border:2px dashed #2d3748;border-radius:12px;padding:32px 16px;text-align:center;color:#64748b;font-size:13px;cursor:pointer;" onmouseover="this.style.borderColor='#FF4500';this.style.color='#FF4500'" onmouseout="this.style.borderColor='#2d3748';this.style.color='#64748b'">
+        <i class="fas fa-cloud-upload-alt" style="font-size:28px;margin-bottom:8px;display:block;"></i>
+        Drop your strategy file here<br><small style="color:#475569">HTML / JS supported</small>
+      </div>
+      <input type="file" id="botFileInput" accept=".html,.js" style="display:none" multiple onchange="handleBotFiles(this.files)">
+      <div id="botFileList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div id="bot-tab-run" style="flex:1;display:none;flex-direction:column;">
+      <div id="botRunnerEmpty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#475569;gap:8px;font-size:13px;">
+        <i class="fas fa-robot" style="font-size:32px;"></i><span>No strategy loaded</span><small>Load an HTML file from the Load tab</small>
+      </div>
+      <iframe id="botRunnerFrame" style="display:none;flex:1;border:none;background:#0D1421;" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+    </div>
+  </div>
+  <div id="botResizeHandle" style="position:absolute;bottom:4px;right:4px;width:16px;height:16px;cursor:se-resize;color:#475569;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-grip-lines-vertical" style="transform:rotate(45deg)"></i></div>
+</div>
+
+<script>
+// ── Bot Panel ──
+const BOT_KEY = location.pathname.replace(/\//g,'_') + '_bot_strategies';
+let botFiles = [], activeStrategyIndex = -1;
+
+function toggleBotPanel() {
+  const p = document.getElementById('botPanel');
+  p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+}
+function switchBotTab(tab, btn) {
+  document.getElementById('bot-tab-load').style.display = tab === 'load' ? 'flex' : 'none';
+  document.getElementById('bot-tab-run').style.display  = tab === 'run'  ? 'flex' : 'none';
+  document.querySelectorAll('.bot-tab-btn').forEach(b => {
+    b.style.color = '#64748b'; b.style.borderBottomColor = 'transparent';
+  });
+  if (btn) { btn.style.color = '#FF4500'; btn.style.borderBottomColor = '#FF4500'; }
+}
+function handleBotFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const entry = { name: file.name, content: e.target.result, type: file.name.split('.').pop() };
+      const ex = botFiles.findIndex(f => f.name === file.name);
+      if (ex >= 0) botFiles[ex] = entry; else botFiles.push(entry);
+      saveBotStorage(); renderBotFileList();
+    };
+    reader.readAsText(file);
+  });
+}
+function renderBotFileList() {
+  document.getElementById('botFileList').innerHTML = botFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#0D1421;border:1px solid #2d3748;border-radius:8px;padding:10px 12px;">
+      <span style="font-size:12px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${f.name}</span>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        ${f.type === 'html' ? `<button onclick="runBotStrategy(${i})" style="background:#FF4500;border:none;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-play"></i> Run</button>` : ''}
+        <button onclick="removeBotFile(${i})" style="background:#2d3748;border:none;color:#f87171;padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+function removeBotFile(i) { botFiles.splice(i, 1); saveBotStorage(); renderBotFileList(); }
+function runBotStrategy(i) {
+  const f = botFiles[i];
+  if (!f || f.type !== 'html') return;
+  activeStrategyIndex = i;
+  const frame = document.getElementById('botRunnerFrame');
+  frame.style.display = 'flex'; frame.srcdoc = f.content;
+  document.getElementById('botRunnerEmpty').style.display = 'none';
+  switchBotTab('run', document.querySelectorAll('.bot-tab-btn')[1]);
+}
+function saveBotStorage() { try { localStorage.setItem(BOT_KEY, JSON.stringify(botFiles)); } catch(e) {} }
+function loadBotStorage() {
+  try {
+    const s = localStorage.getItem(BOT_KEY);
+    if (s) { botFiles = JSON.parse(s); renderBotFileList(); }
+  } catch(e) {}
+}
+// Drag bot panel
+(function() {
+  const panel = document.getElementById('botPanel');
+  const header = document.getElementById('botPanelHeader');
+  let dragging = false, ox = 0, oy = 0;
+  header.addEventListener('mousedown', e => { if (e.target.closest('button')) return; dragging = true; const r = panel.getBoundingClientRect(); ox = e.clientX - r.left; oy = e.clientY - r.top; panel.style.transition = 'none'; });
+  document.addEventListener('mousemove', e => { if (!dragging) return; panel.style.left = Math.max(0, e.clientX - ox) + 'px'; panel.style.top = Math.max(0, e.clientY - oy) + 'px'; panel.style.right = 'auto'; });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  // Resize
+  const rh = document.getElementById('botResizeHandle');
+  let resizing = false, rsx, rsy, rsw, rsh;
+  rh.addEventListener('mousedown', e => { e.preventDefault(); resizing = true; rsx = e.clientX; rsy = e.clientY; rsw = panel.offsetWidth; rsh = panel.offsetHeight; });
+  document.addEventListener('mousemove', e => { if (!resizing) return; panel.style.width = Math.max(320, rsw + e.clientX - rsx) + 'px'; panel.style.height = Math.max(260, rsh + e.clientY - rsy) + 'px'; });
+  document.addEventListener('mouseup', () => { resizing = false; });
+  // Drop zone
+  const dz = document.getElementById('botDropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = '#FF4500'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = '#2d3748'; });
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = '#2d3748'; handleBotFiles(e.dataTransfer.files); });
+})();
+loadBotStorage();
+
+// ── Custom Indicators ──
+let userCustomInds = [], activeCustomInds = new Set(), customIndSeries = {};
+
+function evalIndicatorCode(code) {
+  try { return new Function('return (' + code + ')')(); } catch(e) {}
+  try { const fn = new Function(code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;'); const r = fn(); if (r) return r; } catch(e) {}
+  return new Function('return (' + code + ')')();
+}
+
+function renderCustomIndOnChart(id, color) {
+  const ind = userCustomInds.find(i => String(i.id) === String(id));
+  if (!ind || !candles.length) return;
+  try {
+    const candleData = candles.map(c => ({ open:c.open, high:c.high, low:c.low, close:c.close, volume:c.volume||0, time:c.time }));
+    const parsed = evalIndicatorCode(ind.code);
+    let values = [], indName = ind.name, indColor = color, lineWidth = 2;
+    if (typeof parsed === 'function') {
+      const r = parsed(candleData, {});
+      if (!r || !r.data) throw new Error('Must return {name, data, color}');
+      values = r.data; indName = r.name || indName; indColor = r.color || indColor; lineWidth = r.lineWidth || 2;
+    } else if (parsed && typeof parsed.calculate === 'function') {
+      if (typeof parsed.draw === 'function') {
+        const key = String(id).startsWith('custom_') ? id : 'custom_'+id;
+        if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} }
+        customIndSeries[key] = null;
+        redrawCanvas(); return;
+      }
+      values = parsed.calculate(candleData, parsed.defaultParams || {});
+      indName = parsed.name || indName; indColor = parsed.color || indColor; lineWidth = parsed.lineWidth || 2;
+    } else { throw new Error('Invalid indicator format'); }
+    if (!Array.isArray(values)) throw new Error('calculate() must return an array');
+    const key = String(id).startsWith('custom_') ? id : 'custom_'+id;
+    if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} }
+    const series = mainChart.addLineSeries({ color: indColor, lineWidth, priceLineVisible: false, lastValueVisible: true, title: indName });
+    series.setData(values.map((v,i) => (v !== null && candles[i]) ? { time: candles[i].time, value: v } : null).filter(Boolean));
+    customIndSeries[key] = series;
+  } catch(e) { console.error('Custom indicator error:', e); alert('Error: ' + e.message); }
+}
+
+function toggleCustomInd(id, color) {
+  const key = String(id).startsWith('custom_') ? id : 'custom_'+id;
+  if (activeCustomInds.has(key)) {
+    activeCustomInds.delete(key);
+    if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} }
+    delete customIndSeries[key];
+    redrawCanvas();
+  } else {
+    activeCustomInds.add(key);
+    renderCustomIndOnChart(id, color);
+  }
+  localStorage.setItem('activeCustomInds_' + location.pathname, JSON.stringify([...activeCustomInds]));
+  renderCustomIndDropdown();
+  document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+}
+
+function renderCustomIndDropdown() {
+  const sep = document.getElementById('customIndSep');
+  const items = document.getElementById('customIndItems');
+  const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+  const list = userCustomInds.filter(i => !i._source);
+  if (!list.length) { sep.style.display = 'none'; items.innerHTML = ''; return; }
+  sep.style.display = '';
+  items.innerHTML = list.map((ind, i) => {
+    const color = colors[i % colors.length];
+    const key = 'custom_' + ind.id;
+    return `<div class="dropdown-item ${activeCustomInds.has(key) ? 'active-ind' : ''}" onclick="toggleCustomInd('${ind.id}','${color}')">
+      <span class="color-dot" style="background:${color}"></span>${ind.name}${ind._isShared ? ' <span style="font-size:9px;color:#64748b">(local)</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function loadSharedCustomIndicators() {
+  try {
+    const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
+    shared.forEach(entry => {
+      if (!entry.id || !entry.name || !entry.code) return;
+      const plainId = String(entry.id).replace(/^custom_/, '');
+      if (userCustomInds.find(i => String(i.id) === plainId || i.name === entry.name)) return;
+      userCustomInds.push({ id: plainId, name: entry.name, code: entry.code, _isShared: true });
+    });
+    renderCustomIndDropdown();
+  } catch(e) {}
+}
+
+async function loadServerCustomIndicators() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const [cr, mr] = await Promise.all([
+      fetch('/api/user/indicators/custom', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()).catch(() => ({ indicators: [] })),
+      fetch('/api/user/indicators', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()).catch(() => ({ indicators: [] }))
+    ]);
+    (cr.indicators || []).forEach(ind => {
+      if (!userCustomInds.find(i => String(i.id) === String(ind.id))) userCustomInds.push(ind);
+    });
+    (mr.indicators || []).map(ui => {
+      const ind = ui.Indicator || ui.indicator || ui;
+      return { id: 'mkt_'+ind.id, name: ind.name, code: ind.code, _source: 'marketplace' };
+    }).filter(i => i.code).forEach(ind => {
+      if (!userCustomInds.find(i => String(i.id) === String(ind.id))) userCustomInds.push(ind);
+    });
+    renderCustomIndDropdown();
+  } catch(e) {}
+}
+
+function restoreActiveCustomInds() {
+  const saved = localStorage.getItem('activeCustomInds_' + location.pathname);
+  if (!saved) return;
+  const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+  JSON.parse(saved).forEach(key => {
+    const rawId = key.replace(/^custom_/, '');
+    const ind = userCustomInds.find(i => String(i.id) === rawId);
+    if (!ind) return;
+    activeCustomInds.add(key);
+    const color = colors[userCustomInds.indexOf(ind) % colors.length];
+    const tryRender = () => { if (candles.length > 0) renderCustomIndOnChart(ind.id, color); else setTimeout(tryRender, 500); };
+    tryRender();
+  });
+  renderCustomIndDropdown();
+}
+
+window.addEventListener('storage', e => { if (e.key === 'sharedCustomIndicators') loadSharedCustomIndicators(); });
 </script>
 </body>
 </html>

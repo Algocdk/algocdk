@@ -4408,38 +4408,57 @@ async function initializeAccountDisplay() {
         /* ================= PERSISTENCE ================= */
         function saveIndicatorsToStorage() {
             const indicatorData = Array.from(indicators.entries());
-            // Serialize custom indicators — convert functions to strings so they survive JSON
+            // Save custom indicators using raw code string — full object re-eval on restore
             const customData = Array.from(customIndicators.entries()).map(([key, ind]) => {
-                const serialized = { ...ind };
-                if (typeof ind.calculate === 'function') serialized.calculate = ind.calculate.toString();
-                if (typeof ind.draw === 'function') serialized.draw = ind.draw.toString();
-                return [key, serialized];
+                return [key, {
+                    name: ind.name,
+                    color: ind.color,
+                    window: ind.window,
+                    lineWidth: ind.lineWidth,
+                    _rawCode: ind._rawCode || null
+                }];
             });
             localStorage.setItem('tradingIndicators', JSON.stringify(indicatorData));
             localStorage.setItem('customIndicators', JSON.stringify(customData));
         }
         
         function loadIndicatorsFromStorage() {
-            // Load custom indicators first
+            // Load custom indicators first — restore full object from raw code
             const savedCustom = localStorage.getItem('customIndicators');
             if (savedCustom) {
                 const customData = JSON.parse(savedCustom);
                 customData.forEach(([key, value]) => {
-                    // Restore functions from string
-                    if (typeof value.calculate === 'string') {
-                        value.calculate = eval(`(${value.calculate})`);
-                    }
-                    if (typeof value.draw === 'string') {
-                        value.draw = eval(`(${value.draw})`);
+                    let fullInd = value;
+                    // Re-eval the full indicator object from raw code
+                    if (value._rawCode) {
+                        try {
+                            const parsed = eval(`(${value._rawCode})`);
+                            if (parsed && typeof parsed === 'object') {
+                                fullInd = parsed;
+                                fullInd._rawCode = value._rawCode;
+                            }
+                        } catch(e) {
+                            console.warn('Could not restore custom indicator:', key, e);
+                            return; // skip broken indicator
+                        }
+                    } else {
+                        // Legacy: try to restore calculate/draw from string
+                        if (typeof value.calculate === 'string') {
+                            try { value.calculate = eval(`(${value.calculate})`); } catch(e) {}
+                        }
+                        if (typeof value.draw === 'string') {
+                            try { value.draw = eval(`(${value.draw})`); } catch(e) {}
+                        }
                     }
                     
-                    customIndicators.set(key, value);
-                    // Add to dropdown
+                    customIndicators.set(key, fullInd);
                     const select = document.getElementById('indicators');
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = value.name;
-                    select.appendChild(option);
+                    if (!select.querySelector(`option[value="${key}"]`)) {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = fullInd.name || key;
+                        select.appendChild(option);
+                    }
                 });
             }
             
@@ -4449,10 +4468,7 @@ async function initializeAccountDisplay() {
                 const indicatorData = JSON.parse(saved);
                 indicators.clear();
                 indicatorData.forEach(([key, value]) => {
-                    if (key.startsWith('custom_') && !customIndicators.has(key)) {
-                        return;
-                    }
-                    // Restore custom reference
+                    if (key.startsWith('custom_') && !customIndicators.has(key)) return;
                     if (key.startsWith('custom_') && customIndicators.has(key)) {
                         value.custom = customIndicators.get(key);
                     }

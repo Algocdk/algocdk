@@ -2670,31 +2670,33 @@ async function loadCustomIndicators() {
     // Merge into one list for rendering — keep separate arrays for edit logic
     userCustomInds = [...userCustomInds, ...marketInds];
 
-    // Restore previously active custom indicators
-    const saved = localStorage.getItem('activeCustomInds');
-    if (saved) {
-      const savedKeys = JSON.parse(saved);
-      const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
-      savedKeys.forEach(key => {
-        const rawId = key.replace('custom_','');
-        const ind = userCustomInds.find(i=>String(i.id)===rawId);
-        if (!ind) return;
-        activeCustomInds.add(key);
-        const color = colors[userCustomInds.indexOf(ind) % colors.length];
-        const tryRender = () => {
-          if (candles.length > 0) {
-            renderCustomIndOnChart(ind.id, color);
-            addCustomChip(ind.id, key, color);
-          } else {
-            setTimeout(tryRender, 500);
-          }
-        };
-        tryRender();
-      });
-    }
-
     renderCustomIndDropdown();
   } catch(e) { console.warn('Could not load custom indicators:', e); }
+}
+
+// Called after both server + shared indicators are loaded
+function restoreActiveCustomInds() {
+  const saved = localStorage.getItem('activeCustomInds');
+  if (!saved) return;
+  const savedKeys = JSON.parse(saved);
+  const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+  savedKeys.forEach(key => {
+    const rawId = key.replace(/^custom_/, '');
+    const ind = userCustomInds.find(i => String(i.id) === rawId);
+    if (!ind) return;
+    activeCustomInds.add(key);
+    const color = colors[userCustomInds.indexOf(ind) % colors.length];
+    const tryRender = () => {
+      if (candles.length > 0) {
+        renderCustomIndOnChart(ind.id, color);
+        addCustomChip(ind.id, key, color);
+      } else {
+        setTimeout(tryRender, 500);
+      }
+    };
+    tryRender();
+  });
+  renderCustomIndDropdown();
 }
 
 function renderCustomIndDropdown() {
@@ -2988,8 +2990,12 @@ async function ciSave() {
 document.addEventListener('DOMContentLoaded', () => {
   // Load shared (local) indicators immediately — no server needed
   setTimeout(loadSharedCustomIndicators, 100);
-  // Load server indicators separately
-  setTimeout(loadCustomIndicators, 500);
+  // Load server indicators separately, then restore active state
+  setTimeout(async () => {
+    await loadCustomIndicators();
+    loadSharedCustomIndicators(); // ensure shared are merged before restore
+    restoreActiveCustomInds();
+  }, 500);
 });
 
 // ── Load shared custom indicators from /app page ──────────────────────
