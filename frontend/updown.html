@@ -2768,13 +2768,13 @@ function removeCustomChip(key) {
 const _origRenderAllInds = window.renderAllInds;
 function reRenderCustomInds() {
   activeCustomInds.forEach(key => {
-    const id = parseInt(key.replace('custom_',''));
-    const ind = userCustomInds.find(i=>i.id===id);
+    const rawId = key.replace(/^custom_/, '');
+    const ind = userCustomInds.find(i => String(i.id) === rawId);
     if (!ind) return;
     const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
     const color = colors[userCustomInds.indexOf(ind) % colors.length];
-    if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
-    renderCustomIndOnChart(id, color);
+    if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} delete customIndSeries[key]; }
+    renderCustomIndOnChart(rawId, color);
   });
 }
 
@@ -2864,19 +2864,44 @@ function ciTest() {
 async function ciSave() {
   const token = localStorage.getItem('token');
   const id = document.getElementById('ciEditId').value;
+  const ind = userCustomInds.find(i => String(i.id) === String(id));
+
+  // Shared (local-only) indicators — update in memory and re-render, no server call
+  if (ind && ind._isShared) {
+    const newCode = document.getElementById('ciCode').value;
+    const newName = document.getElementById('ciName').value;
+    ind.code = newCode;
+    ind.name = newName;
+    // Update sharedCustomIndicators in localStorage
+    try {
+      const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
+      const idx = shared.findIndex(e => String(e.id).replace(/^custom_/,'') === String(id));
+      if (idx >= 0) { shared[idx].code = newCode; shared[idx].name = newName; }
+      localStorage.setItem('sharedCustomIndicators', JSON.stringify(shared));
+    } catch(e) {}
+    const key = 'custom_' + id;
+    if (activeCustomInds.has(key)) {
+      const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+      const color = colors[userCustomInds.indexOf(ind) % colors.length];
+      if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} delete customIndSeries[key]; }
+      renderCustomIndOnChart(id, color);
+    }
+    closeCIModal();
+    renderCustomIndDropdown();
+    return;
+  }
+
   const data = {name:document.getElementById('ciName').value, category:document.getElementById('ciCategory').value, code:document.getElementById('ciCode').value};
   const res = await fetch('/api/user/indicators/custom/'+id, {method:'PUT', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify(data)});
   if (res.ok) {
-    // Update local cache
-    const idx = userCustomInds.findIndex(i=>i.id==id);
+    const idx = userCustomInds.findIndex(i=>String(i.id)==String(id));
     if (idx>=0) userCustomInds[idx] = {...userCustomInds[idx], ...data};
-    // Re-render if active
     const key = 'custom_'+id;
     if (activeCustomInds.has(key)) {
       const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
-      const color = colors[userCustomInds.findIndex(i=>i.id==id) % colors.length];
-      if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
-      renderCustomIndOnChart(parseInt(id), color);
+      const color = colors[userCustomInds.findIndex(i=>String(i.id)==String(id)) % colors.length];
+      if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} delete customIndSeries[key]; }
+      renderCustomIndOnChart(id, color);
     }
     closeCIModal();
     renderCustomIndDropdown();
@@ -2891,14 +2916,15 @@ function loadSharedCustomIndicators() {
   try {
     const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
     if (!shared.length) return;
-    const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
-    shared.forEach((entry, idx) => {
+    shared.forEach((entry) => {
       if (!entry.id || !entry.name || !entry.code) return;
-      // Skip if already loaded from server
-      if (userCustomInds.find(i => 'custom_'+i.id === entry.id || i.name === entry.name)) return;
-      // The code is already in standard format — no wrapping needed
+      // Normalize id — strip 'custom_' prefix so it matches server indicator id format
+      // The 'custom_' prefix is always added by key-building logic (key = 'custom_' + ind.id)
+      const plainId = String(entry.id).replace(/^custom_/, '');
+      // Skip if already loaded from server with same name
+      if (userCustomInds.find(i => String(i.id) === plainId || i.name === entry.name)) return;
       userCustomInds.push({
-        id: entry.id,
+        id: plainId,
         name: entry.name,
         code: entry.code,
         _isShared: true

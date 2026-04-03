@@ -3138,7 +3138,7 @@
                 const shift = ind.params?.shift || 0;
                 const applyTo = ind.params?.applyTo || 'close';
                 const style = ind.params?.style || 'line';
-                const window = ind.params?.window || 1;
+                const indWindow = ind.params?.window || 1;
                 
                 ctx.strokeStyle = ind.color;
                 ctx.lineWidth = 1;
@@ -3163,17 +3163,17 @@
                     }
                 });
                 
-                if (type.startsWith('sma') && window === 1) {
+                if (type.startsWith('sma') && indWindow === 1) {
                     const sma = calculateSMAFromPrices(priceData, period);
                     const shiftedSma = shift ? sma.slice(shift).concat(new Array(shift).fill(null)) : sma;
                     const visibleSma = shiftedSma.slice(start, start + visible);
                     drawLine(visibleSma, pad, candleSpacing, y1);
-                } else if (type.startsWith('ema') && window === 1) {
+                } else if (type.startsWith('ema') && indWindow === 1) {
                     const ema = calculateEMAFromPrices(priceData, period);
                     const shiftedEma = shift ? ema.slice(shift).concat(new Array(shift).fill(null)) : ema;
                     const visibleEma = shiftedEma.slice(start, start + visible);
                     drawLine(visibleEma, pad, candleSpacing, y1);
-                } else if (type === 'bb' && window === 1) {
+                } else if (type === 'bb' && indWindow === 1) {
                     const std = ind.params?.std || 2;
                     const bb = calculateBB(data, period, std);
                     const visibleBb = bb.slice(start, start + visible);
@@ -3193,7 +3193,7 @@
                             ctx.stroke();
                         }
                     });
-                } else if (type === 'rsi' && window === 2 && y2) {
+                } else if (type === 'rsi' && indWindow === 2 && y2) {
                     const rsi = calculateRSI(data, period);
                     const visibleRsi = rsi.slice(start, start + visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3230,7 +3230,7 @@
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
                     drawLine(visibleRsi, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth = 1;
-                } else if (type === 'macd' && window === 2 && y2) {
+                } else if (type === 'macd' && indWindow === 2 && y2) {
                     const fast = ind.params?.fast || 12;
                     const slow = ind.params?.slow || 26;
                     const signal = ind.params?.signal || 9;
@@ -3266,7 +3266,7 @@
                     ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 1.5;
                     drawLine(visibleSignal, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth = 1;
-                } else if (type === 'stoch' && window === 2 && y2) {
+                } else if (type === 'stoch' && indWindow === 2 && y2) {
                     const k = ind.params?.k || 14;
                     const d = ind.params?.d || 3;
                     const stoch = calculateStochastic(data, k, d);
@@ -3287,7 +3287,7 @@
                     ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 1.5;
                     drawLine(visibleD, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth = 1;
-                } else if (type === 'atr' && window === 2 && y2) {
+                } else if (type === 'atr' && indWindow === 2 && y2) {
                     const atr = calculateATR(data, period);
                     const visibleAtr = atr.slice(start, start + visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3314,34 +3314,34 @@
                     ctx.lineWidth = 1;
 
                 // ── Window 1 overlays ──────────────────────────────────
-                } else if (type === 'wma' && window === 1) {
+                } else if (type === 'wma' && indWindow === 1) {
                     const wma = calculateWMA(data.map(c=>c.close), period);
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
                     drawLine(wma.slice(start, start+visible), pad, candleSpacing, y1);
                     ctx.lineWidth = 1;
-                } else if (type === 'hma' && window === 1) {
+                } else if (type === 'hma' && indWindow === 1) {
                     const hma = calculateHMA(data.map(c=>c.close), period);
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2.5;
                     drawLine(hma.slice(start, start+visible), pad, candleSpacing, y1);
                     ctx.lineWidth = 1;
-                } else if (type === 'dema' && window === 1) {
+                } else if (type === 'dema' && indWindow === 1) {
                     const dema = calculateDEMA(data.map(c=>c.close), period);
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
                     drawLine(dema.slice(start, start+visible), pad, candleSpacing, y1);
                     ctx.lineWidth = 1;
-                } else if (type === 'tema' && window === 1) {
+                } else if (type === 'tema' && indWindow === 1) {
                     const tema = calculateTEMA(data.map(c=>c.close), period);
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
                     drawLine(tema.slice(start, start+visible), pad, candleSpacing, y1);
                     ctx.lineWidth = 1;
-                } else if (type === 'vwap' && window === 1) {
+                } else if (type === 'vwap' && indWindow === 1) {
                     const vwap = calculateVWAP(data);
                     // VWAP with shaded band
                     ctx.strokeStyle = ind.color; ctx.lineWidth = 2.5;
                     ctx.setLineDash([6,3]);
                     drawLine(vwap.slice(start, start+visible), pad, candleSpacing, y1);
                     ctx.setLineDash([]); ctx.lineWidth = 1;
-                } else if (type === 'psar' && window === 1) {
+                } else if (type === 'psar' && indWindow === 1) {
                     const sar = calculateParabolicSAR(data);
                     const visibleSar = sar.slice(start, start+visible);
                     const viewSlice = view;
@@ -3355,7 +3355,7 @@
                         ctx.arc(x, y1(v), Math.max(candleSpacing * 0.2, 2), 0, Math.PI * 2);
                         ctx.fill();
                     });
-                } else if (type === 'donchian' && window === 1) {
+                } else if (type === 'donchian' && indWindow === 1) {
                     const dc = calculateDonchian(data, period);
                     const vis = dc.slice(start, start+visible);
                     // Filled channel
@@ -3371,7 +3371,7 @@
                     ctx.globalAlpha = 0.4; ctx.setLineDash([4,3]);
                     drawLine(vis.map(v=>v?.mid), pad, candleSpacing, y1);
                     ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 1;
-                } else if (type === 'keltner' && window === 1) {
+                } else if (type === 'keltner' && indWindow === 1) {
                     const kc = calculateKeltner(data, period);
                     const vis = kc.slice(start, start+visible);
                     ctx.fillStyle = 'rgba(218,112,214,0.07)';
@@ -3386,7 +3386,7 @@
                     ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
                     drawLine(vis.map(v=>v?.mid), pad, candleSpacing, y1);
                     ctx.globalAlpha = 1;
-                } else if (type === 'envelopes' && window === 1) {
+                } else if (type === 'envelopes' && indWindow === 1) {
                     const env = calculateEnvelopes(data.map(c=>c.close), period, ind.params?.pct || 0.025);
                     const vis = env.slice(start, start+visible);
                     ctx.fillStyle = 'rgba(152,251,152,0.06)';
@@ -3403,7 +3403,7 @@
                     ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 1;
 
                 // ── Window 2 oscillators ───────────────────────────────
-                } else if (type === 'cci' && window === 2 && y2) {
+                } else if (type === 'cci' && indWindow === 2 && y2) {
                     const cci = calculateCCI(data, period);
                     const visCci = cci.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3422,7 +3422,7 @@
                         ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visCci[i+1])); ctx.stroke();
                     });
                     ctx.lineWidth=1;
-                } else if (type === 'willr' && window === 2 && y2) {
+                } else if (type === 'willr' && indWindow === 2 && y2) {
                     const wr = calculateWilliamsR(data, period);
                     const visWr = wr.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3434,7 +3434,7 @@
                     ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
                     drawLine(visWr, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'momentum' && window === 2 && y2) {
+                } else if (type === 'momentum' && indWindow === 2 && y2) {
                     const mom = calculateMomentum(data.map(c=>c.close), period);
                     const visMom = mom.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3452,7 +3452,7 @@
                     ctx.strokeStyle=ind.color; ctx.lineWidth=1.5;
                     drawLine(visMom, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'roc' && window === 2 && y2) {
+                } else if (type === 'roc' && indWindow === 2 && y2) {
                     const roc = calculateROC(data.map(c=>c.close), period);
                     const visRoc = roc.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3466,7 +3466,7 @@
                         ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visRoc[i+1])); ctx.stroke();
                     });
                     ctx.lineWidth=1;
-                } else if (type === 'obv' && window === 2 && y2) {
+                } else if (type === 'obv' && indWindow === 2 && y2) {
                     const obv = calculateOBV(data);
                     const visObv = obv.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3482,7 +3482,7 @@
                     ctx.strokeStyle=ind.color; ctx.lineWidth=2;
                     drawLine(visObv, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'mfi' && window === 2 && y2) {
+                } else if (type === 'mfi' && indWindow === 2 && y2) {
                     const mfi = calculateMFI(data, period);
                     const visMfi = mfi.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3494,7 +3494,7 @@
                     ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
                     drawLine(visMfi, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'ao' && window === 2 && y2) {
+                } else if (type === 'ao' && indWindow === 2 && y2) {
                     const ao = calculateAwesomeOscillator(data);
                     const sc = w2Scales.get(type) || { yFn: y2 };
                     const visAo = ao.slice(start, start+visible);
@@ -3507,7 +3507,7 @@
                         const y0 = sc.yFn(0), yv = sc.yFn(v);
                         ctx.fillRect(x, Math.min(y0, yv), Math.max(candleSpacing - 1, 1), Math.abs(y0 - yv));
                     });
-                } else if (type === 'adx' && window === 2 && y2) {
+                } else if (type === 'adx' && indWindow === 2 && y2) {
                     const adx = calculateADX(data, period);
                     const visAdx = adx.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3522,7 +3522,7 @@
                         ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visAdx[i+1])); ctx.stroke();
                     });
                     ctx.lineWidth=1;
-                } else if (type === 'aroon' && window === 2 && y2) {
+                } else if (type === 'aroon' && indWindow === 2 && y2) {
                     const aroon = calculateAroon(data, period);
                     const sc = w2Scales.get(type) || { yFn: y2 };
                     ctx.strokeStyle='rgba(150,150,150,0.25)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
@@ -3533,7 +3533,7 @@
                     ctx.strokeStyle='#FF4500'; ctx.lineWidth=2;
                     drawLine(aroon.slice(start, start+visible).map(v=>v?.down), pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'cmf' && window === 2 && y2) {
+                } else if (type === 'cmf' && indWindow === 2 && y2) {
                     const cmf = calculateCMF(data, period);
                     const visCmf = cmf.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3551,7 +3551,7 @@
                     ctx.strokeStyle=ind.color; ctx.lineWidth=1.5;
                     drawLine(visCmf, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'dpo' && window === 2 && y2) {
+                } else if (type === 'dpo' && indWindow === 2 && y2) {
                     const dpo = calculateDPO(data.map(c=>c.close), period);
                     const visDpo = dpo.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3565,7 +3565,7 @@
                         ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visDpo[i+1])); ctx.stroke();
                     });
                     ctx.lineWidth=1;
-                } else if (type === 'trix' && window === 2 && y2) {
+                } else if (type === 'trix' && indWindow === 2 && y2) {
                     const trix = calculateTrix(data.map(c=>c.close), period);
                     const visTrix = trix.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3578,7 +3578,7 @@
                     ctx.strokeStyle=ind.color; ctx.lineWidth=2;
                     drawLine(visTrix, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'uo' && window === 2 && y2) {
+                } else if (type === 'uo' && indWindow === 2 && y2) {
                     const uo = calculateUltimateOscillator(data);
                     const visUo = uo.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3592,7 +3592,7 @@
                     ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
                     drawLine(visUo, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type === 'stddev' && window === 2 && y2) {
+                } else if (type === 'stddev' && indWindow === 2 && y2) {
                     const sd = calculateStdDev(data.map(c=>c.close), period);
                     const visSd = sd.slice(start, start+visible);
                     const sc = w2Scales.get(type) || { yFn: y2 };
@@ -3608,25 +3608,34 @@
                     ctx.strokeStyle=ind.color; ctx.lineWidth=2;
                     drawLine(visSd, pad, candleSpacing, sc.yFn);
                     ctx.lineWidth=1;
-                } else if (type.startsWith('custom_') && ind.custom && window === ind.params?.window) {
+                } else if (type.startsWith('custom_') && ind.custom && indWindow === (ind.params?.window || 1)) {
                     try {
-                        if (ind.custom && typeof ind.custom.calculate === 'function') {
+                        if (typeof ind.custom.calculate === 'function') {
                             const result = ind.custom.calculate(data, ind.params);
                             const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
                             ctx.strokeStyle = ind.color;
-                            ctx.lineWidth = 1;
-                            if (window === 1) {
-                                ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y1, ind.params);
-                            } else if (window === 2) {
+                            ctx.lineWidth = ind.custom.lineWidth || 2;
+                            if (indWindow === 1) {
+                                if (typeof ind.custom.draw === 'function') {
+                                    ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y1, ind.params);
+                                } else {
+                                    drawLine(visibleResult, pad, candleSpacing, y1);
+                                }
+                            } else if (indWindow === 2) {
                                 const sc = w2Scales.get(type);
                                 const yFn = sc ? sc.yFn : y2;
-                                if (yFn) ind.custom.draw(ctx, visibleResult, pad, candleSpacing, yFn, ind.params);
+                                if (yFn) {
+                                    if (typeof ind.custom.draw === 'function') {
+                                        ind.custom.draw(ctx, visibleResult, pad, candleSpacing, yFn, ind.params);
+                                    } else {
+                                        drawLine(visibleResult, pad, candleSpacing, yFn);
+                                    }
+                                }
                             }
+                            ctx.lineWidth = 1;
                         }
                     } catch (error) {
-                        console.error('Custom indicator error:', error);
-                        indicators.delete(type);
-                        updateIndicatorTags();
+                        console.error('Custom indicator draw error:', error);
                     }
                 }
                 
@@ -4375,7 +4384,13 @@ async function initializeAccountDisplay() {
         /* ================= PERSISTENCE ================= */
         function saveIndicatorsToStorage() {
             const indicatorData = Array.from(indicators.entries());
-            const customData = Array.from(customIndicators.entries());
+            // Serialize custom indicators — convert functions to strings so they survive JSON
+            const customData = Array.from(customIndicators.entries()).map(([key, ind]) => {
+                const serialized = { ...ind };
+                if (typeof ind.calculate === 'function') serialized.calculate = ind.calculate.toString();
+                if (typeof ind.draw === 'function') serialized.draw = ind.draw.toString();
+                return [key, serialized];
+            });
             localStorage.setItem('tradingIndicators', JSON.stringify(indicatorData));
             localStorage.setItem('customIndicators', JSON.stringify(customData));
         }

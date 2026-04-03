@@ -112,18 +112,33 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#FF4500;}
 </div>
 </div>
 <input type="file" id="jsFileInput" accept=".js" style="display:none" onchange="loadJsFile(this)">
-<textarea id="indCode" rows="14" style="width:100%;resize:vertical;" placeholder="function calculateIndicator(candles, params = {}) {
-  // candles: [{open, high, low, close, volume, time}]
-  const period = params.period || 14;
-  const values = [];
-  for (let i = 0; i < candles.length; i++) {
-    if (i < period - 1) { values.push(null); continue; }
-    let sum = 0;
-    for (let j = 0; j < period; j++) sum += candles[i-j].close;
-    values.push(sum / period);
+<textarea id="indCode" rows="14" style="width:100%;resize:vertical;" placeholder="({
+  name: 'My Indicator',
+  color: '#FF4500',
+  lineWidth: 2,
+  window: 1,
+  defaultParams: { period: 14 },
+  calculate: function(data, params) {
+    const period = params.period || 14;
+    return data.map((_, i) => {
+      if (i < period - 1) return null;
+      const sum = data.slice(i-period+1, i+1).reduce((a,b) => a+b.close, 0);
+      return sum / period;
+    });
+  },
+  draw: function(ctx, values, pad, spacing, yFunc, params) {
+    ctx.beginPath();
+    let started = false;
+    values.forEach((val, i) => {
+      if (val !== null) {
+        const x = pad + i * spacing + spacing / 2;
+        if (!started) { ctx.moveTo(x, yFunc(val)); started = true; }
+        else ctx.lineTo(x, yFunc(val));
+      }
+    });
+    ctx.stroke();
   }
-  return { name: 'SMA ' + period, type: 'line', data: values, color: '#FF4500', lineWidth: 2 };
-}" required></textarea>
+})" required></textarea>
 </div>
 <div id="codeError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:10px;font-size:12px;color:#ef4444;margin-bottom:12px;"></div>
 <div style="display:flex;gap:12px;margin-top:16px;">
@@ -261,33 +276,63 @@ function testCode() {
   const code = document.getElementById('indCode').value;
   const errEl = document.getElementById('codeError');
   try {
-    const fn = new Function('return ('+code+')');
-    const result = fn();
-    if (typeof result !== 'function') throw new Error('Code must define a function named calculateIndicator');
-    const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()+i*60000}));
-    const out = result(sample, {});
-    if (!out||!out.data) throw new Error('Function must return {name, type, data, color}');
+    const parsed = new Function('return (' + code + ')')();
+    const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()/1000+i*60}));
+    let name, values;
+
+    if (typeof parsed === 'function') {
+      // Old format: function(candles, params) => {name, data, color}
+      const out = parsed(sample, {});
+      if (!out || !out.data) throw new Error('Function must return {name, data, color}');
+      name = out.name; values = out.data;
+    } else if (parsed && typeof parsed.calculate === 'function') {
+      // New format: ({name, calculate(data,params), draw(ctx,...)})
+      values = parsed.calculate(sample, parsed.defaultParams || {});
+      name = parsed.name;
+      if (!Array.isArray(values)) throw new Error('calculate() must return an array');
+    } else {
+      throw new Error('Code must be a function OR an object with a calculate() method');
+    }
+
     errEl.style.display='none';
-    alert('✅ Code is valid!\nReturned: '+out.name+' with '+out.data.length+' values');
+    alert('✅ Code is valid!\n"' + name + '" returned ' + values.filter(v=>v!==null).length + ' values');
   } catch(err) {
-    errEl.textContent = '❌ '+err.message;
+    errEl.textContent = '❌ ' + err.message;
     errEl.style.display='block';
   }
 }
 
 function loadTemplate() {
-  document.getElementById('indCode').value = `function calculateIndicator(candles, params = {}) {
-  const period = params.period || 14;
-  const color = params.color || '#FF4500';
-  const values = [];
-  for (let i = 0; i < candles.length; i++) {
-    if (i < period - 1) { values.push(null); continue; }
-    let sum = 0;
-    for (let j = 0; j < period; j++) sum += candles[i-j].close;
-    values.push(sum / period);
+  document.getElementById('indCode').value = `({
+  name: "My Indicator",
+  color: "#FF4500",
+  lineWidth: 2,
+  window: 1,
+  defaultParams: { period: 14 },
+
+  calculate: function(data, params) {
+    const period = params.period || 14;
+    return data.map((_, i) => {
+      if (i < period - 1) return null;
+      const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b.close, 0);
+      return sum / period;
+    });
+  },
+
+  draw: function(ctx, values, pad, spacing, yFunc, params) {
+    ctx.beginPath();
+    let started = false;
+    values.forEach((val, i) => {
+      if (val !== null) {
+        const x = pad + i * spacing + spacing / 2;
+        const y = yFunc(val);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
   }
-  return { name: 'SMA ' + period, type: 'line', data: values, color, lineWidth: 2 };
-}`;
+})`;
 }
 
 function loadJsFile(input) {
