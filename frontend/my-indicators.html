@@ -29,14 +29,26 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#FF4500;}
 </head>
 <body>
 <div style="max-width:1200px;margin:0 auto;padding:20px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
 <div>
 <h1 style="font-size:28px;font-weight:800;margin-bottom:4px;"><span style="color:#FF4500;">My</span> Indicators</h1>
 <p style="color:#94a3b8;font-size:14px;">Create and manage your custom chart indicators</p>
 </div>
-<div style="display:flex;gap:12px;">
-<button onclick="window.location.href='/app'" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</button>
-<button onclick="showModal()" class="btn btn-primary"><i class="fas fa-plus"></i> New Indicator</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+  <!-- Chart page links -->
+  <a href="/app" style="display:inline-flex;align-items:center;gap:6px;background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#FF4500'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#2d3f55'">
+    <i class="fas fa-chart-bar"></i> App Chart
+  </a>
+  <a href="/updown" style="display:inline-flex;align-items:center;gap:6px;background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#FF4500'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#2d3f55'">
+    <i class="fas fa-chart-line"></i> Up/Down
+  </a>
+  <a href="/trading" style="display:inline-flex;align-items:center;gap:6px;background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#FF4500'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#2d3f55'">
+    <i class="fas fa-exchange-alt"></i> Trading
+  </a>
+  <a href="/marketchart" style="display:inline-flex;align-items:center;gap:6px;background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#FF4500'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#2d3f55'">
+    <i class="fas fa-chart-area"></i> Market Chart
+  </a>
+  <button onclick="showModal()" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-plus"></i> New Indicator</button>
 </div>
 </div>
 
