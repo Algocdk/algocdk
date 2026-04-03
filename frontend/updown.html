@@ -1831,6 +1831,51 @@ function redrawCanvas() {
   drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
   drawings.forEach(d => drawSingleDrawing(d, d===selectedDrawing));
   if (currentDrawing) drawSingleDrawing(currentDrawing, false);
+  // Render custom indicators that have a draw() function
+  redrawCustomIndicators();
+}
+
+function redrawCustomIndicators() {
+  if (!candles.length || !drawCtx) return;
+  activeCustomInds.forEach(key => {
+    const rawId = key.replace(/^custom_/, '');
+    const ind = userCustomInds.find(i => String(i.id) === rawId);
+    if (!ind || !ind.code) return;
+    try {
+      const parsed = evalIndicatorCode(ind.code);
+      if (!parsed || typeof parsed.draw !== 'function' || typeof parsed.calculate !== 'function') return;
+
+      // Get the visible logical range from the chart
+      const visRange = mainChart.timeScale().getVisibleLogicalRange();
+      if (!visRange) return;
+      const from = Math.max(0, Math.floor(visRange.from));
+      const to   = Math.min(candles.length - 1, Math.ceil(visRange.to));
+      const visibleCandles = candles.slice(from, to + 1);
+      if (!visibleCandles.length) return;
+
+      // Calculate values for ALL candles (same as calculate() expects)
+      const allValues = parsed.calculate(candles, parsed.defaultParams || {});
+      const visibleValues = allValues.slice(from, to + 1);
+
+      // Build yFunc using LightweightCharts coordinate system
+      const yFunc = price => getYFromPrice(price) ?? 0;
+
+      // Build spacing from two adjacent candle x-positions
+      const x0 = getXFromLogical(from);
+      const x1 = getXFromLogical(from + 1);
+      const spacing = Math.max(x1 - x0, 1);
+      const pad = x0; // left offset of first visible candle
+
+      drawCtx.save();
+      drawCtx.strokeStyle = parsed.color || '#00f5d4';
+      drawCtx.lineWidth = parsed.lineWidth || 2;
+      // Call the indicator's draw() with the visible slice
+      parsed.draw(drawCtx, visibleValues, pad, spacing, yFunc, parsed.defaultParams || {}, from);
+      drawCtx.restore();
+    } catch(e) {
+      console.warn('Custom indicator draw error:', e);
+    }
+  });
 }
 
 function drawSingleDrawing(d, isSelected) {
@@ -2703,8 +2748,10 @@ function toggleCustomInd(id, color) {
   const key = String(id).startsWith('custom_') ? id : 'custom_'+id;
   if (activeCustomInds.has(key)) {
     activeCustomInds.delete(key);
-    if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
+    if (customIndSeries[key]) { try { mainChart.removeSeries(customIndSeries[key]); } catch(e){} }
+    delete customIndSeries[key];
     removeCustomChip(key);
+    redrawCanvas(); // re-render without this indicator
   } else {
     activeCustomInds.add(key);
     renderCustomIndOnChart(id, color);
@@ -2737,6 +2784,14 @@ function renderCustomIndOnChart(id, color) {
       lineWidth = result.lineWidth || 2;
     } else if (parsed && typeof parsed.calculate === 'function') {
       // Standard format — same as /app page
+      // If indicator has a draw() function, use canvas overlay instead of LW series
+      if (typeof parsed.draw === 'function') {
+        const seriesKey = String(id).startsWith('custom_') ? id : 'custom_'+id;
+        if (customIndSeries[seriesKey]) { try { mainChart.removeSeries(customIndSeries[seriesKey]); } catch(e){} }
+        customIndSeries[seriesKey] = null; // tracked but no LW series
+        redrawCanvas();
+        return;
+      }
       values = parsed.calculate(candleData, parsed.defaultParams || {});
       indName = parsed.name || indName;
       indColor = parsed.color || indColor;
