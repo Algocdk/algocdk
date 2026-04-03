@@ -3641,7 +3641,7 @@
                             ctx.lineWidth = ind.custom.lineWidth || 2;
                             if (indWindow === 1) {
                                 if (typeof ind.custom.draw === 'function') {
-                                    ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y1, ind.params);
+                                    ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y1, ind.params, start);
                                 } else {
                                     drawLine(visibleResult, pad, candleSpacing, y1);
                                 }
@@ -3650,7 +3650,7 @@
                                 const yFn = sc ? sc.yFn : y2;
                                 if (yFn) {
                                     if (typeof ind.custom.draw === 'function') {
-                                        ind.custom.draw(ctx, visibleResult, pad, candleSpacing, yFn, ind.params);
+                                        ind.custom.draw(ctx, visibleResult, pad, candleSpacing, yFn, ind.params, start);
                                     } else {
                                         drawLine(visibleResult, pad, candleSpacing, yFn);
                                     }
