@@ -281,7 +281,7 @@
             
             /* Hide complex controls on mobile by default */
             #drawingTool, #drawingColor, #lineStyle, #lineWidth, 
-            #clearDrawings, #chartType, #alertBtn, #screenshotBtn,
+            #clearDrawings, #btnCandle, #btnLine, #btnArea, #btnBars, #alertBtn, #screenshotBtn,
             #indicators, #customIndicatorFile, #customIndicatorCode,
             #customIndicatorButtons, #fullscreenBtn {
                 display: none !important;
@@ -300,7 +300,10 @@
             body.mobile-tools-active #lineStyle,
             body.mobile-tools-active #lineWidth,
             body.mobile-tools-active #clearDrawings,
-            body.mobile-tools-active #chartType,
+            body.mobile-tools-active #btnCandle,
+            body.mobile-tools-active #btnLine,
+            body.mobile-tools-active #btnArea,
+            body.mobile-tools-active #btnBars,
             body.mobile-tools-active #alertBtn,
             body.mobile-tools-active #screenshotBtn,
             body.mobile-tools-active #indicators {
@@ -1125,12 +1128,12 @@
                 <button id="clearDrawings" onclick="clearAllDrawings()" style="background: #ff4444; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Clear All Drawings">
                     <i class="fas fa-eraser"></i>
                 </button>
-                <select id="chartType" onchange="setChartType(this.value)" style="background: #0e1117; color: #d1d4dc; border: 1px solid #2b2f3a; padding: 4px 8px; border-radius: 4px; min-width: 100px; margin-right: 10px;">
-                    <option value="candles">Candles</option>
-                    <option value="line">Line</option>
-                    <option value="area">Area</option>
-                    <option value="bars">Bars</option>
-                </select>
+                <div style="display:flex;align-items:center;gap:2px;margin-right:10px;">
+                    <button id="btnCandle" onclick="setChartType('candles',this)" title="Candlestick" style="background:#FF4500;border:1px solid #FF4500;color:#fff;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s;"><i class="fas fa-chart-bar"></i></button>
+                    <button id="btnLine" onclick="setChartType('line',this)" title="Line" style="background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s;"><i class="fas fa-chart-line"></i></button>
+                    <button id="btnArea" onclick="setChartType('area',this)" title="Area" style="background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s;"><i class="fas fa-mountain"></i></button>
+                    <button id="btnBars" onclick="setChartType('bars',this)" title="Bars" style="background:#1E293B;border:1px solid #2d3f55;color:#94a3b8;padding:5px 9px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s;"><i class="fas fa-grip-lines-vertical"></i></button>
+                </div>
                 <button id="alertBtn" onclick="toggleAlerts()" style="background: #ffa500; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 10px;" title="Price Alerts">
                     <i class="fas fa-bell"></i>
                 </button>
@@ -1185,18 +1188,51 @@
                 </select>
                 <select id="indicators">
                     <option value="">Add Indicator</option>
-                    <option value="sma20">SMA 20</option>
-                    <option value="sma50">SMA 50</option>
-                    <option value="sma100">SMA 100</option>
-                    <option value="ema20">EMA 20</option>
-                    <option value="ema50">EMA 50</option>
-                    <option value="bb">Bollinger Bands</option>
-                    <option value="rsi">RSI</option>
-                    <option value="macd">MACD</option>
-                    <option value="stoch">Stochastic</option>
-                    <option value="atr">ATR</option>
-                    <option value="create">Create Custom</option>
-                    <option value="load">Load Custom</option>
+                    <optgroup label="Moving Averages">
+                        <option value="sma20">SMA 20</option>
+                        <option value="sma50">SMA 50</option>
+                        <option value="sma100">SMA 100</option>
+                        <option value="ema20">EMA 20</option>
+                        <option value="ema50">EMA 50</option>
+                        <option value="wma">WMA</option>
+                        <option value="hma">HMA</option>
+                        <option value="dema">DEMA</option>
+                        <option value="tema">TEMA</option>
+                        <option value="vwap">VWAP</option>
+                    </optgroup>
+                    <optgroup label="Bands &amp; Channels">
+                        <option value="bb">Bollinger Bands</option>
+                        <option value="keltner">Keltner Channel</option>
+                        <option value="donchian">Donchian Channel</option>
+                        <option value="envelopes">Envelopes</option>
+                        <option value="psar">Parabolic SAR</option>
+                    </optgroup>
+                    <optgroup label="Oscillators (Pane 2)">
+                        <option value="rsi">RSI</option>
+                        <option value="macd">MACD</option>
+                        <option value="stoch">Stochastic</option>
+                        <option value="cci">CCI</option>
+                        <option value="willr">Williams %R</option>
+                        <option value="momentum">Momentum</option>
+                        <option value="roc">Rate of Change</option>
+                        <option value="ao">Awesome Oscillator</option>
+                        <option value="mfi">Money Flow Index</option>
+                        <option value="adx">ADX</option>
+                        <option value="aroon">Aroon</option>
+                        <option value="cmf">Chaikin MF</option>
+                        <option value="dpo">DPO</option>
+                        <option value="trix">TRIX</option>
+                        <option value="uo">Ultimate Oscillator</option>
+                        <option value="stddev">Std Deviation</option>
+                    </optgroup>
+                    <optgroup label="Volume">
+                        <option value="obv">OBV</option>
+                        <option value="atr">ATR</option>
+                    </optgroup>
+                    <optgroup label="Custom">
+                        <option value="create">Create Custom</option>
+                        <option value="load">Load Custom</option>
+                    </optgroup>
                 </select>
                 <input type="file" id="customIndicatorFile" accept=".js" style="display: none;">
                 <textarea id="customIndicatorCode" style="display: none; width: 400px; height: 300px; background: #1a1a1a; color: #d1d4dc; border: 1px solid #444; font-family: monospace; font-size: 12px;"></textarea>
@@ -1221,6 +1257,9 @@
             </div>
             
             <canvas id="chart"></canvas>
+            
+            <!-- Pane resize handle (shown when window 2 is active) -->
+            <div id="paneResizeHandle" style="display:none;position:absolute;left:0;right:0;height:6px;background:transparent;cursor:ns-resize;z-index:50;border-top:2px solid #444;border-bottom:2px solid #444;" title="Drag to resize panes"></div>
             
             <!-- Mobile Tools Button -->
             <button id="mobileToolsBtn" onclick="toggleMobileTools()" title="Toggle Tools" style="display: none;">
@@ -1503,6 +1542,8 @@
         let chartType = 'candles';
         let priceAlerts = [];
         let showAlerts = false;
+        let window2Split = parseFloat(localStorage.getItem('window2Split')) || 0.7; // fraction for window 1
+        let isDraggingPane = false;
         let selectedDrawing = null;
         let isDraggingDrawing = false;
         let dragPoint = null;
@@ -2505,39 +2546,51 @@
         function getIndicatorName(type) {
             const ind = indicators.get(type);
             const period = ind?.params?.period;
-            
-            const baseNames = {
-                sma20: "SMA", sma50: "SMA", sma100: "SMA",
-                ema20: "EMA", ema50: "EMA",
-                bb: "BB", rsi: "RSI", macd: "MACD", stoch: "Stoch", atr: "ATR"
+            const names = {
+                sma20:'SMA', sma50:'SMA', sma100:'SMA', ema20:'EMA', ema50:'EMA',
+                bb:'BB', rsi:'RSI', macd:'MACD', stoch:'Stoch', atr:'ATR',
+                wma:'WMA', hma:'HMA', dema:'DEMA', tema:'TEMA',
+                cci:'CCI', willr:'Will%R', momentum:'MOM', roc:'ROC',
+                obv:'OBV', vwap:'VWAP', aroon:'Aroon', adx:'ADX', mfi:'MFI',
+                ao:'AO', donchian:'Donchian', keltner:'Keltner', psar:'PSAR',
+                envelopes:'Env', stddev:'StdDev', cmf:'CMF', dpo:'DPO',
+                trix:'TRIX', uo:'UO'
             };
-            
-            const baseName = baseNames[type] || type.toUpperCase();
-            return period ? `${baseName} ${period}` : baseName;
+            const base = names[type] || type.toUpperCase();
+            return period ? `${base} ${period}` : base;
         }
         
         function getDefaultPeriod(type) {
             const defaults = {
-                sma20: 20, sma50: 50, sma100: 100,
-                ema20: 20, ema50: 50,
-                bb: 20, rsi: 14, macd: 12, stoch: 14, atr: 14
+                sma20:20, sma50:50, sma100:100, ema20:20, ema50:50,
+                bb:20, rsi:14, macd:12, stoch:14, atr:14,
+                wma:20, hma:20, dema:20, tema:20,
+                cci:20, willr:14, momentum:10, roc:10,
+                obv:1, vwap:1, aroon:25, adx:14, mfi:14,
+                ao:34, donchian:20, keltner:20, psar:1,
+                envelopes:20, stddev:20, cmf:20, dpo:20,
+                trix:15, uo:28
             };
             return defaults[type] || 20;
         }
         
         function getIndicatorWindow(type) {
-            const windowMap = {
-                sma20: 1, sma50: 1, sma100: 1,
-                ema20: 1, ema50: 1,
-                bb: 1,
-                rsi: 2, macd: 2, stoch: 2, atr: 2
-            };
-            return windowMap[type] || 1;
+            const w2 = new Set(['rsi','macd','stoch','atr','cci','willr','momentum','roc','obv','mfi','ao','adx','cmf','dpo','trix','uo','stddev']);
+            return w2.has(type) ? 2 : 1;
         }
         
         function getIndicatorColor(type) {
-            const colors = { sma20: "#ffa500", sma50: "#00bfff", ema20: "#ff69b4", bb: "#9370db", rsi: "#32cd32" };
-            return colors[type] || "#ffffff";
+            const colors = {
+                sma20:'#FF6B35', sma50:'#00D4FF', sma100:'#FFD700', ema20:'#FF69B4', ema50:'#7CFC00',
+                bb:'#9370DB', rsi:'#32CD32', macd:'#FF4500', stoch:'#00CED1', atr:'#FF8C00',
+                wma:'#FF1493', hma:'#00FA9A', dema:'#FF6347', tema:'#1E90FF',
+                cci:'#ADFF2F', willr:'#FF00FF', momentum:'#FFA500', roc:'#00FFFF',
+                obv:'#7FFF00', vwap:'#FFD700', aroon:'#FF69B4', adx:'#DC143C',
+                mfi:'#00FF7F', ao:'#FF4500', donchian:'#40E0D0', keltner:'#DA70D6',
+                psar:'#FFFF00', envelopes:'#98FB98', stddev:'#F08080', cmf:'#87CEEB',
+                dpo:'#DDA0DD', trix:'#90EE90', uo:'#FFB6C1'
+            };
+            return colors[type] || '#' + Math.floor(Math.random()*0xFFFFFF).toString(16).padStart(6,'0');
         }
         
         function calculateSMAFromPrices(prices, period) {
@@ -2655,6 +2708,212 @@
             return atr;
         }
         
+        /* ================= EXTRA INDICATORS ================= */
+        function calculateWMA(prices, period) {
+            return prices.map((_, i) => {
+                if (i < period - 1) return null;
+                let num = 0, den = 0;
+                for (let j = 0; j < period; j++) { num += prices[i - j] * (period - j); den += (period - j); }
+                return num / den;
+            });
+        }
+        function calculateHMA(prices, period) {
+            const half = Math.floor(period / 2);
+            const sqrtP = Math.floor(Math.sqrt(period));
+            const wma1 = calculateWMA(prices, half);
+            const wma2 = calculateWMA(prices, period);
+            const diff = prices.map((_, i) => wma1[i] !== null && wma2[i] !== null ? 2 * wma1[i] - wma2[i] : null);
+            const clean = diff.map(v => v === null ? 0 : v);
+            return calculateWMA(clean, sqrtP).map((v, i) => diff[i] === null ? null : v);
+        }
+        function calculateDEMA(prices, period) {
+            const ema1 = calculateEMAFromPrices(prices, period);
+            const ema2 = calculateEMAFromPrices(ema1.map(v => v ?? 0), period);
+            return ema1.map((v, i) => v !== null && ema2[i] !== null ? 2 * v - ema2[i] : null);
+        }
+        function calculateTEMA(prices, period) {
+            const ema1 = calculateEMAFromPrices(prices, period);
+            const ema2 = calculateEMAFromPrices(ema1.map(v => v ?? 0), period);
+            const ema3 = calculateEMAFromPrices(ema2.map(v => v ?? 0), period);
+            return ema1.map((v, i) => v !== null ? 3*v - 3*ema2[i] + ema3[i] : null);
+        }
+        function calculateCCI(data, period = 20) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const slice = data.slice(i - period + 1, i + 1);
+                const tp = slice.map(c => (c.high + c.low + c.close) / 3);
+                const mean = tp.reduce((a, b) => a + b, 0) / period;
+                const md = tp.reduce((a, b) => a + Math.abs(b - mean), 0) / period;
+                return (tp[tp.length - 1] - mean) / (0.015 * (md || 1));
+            });
+        }
+        function calculateWilliamsR(data, period = 14) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const slice = data.slice(i - period + 1, i + 1);
+                const hh = Math.max(...slice.map(c => c.high));
+                const ll = Math.min(...slice.map(c => c.low));
+                return ((hh - data[i].close) / (hh - ll || 1)) * -100;
+            });
+        }
+        function calculateMomentum(prices, period = 10) {
+            return prices.map((v, i) => i < period ? null : v - prices[i - period]);
+        }
+        function calculateROC(prices, period = 10) {
+            return prices.map((v, i) => i < period ? null : ((v - prices[i - period]) / (prices[i - period] || 1)) * 100);
+        }
+        function calculateOBV(data) {
+            const obv = [0];
+            for (let i = 1; i < data.length; i++) {
+                const prev = obv[obv.length - 1];
+                const vol = data[i].volume || 1;
+                obv.push(data[i].close > data[i-1].close ? prev + vol : data[i].close < data[i-1].close ? prev - vol : prev);
+            }
+            return obv;
+        }
+        function calculateVWAP(data) {
+            let cumTPV = 0, cumVol = 0;
+            return data.map(c => {
+                const tp = (c.high + c.low + c.close) / 3;
+                const vol = c.volume || 1;
+                cumTPV += tp * vol; cumVol += vol;
+                return cumTPV / cumVol;
+            });
+        }
+        function calculateAroon(data, period = 25) {
+            return data.map((_, i) => {
+                if (i < period) return null;
+                const slice = data.slice(i - period, i + 1);
+                const hiIdx = slice.reduce((best, c, j) => c.high > slice[best].high ? j : best, 0);
+                const loIdx = slice.reduce((best, c, j) => c.low < slice[best].low ? j : best, 0);
+                return { up: (hiIdx / period) * 100, down: (loIdx / period) * 100 };
+            });
+        }
+        function calculateADX(data, period = 14) {
+            const result = new Array(data.length).fill(null);
+            if (data.length < period * 2) return result;
+            const tr = [], pdm = [], ndm = [];
+            for (let i = 1; i < data.length; i++) {
+                const p = data[i-1], c = data[i];
+                tr.push(Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close)));
+                pdm.push(c.high - p.high > p.low - c.low && c.high - p.high > 0 ? c.high - p.high : 0);
+                ndm.push(p.low - c.low > c.high - p.high && p.low - c.low > 0 ? p.low - c.low : 0);
+            }
+            let atr = tr.slice(0, period).reduce((a,b)=>a+b,0);
+            let pDI = pdm.slice(0, period).reduce((a,b)=>a+b,0);
+            let nDI = ndm.slice(0, period).reduce((a,b)=>a+b,0);
+            for (let i = period; i < tr.length; i++) {
+                atr = atr - atr/period + tr[i];
+                pDI = pDI - pDI/period + pdm[i];
+                nDI = nDI - nDI/period + ndm[i];
+                const pdi = (pDI/atr)*100, ndi = (nDI/atr)*100;
+                const dx = Math.abs(pdi - ndi) / ((pdi + ndi) || 1) * 100;
+                result[i + 1] = dx;
+            }
+            return result;
+        }
+        function calculateMFI(data, period = 14) {
+            return data.map((_, i) => {
+                if (i < period) return null;
+                const slice = data.slice(i - period + 1, i + 1);
+                let posFlow = 0, negFlow = 0;
+                for (let j = 1; j < slice.length; j++) {
+                    const tp = (slice[j].high + slice[j].low + slice[j].close) / 3;
+                    const prevTp = (slice[j-1].high + slice[j-1].low + slice[j-1].close) / 3;
+                    const mf = tp * (slice[j].volume || 1);
+                    tp > prevTp ? posFlow += mf : negFlow += mf;
+                }
+                return 100 - 100 / (1 + (posFlow / (negFlow || 1)));
+            });
+        }
+        function calculateAwesomeOscillator(data) {
+            const mp = data.map(c => (c.high + c.low) / 2);
+            const sma5 = calculateSMAFromPrices(mp, 5);
+            const sma34 = calculateSMAFromPrices(mp, 34);
+            return sma5.map((v, i) => v !== null && sma34[i] !== null ? v - sma34[i] : null);
+        }
+        function calculateDonchian(data, period = 20) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const slice = data.slice(i - period + 1, i + 1);
+                const upper = Math.max(...slice.map(c => c.high));
+                const lower = Math.min(...slice.map(c => c.low));
+                return { upper, lower, mid: (upper + lower) / 2 };
+            });
+        }
+        function calculateKeltner(data, period = 20, mult = 1.5) {
+            const ema = calculateEMAFromPrices(data.map(c => c.close), period);
+            const atr = calculateATR(data, period);
+            return ema.map((v, i) => v !== null && atr[i] !== null
+                ? { upper: v + mult * atr[i], mid: v, lower: v - mult * atr[i] }
+                : null);
+        }
+        function calculateParabolicSAR(data, step = 0.02, max = 0.2) {
+            const sar = new Array(data.length).fill(null);
+            if (data.length < 2) return sar;
+            let bull = true, af = step, ep = data[0].high;
+            sar[0] = data[0].low;
+            for (let i = 1; i < data.length; i++) {
+                let s = sar[i-1] + af * (ep - sar[i-1]);
+                if (bull) {
+                    s = Math.min(s, data[i-1].low, i > 1 ? data[i-2].low : data[i-1].low);
+                    if (data[i].low < s) { bull = false; s = ep; ep = data[i].low; af = step; }
+                    else { if (data[i].high > ep) { ep = data[i].high; af = Math.min(af + step, max); } }
+                } else {
+                    s = Math.max(s, data[i-1].high, i > 1 ? data[i-2].high : data[i-1].high);
+                    if (data[i].high > s) { bull = true; s = ep; ep = data[i].high; af = step; }
+                    else { if (data[i].low < ep) { ep = data[i].low; af = Math.min(af + step, max); } }
+                }
+                sar[i] = s;
+            }
+            return sar;
+        }
+        function calculateEnvelopes(prices, period = 20, pct = 0.025) {
+            const sma = calculateSMAFromPrices(prices, period);
+            return sma.map(v => v !== null ? { upper: v * (1 + pct), mid: v, lower: v * (1 - pct) } : null);
+        }
+        function calculateStdDev(prices, period = 20) {
+            return prices.map((_, i) => {
+                if (i < period - 1) return null;
+                const slice = prices.slice(i - period + 1, i + 1);
+                const mean = slice.reduce((a, b) => a + b, 0) / period;
+                return Math.sqrt(slice.reduce((a, b) => a + (b - mean) ** 2, 0) / period);
+            });
+        }
+        function calculateCMF(data, period = 20) {
+            return data.map((_, i) => {
+                if (i < period - 1) return null;
+                const slice = data.slice(i - period + 1, i + 1);
+                let mfv = 0, vol = 0;
+                slice.forEach(c => {
+                    const hl = c.high - c.low || 1;
+                    mfv += ((c.close - c.low) - (c.high - c.close)) / hl * (c.volume || 1);
+                    vol += (c.volume || 1);
+                });
+                return mfv / vol;
+            });
+        }
+        function calculateDPO(prices, period = 20) {
+            const sma = calculateSMAFromPrices(prices, period);
+            const shift = Math.floor(period / 2) + 1;
+            return prices.map((v, i) => sma[i - shift] != null ? v - sma[i - shift] : null);
+        }
+        function calculateTrix(prices, period = 15) {
+            const e1 = calculateEMAFromPrices(prices, period);
+            const e2 = calculateEMAFromPrices(e1.map(v => v ?? 0), period);
+            const e3 = calculateEMAFromPrices(e2.map(v => v ?? 0), period);
+            return e3.map((v, i) => i > 0 && e3[i-1] ? ((v - e3[i-1]) / e3[i-1]) * 100 : null);
+        }
+        function calculateUltimateOscillator(data, p1=7, p2=14, p3=28) {
+            return data.map((_, i) => {
+                if (i < p3) return null;
+                function bp(j) { return data[j].close - Math.min(data[j].low, data[j-1].close); }
+                function tr(j) { return Math.max(data[j].high, data[j-1].close) - Math.min(data[j].low, data[j-1].close); }
+                const avg = (p) => { let b=0,t=0; for(let j=i-p+1;j<=i;j++){b+=bp(j);t+=tr(j);} return b/(t||1); };
+                return (4*avg(p1) + 2*avg(p2) + avg(p3)) / 7 * 100;
+            });
+        }
+
         /* ================= DRAW ================= */
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2669,9 +2928,18 @@
             
             // Check if we have window 2 indicators
             const hasWindow2 = Array.from(indicators.values()).some(ind => ind.params?.window === 2);
-            const window1H = hasWindow2 ? totalH * 0.7 : totalH;
-            const window2H = hasWindow2 ? totalH * 0.3 : 0;
+            const window1H = hasWindow2 ? totalH * window2Split : totalH;
+            const window2H = hasWindow2 ? totalH * (1 - window2Split) : 0;
             const window2Y = pad + window1H;
+            
+            // Update resize handle position
+            const handle = document.getElementById('paneResizeHandle');
+            if (hasWindow2) {
+                handle.style.display = 'block';
+                handle.style.top = (window2Y - 3) + 'px';
+            } else {
+                handle.style.display = 'none';
+            }
 
             const candleSpacing = 6 * zoom;
             const visible = Math.floor(w / candleSpacing);
@@ -2743,23 +3011,10 @@
                 }
             });
             
-            // Window 2 setup
-            let y2 = null;
+            // Window 2 setup — each indicator gets its own scale so multiple indicators fit well
+            let w2Scales = new Map(); // type -> { yFn, min, max }
+            let y2 = null; // kept for compat, points to first indicator's scale
             if (hasWindow2) {
-                // Grid for window 2 with labels
-                ctx.strokeStyle = "#1f2430";
-                ctx.fillStyle = "#9CA3AF";
-                ctx.font = "10px Arial";
-                for (let i = 0; i <= 3; i++) {
-                    const gy = window2Y + (window2H / 3) * i;
-                    const val = 100 - (i / 3) * 100;
-                    ctx.beginPath();
-                    ctx.moveTo(pad, gy);
-                    ctx.lineTo(canvas.width - pad, gy);
-                    ctx.stroke();
-                    ctx.fillText(val.toFixed(0), canvas.width - pad + 5, gy + 3);
-                }
-                
                 // Separator line
                 ctx.strokeStyle = "#444";
                 ctx.lineWidth = 2;
@@ -2768,8 +3023,94 @@
                 ctx.lineTo(canvas.width - pad, window2Y);
                 ctx.stroke();
                 ctx.lineWidth = 1;
-                
-                y2 = val => window2Y + window2H - ((val / 100) * window2H);
+
+                // Build per-indicator scales
+                indicators.forEach((ind, type) => {
+                    if ((ind.params?.window || 1) !== 2) return;
+                    const period = ind.params?.period || getDefaultPeriod(type);
+                    try {
+                        let vals = [];
+                        if (type === 'rsi') {
+                            vals = calculateRSI(data, period).slice(start, start + visible);
+                        } else if (type === 'macd') {
+                            const m = calculateMACD(data, ind.params?.fast||12, ind.params?.slow||26, ind.params?.signal||9);
+                            vals = [...m.macd.slice(start, start+visible), ...m.signal.slice(start, start+visible), ...m.histogram.slice(start, start+visible)];
+                        } else if (type === 'stoch') {
+                            const s = calculateStochastic(data, ind.params?.k||14, ind.params?.d||3);
+                            vals = [...s.k.slice(start, start+visible), ...s.d.slice(start, start+visible)];
+                        } else if (type === 'atr') {
+                            vals = calculateATR(data, period).slice(start, start+visible);
+                        } else if (type === 'cci') {
+                            vals = calculateCCI(data, period).slice(start, start+visible);
+                        } else if (type === 'willr') {
+                            vals = calculateWilliamsR(data, period).slice(start, start+visible);
+                        } else if (type === 'momentum') {
+                            vals = calculateMomentum(data.map(c=>c.close), period).slice(start, start+visible);
+                        } else if (type === 'roc') {
+                            vals = calculateROC(data.map(c=>c.close), period).slice(start, start+visible);
+                        } else if (type === 'obv') {
+                            vals = calculateOBV(data).slice(start, start+visible);
+                        } else if (type === 'mfi') {
+                            vals = calculateMFI(data, period).slice(start, start+visible);
+                        } else if (type === 'ao') {
+                            vals = calculateAwesomeOscillator(data).slice(start, start+visible);
+                        } else if (type === 'adx') {
+                            vals = calculateADX(data, period).slice(start, start+visible);
+                        } else if (type === 'aroon') {
+                            const ar = calculateAroon(data, period).slice(start, start+visible);
+                            vals = [...ar.map(v=>v?.up), ...ar.map(v=>v?.down)];
+                        } else if (type === 'cmf') {
+                            vals = calculateCMF(data, period).slice(start, start+visible);
+                        } else if (type === 'dpo') {
+                            vals = calculateDPO(data.map(c=>c.close), period).slice(start, start+visible);
+                        } else if (type === 'trix') {
+                            vals = calculateTrix(data.map(c=>c.close), period).slice(start, start+visible);
+                        } else if (type === 'uo') {
+                            vals = calculateUltimateOscillator(data).slice(start, start+visible);
+                        } else if (type === 'stddev') {
+                            vals = calculateStdDev(data.map(c=>c.close), period).slice(start, start+visible);
+                        }
+                        const clean = vals.filter(v => v !== null && isFinite(v));
+                        let lo = clean.length ? Math.min(...clean) : 0;
+                        let hi = clean.length ? Math.max(...clean) : 100;
+                        const pad8 = (hi - lo || 1) * 0.08;
+                        lo -= pad8; hi += pad8;
+                        const range = hi - lo || 1;
+                        w2Scales.set(type, {
+                            lo, hi, range,
+                            yFn: v => window2Y + window2H - ((v - lo) / range) * window2H
+                        });
+                    } catch(e) {}
+                });
+
+                // Use first scale for y2 compat and for grid labels
+                const firstScale = w2Scales.size ? [...w2Scales.values()][0] : { lo: 0, hi: 100, range: 100, yFn: v => window2Y + window2H - (v/100)*window2H };
+                y2 = firstScale.yFn;
+
+                // Grid lines + right-axis labels (based on first indicator's scale)
+                ctx.strokeStyle = "#1f2430";
+                ctx.fillStyle = "#9CA3AF";
+                ctx.font = "10px Arial";
+                const gridLines = 4;
+                for (let i = 0; i <= gridLines; i++) {
+                    const gy = window2Y + (window2H / gridLines) * i;
+                    const val = firstScale.hi - (i / gridLines) * firstScale.range;
+                    ctx.beginPath();
+                    ctx.moveTo(pad, gy);
+                    ctx.lineTo(canvas.width - pad, gy);
+                    ctx.stroke();
+                    ctx.fillText(val.toFixed(2), canvas.width - pad + 5, gy + 3);
+                }
+
+                // Indicator name chips at top of pane
+                let chipX = pad + 4;
+                indicators.forEach((ind, type) => {
+                    if ((ind.params?.window||1) !== 2) return;
+                    ctx.fillStyle = ind.color;
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText('● ' + type.toUpperCase(), chipX, window2Y + 13);
+                    chipX += ctx.measureText('● ' + type.toUpperCase()).width + 10;
+                });
             }
 
             // Draw indicators
@@ -2836,7 +3177,40 @@
                 } else if (type === 'rsi' && window === 2 && y2) {
                     const rsi = calculateRSI(data, period);
                     const visibleRsi = rsi.slice(start, start + visible);
-                    drawLine(visibleRsi, pad, candleSpacing, y2);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    // Shaded OB/OS zones
+                    ctx.fillStyle = 'rgba(239,83,80,0.08)';
+                    ctx.fillRect(pad, sc.yFn(70), canvas.width - pad*2, sc.yFn(100) - sc.yFn(70));
+                    ctx.fillStyle = 'rgba(38,166,154,0.08)';
+                    ctx.fillRect(pad, sc.yFn(30), canvas.width - pad*2, sc.yFn(0) - sc.yFn(30));
+                    ctx.strokeStyle = 'rgba(239,83,80,0.5)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(70)); ctx.lineTo(canvas.width-pad, sc.yFn(70)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(30)); ctx.lineTo(canvas.width-pad, sc.yFn(30)); ctx.stroke();
+                    ctx.strokeStyle = 'rgba(150,150,150,0.25)';
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(50)); ctx.lineTo(canvas.width-pad, sc.yFn(50)); ctx.stroke();
+                    ctx.setLineDash([]); ctx.lineWidth = 2;
+                    // Gradient fill under RSI line
+                    const rsiGrad = ctx.createLinearGradient(0, sc.yFn(100), 0, sc.yFn(0));
+                    rsiGrad.addColorStop(0, 'rgba(50,205,50,0.25)');
+                    rsiGrad.addColorStop(1, 'rgba(50,205,50,0)');
+                    ctx.fillStyle = rsiGrad;
+                    ctx.beginPath();
+                    let rsiStarted = false;
+                    visibleRsi.forEach((v, i) => {
+                        if (v === null) return;
+                        const x = pad + i * candleSpacing + candleSpacing/2;
+                        if (!rsiStarted) { ctx.moveTo(x, sc.yFn(v)); rsiStarted = true; }
+                        else ctx.lineTo(x, sc.yFn(v));
+                    });
+                    if (rsiStarted) {
+                        const lastI = visibleRsi.map((v,i)=>v!==null?i:-1).filter(i=>i>=0).pop();
+                        ctx.lineTo(pad + lastI * candleSpacing + candleSpacing/2, sc.yFn(0));
+                        ctx.lineTo(pad, sc.yFn(0));
+                    }
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(visibleRsi, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth = 1;
                 } else if (type === 'macd' && window === 2 && y2) {
                     const fast = ind.params?.fast || 12;
                     const slow = ind.params?.slow || 26;
@@ -2844,58 +3218,394 @@
                     const macd = calculateMACD(data, fast, slow, signal);
                     const visibleMacd = macd.macd.slice(start, start + visible);
                     const visibleSignal = macd.signal.slice(start, start + visible);
-                    
-                    // Scale MACD to window 2
-                    const macdValues = [...visibleMacd, ...visibleSignal].filter(v => v !== null);
-                    const macdMax = Math.max(...macdValues);
-                    const macdMin = Math.min(...macdValues);
-                    const macdRange = macdMax - macdMin || 1;
-                    const macdY = val => val ? window2Y + window2H - (((val - macdMin) / macdRange) * window2H) : null;
-                    
-                    ctx.strokeStyle = ind.color;
-                    drawLine(visibleMacd, pad, candleSpacing, macdY);
-                    ctx.strokeStyle = '#ff6600';
-                    drawLine(visibleSignal, pad, candleSpacing, macdY);
+                    const visibleHist = macd.histogram ? macd.histogram.slice(start, start + visible)
+                        : visibleMacd.map((v, i) => (v !== null && visibleSignal[i] !== null) ? v - visibleSignal[i] : null);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    // Zero line
+                    ctx.strokeStyle = 'rgba(150,150,150,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(0)); ctx.lineTo(canvas.width-pad, sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Histogram bars
+                    const barW = Math.max(candleSpacing * 0.6, 1);
+                    visibleHist.forEach((v, i) => {
+                        if (v === null) return;
+                        const x = pad + i * candleSpacing + candleSpacing/2 - barW/2;
+                        const y0 = sc.yFn(0), yv = sc.yFn(v);
+                        const bullish = v >= 0;
+                        const prev = visibleHist[i-1];
+                        // Bright if growing, dim if shrinking
+                        const growing = prev === null || (bullish ? v >= prev : v <= prev);
+                        ctx.fillStyle = bullish
+                            ? (growing ? 'rgba(38,166,154,0.85)' : 'rgba(38,166,154,0.4)')
+                            : (growing ? 'rgba(239,83,80,0.85)' : 'rgba(239,83,80,0.4)');
+                        ctx.fillRect(x, Math.min(y0, yv), barW, Math.abs(y0 - yv) || 1);
+                    });
+                    // MACD line
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(visibleMacd, pad, candleSpacing, sc.yFn);
+                    // Signal line
+                    ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 1.5;
+                    drawLine(visibleSignal, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth = 1;
                 } else if (type === 'stoch' && window === 2 && y2) {
                     const k = ind.params?.k || 14;
                     const d = ind.params?.d || 3;
                     const stoch = calculateStochastic(data, k, d);
                     const visibleK = stoch.k.slice(start, start + visible);
                     const visibleD = stoch.d.slice(start, start + visible);
-                    
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    // Shaded OB/OS zones
+                    ctx.fillStyle = 'rgba(239,83,80,0.08)';
+                    ctx.fillRect(pad, sc.yFn(80), canvas.width-pad*2, sc.yFn(100)-sc.yFn(80));
+                    ctx.fillStyle = 'rgba(38,166,154,0.08)';
+                    ctx.fillRect(pad, sc.yFn(20), canvas.width-pad*2, sc.yFn(0)-sc.yFn(20));
+                    ctx.strokeStyle = 'rgba(239,83,80,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(80)); ctx.lineTo(canvas.width-pad, sc.yFn(80)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad, sc.yFn(20)); ctx.lineTo(canvas.width-pad, sc.yFn(20)); ctx.stroke();
+                    ctx.setLineDash([]); ctx.lineWidth = 2;
                     ctx.strokeStyle = ind.color;
-                    drawLine(visibleK, pad, candleSpacing, y2);
-                    ctx.strokeStyle = '#ff6600';
-                    drawLine(visibleD, pad, candleSpacing, y2);
+                    drawLine(visibleK, pad, candleSpacing, sc.yFn);
+                    ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 1.5;
+                    drawLine(visibleD, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth = 1;
                 } else if (type === 'atr' && window === 2 && y2) {
                     const atr = calculateATR(data, period);
                     const visibleAtr = atr.slice(start, start + visible);
-                    
-                    // Scale ATR to window 2
-                    const atrValues = visibleAtr.filter(v => v !== null);
-                    const atrMax = Math.max(...atrValues);
-                    const atrMin = Math.min(...atrValues);
-                    const atrRange = atrMax - atrMin || 1;
-                    const atrY = val => val ? window2Y + window2H - (((val - atrMin) / atrRange) * window2H) : null;
-                    
-                    drawLine(visibleAtr, pad, candleSpacing, atrY);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    // Gradient fill under ATR
+                    const atrGrad = ctx.createLinearGradient(0, window2Y, 0, window2Y + window2H);
+                    atrGrad.addColorStop(0, 'rgba(255,140,0,0.3)');
+                    atrGrad.addColorStop(1, 'rgba(255,140,0,0)');
+                    ctx.fillStyle = atrGrad;
+                    ctx.beginPath();
+                    let atrS = false;
+                    visibleAtr.forEach((v,i) => {
+                        if (v===null) return;
+                        const x = pad+i*candleSpacing+candleSpacing/2;
+                        if (!atrS){ctx.moveTo(x,sc.yFn(v));atrS=true;}else ctx.lineTo(x,sc.yFn(v));
+                    });
+                    if (atrS) {
+                        const li = visibleAtr.map((v,i)=>v!==null?i:-1).filter(i=>i>=0).pop();
+                        ctx.lineTo(pad+li*candleSpacing+candleSpacing/2, window2Y+window2H);
+                        ctx.lineTo(pad, window2Y+window2H);
+                    }
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(visibleAtr, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth = 1;
+
+                // ── Window 1 overlays ──────────────────────────────────
+                } else if (type === 'wma' && window === 1) {
+                    const wma = calculateWMA(data.map(c=>c.close), period);
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(wma.slice(start, start+visible), pad, candleSpacing, y1);
+                    ctx.lineWidth = 1;
+                } else if (type === 'hma' && window === 1) {
+                    const hma = calculateHMA(data.map(c=>c.close), period);
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2.5;
+                    drawLine(hma.slice(start, start+visible), pad, candleSpacing, y1);
+                    ctx.lineWidth = 1;
+                } else if (type === 'dema' && window === 1) {
+                    const dema = calculateDEMA(data.map(c=>c.close), period);
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(dema.slice(start, start+visible), pad, candleSpacing, y1);
+                    ctx.lineWidth = 1;
+                } else if (type === 'tema' && window === 1) {
+                    const tema = calculateTEMA(data.map(c=>c.close), period);
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2;
+                    drawLine(tema.slice(start, start+visible), pad, candleSpacing, y1);
+                    ctx.lineWidth = 1;
+                } else if (type === 'vwap' && window === 1) {
+                    const vwap = calculateVWAP(data);
+                    // VWAP with shaded band
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 2.5;
+                    ctx.setLineDash([6,3]);
+                    drawLine(vwap.slice(start, start+visible), pad, candleSpacing, y1);
+                    ctx.setLineDash([]); ctx.lineWidth = 1;
+                } else if (type === 'psar' && window === 1) {
+                    const sar = calculateParabolicSAR(data);
+                    const visibleSar = sar.slice(start, start+visible);
+                    const viewSlice = view;
+                    visibleSar.forEach((v, i) => {
+                        if (v === null) return;
+                        const x = pad + i * candleSpacing + candleSpacing / 2;
+                        const candle = viewSlice[i];
+                        const bull = candle && v < candle.close;
+                        ctx.fillStyle = bull ? '#26a69a' : '#ef5350';
+                        ctx.beginPath();
+                        ctx.arc(x, y1(v), Math.max(candleSpacing * 0.2, 2), 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                } else if (type === 'donchian' && window === 1) {
+                    const dc = calculateDonchian(data, period);
+                    const vis = dc.slice(start, start+visible);
+                    // Filled channel
+                    ctx.fillStyle = 'rgba(64,224,208,0.07)';
+                    ctx.beginPath();
+                    let dcS = false;
+                    vis.forEach((v,i)=>{ if(!v)return; const x=pad+i*candleSpacing+candleSpacing/2; if(!dcS){ctx.moveTo(x,y1(v.upper));dcS=true;}else ctx.lineTo(x,y1(v.upper)); });
+                    vis.slice().reverse().forEach((v,i,arr)=>{ if(!v)return; const ri=arr.length-1-vis.slice().reverse().indexOf(v); const x=pad+ri*candleSpacing+candleSpacing/2; ctx.lineTo(x,y1(v.lower)); });
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+                    drawLine(vis.map(v=>v?.upper), pad, candleSpacing, y1);
+                    drawLine(vis.map(v=>v?.lower), pad, candleSpacing, y1);
+                    ctx.globalAlpha = 0.4; ctx.setLineDash([4,3]);
+                    drawLine(vis.map(v=>v?.mid), pad, candleSpacing, y1);
+                    ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 1;
+                } else if (type === 'keltner' && window === 1) {
+                    const kc = calculateKeltner(data, period);
+                    const vis = kc.slice(start, start+visible);
+                    ctx.fillStyle = 'rgba(218,112,214,0.07)';
+                    ctx.beginPath();
+                    let kcS = false;
+                    vis.forEach((v,i)=>{ if(!v)return; const x=pad+i*candleSpacing+candleSpacing/2; if(!kcS){ctx.moveTo(x,y1(v.upper));kcS=true;}else ctx.lineTo(x,y1(v.upper)); });
+                    vis.slice().reverse().forEach((v,i,arr)=>{ if(!v)return; const ri=arr.length-1-vis.slice().reverse().indexOf(v); const x=pad+ri*candleSpacing+candleSpacing/2; ctx.lineTo(x,y1(v.lower)); });
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+                    drawLine(vis.map(v=>v?.upper), pad, candleSpacing, y1);
+                    drawLine(vis.map(v=>v?.lower), pad, candleSpacing, y1);
+                    ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+                    drawLine(vis.map(v=>v?.mid), pad, candleSpacing, y1);
+                    ctx.globalAlpha = 1;
+                } else if (type === 'envelopes' && window === 1) {
+                    const env = calculateEnvelopes(data.map(c=>c.close), period, ind.params?.pct || 0.025);
+                    const vis = env.slice(start, start+visible);
+                    ctx.fillStyle = 'rgba(152,251,152,0.06)';
+                    ctx.beginPath();
+                    let envS = false;
+                    vis.forEach((v,i)=>{ if(!v)return; const x=pad+i*candleSpacing+candleSpacing/2; if(!envS){ctx.moveTo(x,y1(v.upper));envS=true;}else ctx.lineTo(x,y1(v.upper)); });
+                    vis.slice().reverse().forEach((v,i,arr)=>{ if(!v)return; const ri=arr.length-1-vis.slice().reverse().indexOf(v); const x=pad+ri*candleSpacing+candleSpacing/2; ctx.lineTo(x,y1(v.lower)); });
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = ind.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+                    drawLine(vis.map(v=>v?.upper), pad, candleSpacing, y1);
+                    drawLine(vis.map(v=>v?.lower), pad, candleSpacing, y1);
+                    ctx.globalAlpha = 0.4; ctx.setLineDash([4,3]);
+                    drawLine(vis.map(v=>v?.mid), pad, candleSpacing, y1);
+                    ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineWidth = 1;
+
+                // ── Window 2 oscillators ───────────────────────────────
+                } else if (type === 'cci' && window === 2 && y2) {
+                    const cci = calculateCCI(data, period);
+                    const visCci = cci.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.fillStyle='rgba(239,83,80,0.07)'; ctx.fillRect(pad,sc.yFn(100),canvas.width-pad*2,sc.yFn(200)-sc.yFn(100));
+                    ctx.fillStyle='rgba(38,166,154,0.07)'; ctx.fillRect(pad,sc.yFn(-200),canvas.width-pad*2,sc.yFn(-100)-sc.yFn(-200));
+                    ctx.strokeStyle='rgba(239,83,80,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(100)); ctx.lineTo(canvas.width-pad,sc.yFn(100)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(-100)); ctx.lineTo(canvas.width-pad,sc.yFn(-100)); ctx.stroke();
+                    ctx.strokeStyle='rgba(150,150,150,0.3)';
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    visCci.forEach((v,i) => {
+                        if (v===null||visCci[i+1]===null) return;
+                        const x1=pad+i*candleSpacing+candleSpacing/2, x2=pad+(i+1)*candleSpacing+candleSpacing/2;
+                        ctx.strokeStyle = v>=0 ? '#ADFF2F' : '#FF6347';
+                        ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visCci[i+1])); ctx.stroke();
+                    });
+                    ctx.lineWidth=1;
+                } else if (type === 'willr' && window === 2 && y2) {
+                    const wr = calculateWilliamsR(data, period);
+                    const visWr = wr.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.fillStyle='rgba(239,83,80,0.08)'; ctx.fillRect(pad,sc.yFn(-20),canvas.width-pad*2,sc.yFn(0)-sc.yFn(-20));
+                    ctx.fillStyle='rgba(38,166,154,0.08)'; ctx.fillRect(pad,sc.yFn(-100),canvas.width-pad*2,sc.yFn(-80)-sc.yFn(-100));
+                    ctx.strokeStyle='rgba(239,83,80,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(-20)); ctx.lineTo(canvas.width-pad,sc.yFn(-20)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(-80)); ctx.lineTo(canvas.width-pad,sc.yFn(-80)); ctx.stroke();
+                    ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
+                    drawLine(visWr, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'momentum' && window === 2 && y2) {
+                    const mom = calculateMomentum(data.map(c=>c.close), period);
+                    const visMom = mom.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    const momBarW = Math.max(candleSpacing*0.6,1);
+                    visMom.forEach((v,i) => {
+                        if (v===null) return;
+                        const x=pad+i*candleSpacing+candleSpacing/2-momBarW/2;
+                        const y0=sc.yFn(0), yv=sc.yFn(v);
+                        ctx.fillStyle = v>=0 ? 'rgba(255,165,0,0.7)' : 'rgba(138,43,226,0.7)';
+                        ctx.fillRect(x, Math.min(y0,yv), momBarW, Math.abs(y0-yv)||1);
+                    });
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=1.5;
+                    drawLine(visMom, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'roc' && window === 2 && y2) {
+                    const roc = calculateROC(data.map(c=>c.close), period);
+                    const visRoc = roc.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    visRoc.forEach((v,i) => {
+                        if (v===null||visRoc[i+1]===null) return;
+                        const x1=pad+i*candleSpacing+candleSpacing/2, x2=pad+(i+1)*candleSpacing+candleSpacing/2;
+                        ctx.strokeStyle = v>=0 ? '#00FFFF' : '#FF69B4';
+                        ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visRoc[i+1])); ctx.stroke();
+                    });
+                    ctx.lineWidth=1;
+                } else if (type === 'obv' && window === 2 && y2) {
+                    const obv = calculateOBV(data);
+                    const visObv = obv.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    const obvGrad = ctx.createLinearGradient(0, window2Y, 0, window2Y+window2H);
+                    obvGrad.addColorStop(0, 'rgba(127,255,0,0.25)');
+                    obvGrad.addColorStop(1, 'rgba(127,255,0,0)');
+                    ctx.fillStyle=obvGrad;
+                    ctx.beginPath();
+                    let obvS=false;
+                    visObv.forEach((v,i)=>{ const x=pad+i*candleSpacing+candleSpacing/2; if(!obvS){ctx.moveTo(x,sc.yFn(v));obvS=true;}else ctx.lineTo(x,sc.yFn(v)); });
+                    if (obvS) { const li=visObv.length-1; ctx.lineTo(pad+li*candleSpacing+candleSpacing/2,window2Y+window2H); ctx.lineTo(pad,window2Y+window2H); }
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=2;
+                    drawLine(visObv, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'mfi' && window === 2 && y2) {
+                    const mfi = calculateMFI(data, period);
+                    const visMfi = mfi.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.fillStyle='rgba(239,83,80,0.08)'; ctx.fillRect(pad,sc.yFn(80),canvas.width-pad*2,sc.yFn(100)-sc.yFn(80));
+                    ctx.fillStyle='rgba(38,166,154,0.08)'; ctx.fillRect(pad,sc.yFn(0),canvas.width-pad*2,sc.yFn(20)-sc.yFn(0));
+                    ctx.strokeStyle='rgba(239,83,80,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(80)); ctx.lineTo(canvas.width-pad,sc.yFn(80)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(20)); ctx.lineTo(canvas.width-pad,sc.yFn(20)); ctx.stroke();
+                    ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
+                    drawLine(visMfi, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'ao' && window === 2 && y2) {
+                    const ao = calculateAwesomeOscillator(data);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    const visAo = ao.slice(start, start+visible);
+                    visAo.forEach((v, i) => {
+                        if (v === null) return;
+                        const x = pad + i * candleSpacing;
+                        const prev = visAo[i-1];
+                        const color = prev === null || v >= prev ? '#26a69a' : '#ef5350';
+                        ctx.fillStyle = color;
+                        const y0 = sc.yFn(0), yv = sc.yFn(v);
+                        ctx.fillRect(x, Math.min(y0, yv), Math.max(candleSpacing - 1, 1), Math.abs(y0 - yv));
+                    });
+                } else if (type === 'adx' && window === 2 && y2) {
+                    const adx = calculateADX(data, period);
+                    const visAdx = adx.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(220,20,60,0.4)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(25)); ctx.lineTo(canvas.width-pad,sc.yFn(25)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(50)); ctx.lineTo(canvas.width-pad,sc.yFn(50)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    visAdx.forEach((v,i) => {
+                        if (v===null||visAdx[i+1]===null) return;
+                        const x1=pad+i*candleSpacing+candleSpacing/2, x2=pad+(i+1)*candleSpacing+candleSpacing/2;
+                        ctx.strokeStyle = v>=50 ? '#DC143C' : v>=25 ? '#FF8C00' : '#94a3b8';
+                        ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visAdx[i+1])); ctx.stroke();
+                    });
+                    ctx.lineWidth=1;
+                } else if (type === 'aroon' && window === 2 && y2) {
+                    const aroon = calculateAroon(data, period);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.25)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(50)); ctx.lineTo(canvas.width-pad,sc.yFn(50)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=2;
+                    drawLine(aroon.slice(start, start+visible).map(v=>v?.up), pad, candleSpacing, sc.yFn);
+                    ctx.strokeStyle='#FF4500'; ctx.lineWidth=2;
+                    drawLine(aroon.slice(start, start+visible).map(v=>v?.down), pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'cmf' && window === 2 && y2) {
+                    const cmf = calculateCMF(data, period);
+                    const visCmf = cmf.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    const cmfBarW = Math.max(candleSpacing*0.6,1);
+                    visCmf.forEach((v,i) => {
+                        if (v===null) return;
+                        const x=pad+i*candleSpacing+candleSpacing/2-cmfBarW/2;
+                        const y0=sc.yFn(0), yv=sc.yFn(v);
+                        ctx.fillStyle = v>=0 ? 'rgba(135,206,235,0.75)' : 'rgba(255,99,71,0.75)';
+                        ctx.fillRect(x, Math.min(y0,yv), cmfBarW, Math.abs(y0-yv)||1);
+                    });
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=1.5;
+                    drawLine(visCmf, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'dpo' && window === 2 && y2) {
+                    const dpo = calculateDPO(data.map(c=>c.close), period);
+                    const visDpo = dpo.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    visDpo.forEach((v,i) => {
+                        if (v===null||visDpo[i+1]===null) return;
+                        const x1=pad+i*candleSpacing+candleSpacing/2, x2=pad+(i+1)*candleSpacing+candleSpacing/2;
+                        ctx.strokeStyle = v>=0 ? '#DDA0DD' : '#9370DB';
+                        ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,sc.yFn(v)); ctx.lineTo(x2,sc.yFn(visDpo[i+1])); ctx.stroke();
+                    });
+                    ctx.lineWidth=1;
+                } else if (type === 'trix' && window === 2 && y2) {
+                    const trix = calculateTrix(data.map(c=>c.close), period);
+                    const visTrix = trix.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.strokeStyle='rgba(150,150,150,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(0)); ctx.lineTo(canvas.width-pad,sc.yFn(0)); ctx.stroke();
+                    ctx.setLineDash([]);
+                    const trixSignal = calculateEMAFromPrices(visTrix.map(v=>v??0), 9);
+                    ctx.strokeStyle='rgba(144,238,144,0.5)'; ctx.lineWidth=1;
+                    drawLine(trixSignal, pad, candleSpacing, sc.yFn);
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=2;
+                    drawLine(visTrix, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'uo' && window === 2 && y2) {
+                    const uo = calculateUltimateOscillator(data);
+                    const visUo = uo.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    ctx.fillStyle='rgba(239,83,80,0.07)'; ctx.fillRect(pad,sc.yFn(70),canvas.width-pad*2,sc.yFn(100)-sc.yFn(70));
+                    ctx.fillStyle='rgba(38,166,154,0.07)'; ctx.fillRect(pad,sc.yFn(0),canvas.width-pad*2,sc.yFn(30)-sc.yFn(0));
+                    ctx.strokeStyle='rgba(239,83,80,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(70)); ctx.lineTo(canvas.width-pad,sc.yFn(70)); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(30)); ctx.lineTo(canvas.width-pad,sc.yFn(30)); ctx.stroke();
+                    ctx.strokeStyle='rgba(150,150,150,0.25)';
+                    ctx.beginPath(); ctx.moveTo(pad,sc.yFn(50)); ctx.lineTo(canvas.width-pad,sc.yFn(50)); ctx.stroke();
+                    ctx.setLineDash([]); ctx.lineWidth=2; ctx.strokeStyle=ind.color;
+                    drawLine(visUo, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
+                } else if (type === 'stddev' && window === 2 && y2) {
+                    const sd = calculateStdDev(data.map(c=>c.close), period);
+                    const visSd = sd.slice(start, start+visible);
+                    const sc = w2Scales.get(type) || { yFn: y2 };
+                    const sdGrad = ctx.createLinearGradient(0, window2Y, 0, window2Y+window2H);
+                    sdGrad.addColorStop(0, 'rgba(240,128,128,0.3)');
+                    sdGrad.addColorStop(1, 'rgba(240,128,128,0)');
+                    ctx.fillStyle=sdGrad;
+                    ctx.beginPath();
+                    let sdS=false;
+                    visSd.forEach((v,i)=>{ if(v===null)return; const x=pad+i*candleSpacing+candleSpacing/2; if(!sdS){ctx.moveTo(x,sc.yFn(v));sdS=true;}else ctx.lineTo(x,sc.yFn(v)); });
+                    if (sdS) { const li=visSd.map((v,i)=>v!==null?i:-1).filter(i=>i>=0).pop(); ctx.lineTo(pad+li*candleSpacing+candleSpacing/2,window2Y+window2H); ctx.lineTo(pad,window2Y+window2H); }
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle=ind.color; ctx.lineWidth=2;
+                    drawLine(visSd, pad, candleSpacing, sc.yFn);
+                    ctx.lineWidth=1;
                 } else if (type.startsWith('custom_') && ind.custom && window === ind.params?.window) {
                     try {
                         if (ind.custom && typeof ind.custom.calculate === 'function') {
                             const result = ind.custom.calculate(data, ind.params);
                             const visibleResult = Array.isArray(result) ? result.slice(start, start + visible) : result;
-                            
                             ctx.strokeStyle = ind.color;
                             ctx.lineWidth = 1;
                             if (window === 1) {
                                 ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y1, ind.params);
-                            } else if (window === 2 && y2) {
-                                ind.custom.draw(ctx, visibleResult, pad, candleSpacing, y2, ind.params);
+                            } else if (window === 2) {
+                                const sc = w2Scales.get(type);
+                                const yFn = sc ? sc.yFn : y2;
+                                if (yFn) ind.custom.draw(ctx, visibleResult, pad, candleSpacing, yFn, ind.params);
                             }
                         }
                     } catch (error) {
                         console.error('Custom indicator error:', error);
-                        // Remove broken custom indicator
                         indicators.delete(type);
                         updateIndicatorTags();
                     }
@@ -3703,7 +4413,9 @@ async function initializeAccountDisplay() {
             const savedChartType = localStorage.getItem('chartType');
             if (savedChartType) {
                 chartType = savedChartType;
-                document.getElementById('chartType').value = chartType;
+                const btnMap = { candles: 'btnCandle', line: 'btnLine', area: 'btnArea', bars: 'btnBars' };
+                const activeBtn = document.getElementById(btnMap[chartType] || 'btnCandle');
+                if (activeBtn) setChartType(chartType, activeBtn);
             }
         }
         
@@ -3748,9 +4460,19 @@ async function initializeAccountDisplay() {
         });
         
         /* ================= CHART TYPES ================= */
-        function setChartType(type) {
+        function setChartType(type, btn) {
             chartType = type;
             localStorage.setItem('chartType', type);
+            document.querySelectorAll('#btnCandle,#btnLine,#btnArea,#btnBars').forEach(b => {
+                b.style.background = '#1E293B';
+                b.style.borderColor = '#2d3f55';
+                b.style.color = '#94a3b8';
+            });
+            if (btn) {
+                btn.style.background = '#FF4500';
+                btn.style.borderColor = '#FF4500';
+                btn.style.color = '#fff';
+            }
             draw();
         }
         
@@ -4297,7 +5019,7 @@ async function initializeAccountDisplay() {
             const pad = 70;
             const totalH = canvas.height - pad * 2;
             const hasWindow2 = Array.from(indicators.values()).some(ind => ind.params?.window === 2);
-            const window1H = hasWindow2 ? totalH * 0.7 : totalH;
+            const window1H = hasWindow2 ? totalH * window2Split : totalH;
             
             const candleSpacing = 6 * zoom;
             const w = canvas.width - pad * 2;
@@ -4312,46 +5034,6 @@ async function initializeAccountDisplay() {
             const range1 = max1 - min1 || 1;
             
             return max1 - ((y - pad) / window1H) * range1;
-        }
-        
-        function getXFromCandleIndex(index) {
-            const pad = 70;
-            const candleSpacing = 6 * zoom;
-            const w = canvas.width - pad * 2;
-            const visible = Math.floor(w / candleSpacing);
-            
-            let data = [...candles];
-            if (currentCandle) data.push(currentCandle);
-            
-            const start = Math.max(0, data.length - visible - Math.floor(offset));
-            const relativeIndex = index - start;
-            
-            return pad + relativeIndex * candleSpacing + candleSpacing / 2;
-        }
-        
-        function getYFromPrice(price) {
-            let data = [...candles];
-            if (currentCandle) data.push(currentCandle);
-            if (!data.length) return 0;
-            
-            const pad = 70;
-            const totalH = canvas.height - pad * 2;
-            const hasWindow2 = Array.from(indicators.values()).some(ind => ind.params?.window === 2);
-            const window1H = hasWindow2 ? totalH * 0.7 : totalH;
-            
-            const candleSpacing = 6 * zoom;
-            const w = canvas.width - pad * 2;
-            const visible = Math.floor(w / candleSpacing);
-            const start = Math.max(0, data.length - visible - Math.floor(offset));
-            const view = data.slice(start, start + visible);
-            
-            if (!view.length) return pad;
-            
-            const max1 = Math.max(...view.map(c => c.high));
-            const min1 = Math.min(...view.map(c => c.low));
-            const range1 = max1 - min1 || 1;
-            
-            return pad + window1H - ((price - min1) / range1) * window1H;
         }
         
         function drawDrawings() {
@@ -4743,6 +5425,40 @@ async function initializeAccountDisplay() {
         window.addEventListener('resize', () => {
             resize();
         });
+
+        /* ================= PANE RESIZE ================= */
+        (function() {
+            const handle = document.getElementById('paneResizeHandle');
+            let dragging = false;
+
+            function startDrag(e) {
+                dragging = true;
+                isDraggingPane = true;
+                e.preventDefault();
+            }
+            function onMove(e) {
+                if (!dragging) return;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const rect = canvas.getBoundingClientRect();
+                const pad = 70;
+                const totalH = canvas.height - pad * 2;
+                const relY = (clientY - rect.top) - pad;
+                const ratio = Math.min(0.85, Math.max(0.15, relY / totalH));
+                window2Split = ratio;
+                localStorage.setItem('window2Split', ratio);
+                draw();
+            }
+            function endDrag() {
+                dragging = false;
+                isDraggingPane = false;
+            }
+            handle.addEventListener('mousedown', startDrag);
+            handle.addEventListener('touchstart', startDrag, { passive: false });
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', endDrag);
+            window.addEventListener('touchend', endDrag);
+        })();
         
         /* ================= FULLSCREEN ================= */
         function toggleFullscreen() {
@@ -4977,16 +5693,39 @@ async function initializeAccountDisplay() {
                 Add Indicator
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button onclick="addIndicatorMobile('sma20')"  class="mob-ind-btn">SMA 20</button>
-                <button onclick="addIndicatorMobile('sma50')"  class="mob-ind-btn">SMA 50</button>
-                <button onclick="addIndicatorMobile('sma100')" class="mob-ind-btn">SMA 100</button>
-                <button onclick="addIndicatorMobile('ema20')"  class="mob-ind-btn">EMA 20</button>
-                <button onclick="addIndicatorMobile('ema50')"  class="mob-ind-btn">EMA 50</button>
-                <button onclick="addIndicatorMobile('bb')"     class="mob-ind-btn">Bollinger Bands</button>
-                <button onclick="addIndicatorMobile('rsi')"    class="mob-ind-btn">RSI</button>
-                <button onclick="addIndicatorMobile('macd')"   class="mob-ind-btn">MACD</button>
-                <button onclick="addIndicatorMobile('stoch')"  class="mob-ind-btn">Stochastic</button>
-                <button onclick="addIndicatorMobile('atr')"    class="mob-ind-btn">ATR</button>
+                <button onclick="addIndicatorMobile('sma20')"    class="mob-ind-btn">SMA 20</button>
+                <button onclick="addIndicatorMobile('sma50')"    class="mob-ind-btn">SMA 50</button>
+                <button onclick="addIndicatorMobile('sma100')"   class="mob-ind-btn">SMA 100</button>
+                <button onclick="addIndicatorMobile('ema20')"    class="mob-ind-btn">EMA 20</button>
+                <button onclick="addIndicatorMobile('ema50')"    class="mob-ind-btn">EMA 50</button>
+                <button onclick="addIndicatorMobile('wma')"      class="mob-ind-btn">WMA</button>
+                <button onclick="addIndicatorMobile('hma')"      class="mob-ind-btn">HMA</button>
+                <button onclick="addIndicatorMobile('dema')"     class="mob-ind-btn">DEMA</button>
+                <button onclick="addIndicatorMobile('tema')"     class="mob-ind-btn">TEMA</button>
+                <button onclick="addIndicatorMobile('vwap')"     class="mob-ind-btn">VWAP</button>
+                <button onclick="addIndicatorMobile('bb')"       class="mob-ind-btn">Bollinger Bands</button>
+                <button onclick="addIndicatorMobile('keltner')"  class="mob-ind-btn">Keltner</button>
+                <button onclick="addIndicatorMobile('donchian')" class="mob-ind-btn">Donchian</button>
+                <button onclick="addIndicatorMobile('envelopes')" class="mob-ind-btn">Envelopes</button>
+                <button onclick="addIndicatorMobile('psar')"     class="mob-ind-btn">Parabolic SAR</button>
+                <button onclick="addIndicatorMobile('rsi')"      class="mob-ind-btn">RSI</button>
+                <button onclick="addIndicatorMobile('macd')"     class="mob-ind-btn">MACD</button>
+                <button onclick="addIndicatorMobile('stoch')"    class="mob-ind-btn">Stochastic</button>
+                <button onclick="addIndicatorMobile('cci')"      class="mob-ind-btn">CCI</button>
+                <button onclick="addIndicatorMobile('willr')"    class="mob-ind-btn">Williams %R</button>
+                <button onclick="addIndicatorMobile('momentum')" class="mob-ind-btn">Momentum</button>
+                <button onclick="addIndicatorMobile('roc')"      class="mob-ind-btn">ROC</button>
+                <button onclick="addIndicatorMobile('ao')"       class="mob-ind-btn">Awesome Osc.</button>
+                <button onclick="addIndicatorMobile('mfi')"      class="mob-ind-btn">MFI</button>
+                <button onclick="addIndicatorMobile('adx')"      class="mob-ind-btn">ADX</button>
+                <button onclick="addIndicatorMobile('aroon')"    class="mob-ind-btn">Aroon</button>
+                <button onclick="addIndicatorMobile('cmf')"      class="mob-ind-btn">Chaikin MF</button>
+                <button onclick="addIndicatorMobile('dpo')"      class="mob-ind-btn">DPO</button>
+                <button onclick="addIndicatorMobile('trix')"     class="mob-ind-btn">TRIX</button>
+                <button onclick="addIndicatorMobile('uo')"       class="mob-ind-btn">Ultimate Osc.</button>
+                <button onclick="addIndicatorMobile('stddev')"   class="mob-ind-btn">Std Deviation</button>
+                <button onclick="addIndicatorMobile('atr')"      class="mob-ind-btn">ATR</button>
+                <button onclick="addIndicatorMobile('obv')"      class="mob-ind-btn">OBV</button>
             </div>
         </div>
 
