@@ -272,28 +272,34 @@ async function saveIndicator(e) {
   else { const d=await res.json(); alert(d.error||'Failed to save'); }
 }
 
+function evalIndicatorCode(code) {
+  try { return new Function('return (' + code + ')')(); } catch(e) {}
+  try {
+    const fn = new Function(code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+    const r = fn();
+    if (r) return r;
+  } catch(e) {}
+  return new Function('return (' + code + ')')(); // re-throw original error
+}
+
 function testCode() {
-  const code = document.getElementById('indCode').value;
+  const code = document.getElementById('indCode').value.trim();
   const errEl = document.getElementById('codeError');
   try {
-    const parsed = new Function('return (' + code + ')')();
+    const parsed = evalIndicatorCode(code);
     const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()/1000+i*60}));
     let name, values;
-
     if (typeof parsed === 'function') {
-      // Old format: function(candles, params) => {name, data, color}
       const out = parsed(sample, {});
       if (!out || !out.data) throw new Error('Function must return {name, data, color}');
       name = out.name; values = out.data;
     } else if (parsed && typeof parsed.calculate === 'function') {
-      // New format: ({name, calculate(data,params), draw(ctx,...)})
       values = parsed.calculate(sample, parsed.defaultParams || {});
       name = parsed.name;
       if (!Array.isArray(values)) throw new Error('calculate() must return an array');
     } else {
       throw new Error('Code must be a function OR an object with a calculate() method');
     }
-
     errEl.style.display='none';
     alert('✅ Code is valid!\n"' + name + '" returned ' + values.filter(v=>v!==null).length + ' values');
   } catch(err) {

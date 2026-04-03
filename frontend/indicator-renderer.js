@@ -293,40 +293,29 @@ class IndicatorRenderer {
                 }
             }
 
-            // Execute indicator code — supports both formats:
-            // 1. New: ({name, calculate(data,params), draw(ctx,...)})
-            // 2. Old: function calculateIndicator(candles, params) => {name, data, color}
+            // Execute indicator code — supports object format, function expression, and function declaration
             let result;
             try {
-                const parsed = new Function('return (' + indicator.code + ')')();
+                const parsed = (() => {
+                    try { return new Function('return (' + indicator.code + ')')(); } catch(e) {}
+                    try {
+                        const fn = new Function(indicator.code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+                        const r = fn(); if (r) return r;
+                    } catch(e) {}
+                    return new Function('return (' + indicator.code + ')')();
+                })();
                 if (parsed && typeof parsed.calculate === 'function') {
-                    // New object format
                     const values = parsed.calculate(candles, parsed.defaultParams || {});
-                    result = {
-                        name: parsed.name,
-                        data: values,
-                        color: parsed.color || '#FF4500',
-                        lineWidth: parsed.lineWidth || 2,
-                        panel: parsed.window === 2 ? 'separate' : 'main'
-                    };
+                    result = { name: parsed.name, data: values, color: parsed.color || '#FF4500', lineWidth: parsed.lineWidth || 2, panel: parsed.window === 2 ? 'separate' : 'main' };
                 } else if (typeof parsed === 'function') {
-                    // Old function format
                     result = parsed(candles, {});
                 } else {
-                    // Legacy: code string containing calculateIndicator function
-                    const indicatorFunc = new Function('candles', 'params', `
-                        ${indicator.code}
-                        return calculateIndicator(candles, params);
-                    `);
-                    result = indicatorFunc(candles, {});
+                    const fn = new Function('candles', 'params', `${indicator.code}\nreturn calculateIndicator(candles, params);`);
+                    result = fn(candles, {});
                 }
             } catch(e) {
-                // Final fallback: legacy calculateIndicator string
-                const indicatorFunc = new Function('candles', 'params', `
-                    ${indicator.code}
-                    return calculateIndicator(candles, params);
-                `);
-                result = indicatorFunc(candles, {});
+                const fn = new Function('candles', 'params', `${indicator.code}\nreturn calculateIndicator(candles, params);`);
+                result = fn(candles, {});
             }
             console.log('✅ Indicator calculated:', result);
 
@@ -455,10 +444,17 @@ class IndicatorRenderer {
             if (!candles || candles.length === 0) return;
             
             try {
-                // Recalculate — supports new object format and old function format
+                // Recalculate — supports all three formats
                 let result;
                 try {
-                    const parsed = new Function('return (' + active.indicator.code + ')')();
+                    const parsed = (() => {
+                        try { return new Function('return (' + active.indicator.code + ')')(); } catch(e) {}
+                        try {
+                            const fn = new Function(active.indicator.code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+                            const r = fn(); if (r) return r;
+                        } catch(e) {}
+                        return new Function('return (' + active.indicator.code + ')')();
+                    })();
                     if (parsed && typeof parsed.calculate === 'function') {
                         const values = parsed.calculate(candles, parsed.defaultParams || {});
                         result = { name: parsed.name, data: values, color: parsed.color || '#FF4500', lineWidth: parsed.lineWidth || 2, panel: parsed.window === 2 ? 'separate' : 'main' };

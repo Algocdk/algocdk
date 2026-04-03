@@ -2716,7 +2716,7 @@ function renderCustomIndOnChart(id, color) {
     let indColor = color;
     let lineWidth = 2;
 
-    const parsed = new Function('return (' + ind.code + ')')();
+    const parsed = evalIndicatorCode(ind.code);
 
     if (typeof parsed === 'function') {
       // Legacy format: function(candleData, params) => {name, data, color}
@@ -2837,28 +2837,40 @@ function ciLoadFile(input) {
 }
 
 function ciTest() {
-  const code = document.getElementById('ciCode').value;
+  const code = document.getElementById('ciCode').value.trim();
   const errEl = document.getElementById('ciError');
   try {
-    const parsed = new Function('return (' + code + ')')();
+    const result = evalIndicatorCode(code);
     const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()/1000+i*60}));
     let values, name;
-    if (typeof parsed === 'function') {
-      // Legacy format
-      const out = parsed(sample, {});
+    if (typeof result === 'function') {
+      const out = result(sample, {});
       if (!out || !out.data) throw new Error('Function must return {name, data, color}');
       values = out.data; name = out.name;
-    } else if (parsed && typeof parsed.calculate === 'function') {
-      // Standard format (same as /app)
-      values = parsed.calculate(sample, parsed.defaultParams || {});
-      name = parsed.name;
+    } else if (result && typeof result.calculate === 'function') {
+      values = result.calculate(sample, result.defaultParams || {});
+      name = result.name;
       if (!Array.isArray(values)) throw new Error('calculate() must return an array');
     } else {
-      throw new Error('Must export an object with calculate() — see template');
+      throw new Error('Must export an object with calculate() or a function returning {data}');
     }
     errEl.style.display='none';
     alert('✅ Valid! "' + name + '" returns ' + values.filter(v=>v!==null).length + ' values');
   } catch(e) { errEl.textContent='❌ '+e.message; errEl.style.display='block'; }
+}
+
+// Parse any indicator code format — object expression, function expression, or function declaration
+function evalIndicatorCode(code) {
+  // 1. Try as object/function expression: ({...}) or (function(...){...})
+  try { return new Function('return (' + code + ')')(); } catch(e) {}
+  // 2. Try as function declaration(s) — execute the code then grab calculateIndicator
+  try {
+    const fn = new Function(code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+    const r = fn();
+    if (r) return r;
+  } catch(e) {}
+  // 3. Re-throw with original expression error for better feedback
+  return new Function('return (' + code + ')')();
 }
 
 async function ciSave() {
