@@ -2257,10 +2257,12 @@
                     name: indicator.name,
                     color: indicator.color || '#ffffff',
                     window: indicator.window || 1,
-                    code: indicator._rawCode || null   // set below when coming from textarea
+                    code: indicator._rawCode || null
                 };
-                if (existing >= 0) shared[existing] = entry; else shared.push(entry);
-                localStorage.setItem('sharedCustomIndicators', JSON.stringify(shared));
+                if (entry.code) {
+                    if (existing >= 0) shared[existing] = entry; else shared.push(entry);
+                    localStorage.setItem('sharedCustomIndicators', JSON.stringify(shared));
+                }
             } catch(e) {}
             
             // Auto-add the indicator

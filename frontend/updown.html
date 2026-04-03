@@ -2581,7 +2581,10 @@ document.addEventListener('DOMContentLoaded', initDraggableButton);
       <div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
           <label style="font-size:12px;font-weight:600;color:#94a3b8;">Code (JavaScript)</label>
-          <button onclick="document.getElementById('ciFileInput').click()" style="background:#2d3748;border:none;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-upload"></i> Upload .js</button>
+          <div style="display:flex;gap:6px;">
+            <button onclick="ciInsertTemplate()" style="background:#1E3A5F;border:1px solid #2d5a8e;color:#60a5fa;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;" title="Insert standard template"><i class="fas fa-file-code"></i> Template</button>
+            <button onclick="document.getElementById('ciFileInput').click()" style="background:#2d3748;border:none;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;"><i class="fas fa-upload"></i> Upload .js</button>
+          </div>
         </div>
         <input type="file" id="ciFileInput" accept=".js" style="display:none" onchange="ciLoadFile(this)">
         <textarea id="ciCode" rows="12" style="width:100%;background:#0D1421;border:1px solid #2d3748;color:#e2e8f0;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;resize:vertical;"></textarea>
@@ -2707,15 +2710,40 @@ function renderCustomIndOnChart(id, color) {
   const ind = userCustomInds.find(i=>String(i.id)===String(id));
   if (!ind || !candles.length) return;
   try {
-    const fn = new Function('return ('+ind.code+')')();
     const candleData = candles.map(c=>({open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume||0,time:c.time}));
-    const result = fn(candleData, {});
-    if (!result||!result.data) return;
-    const series = mainChart.addLineSeries({color:result.color||color,lineWidth:result.lineWidth||2,priceLineVisible:false,lastValueVisible:true,title:result.name||ind.name});
-    const seriesData = result.data.map((v,i)=>v!==null?{time:candles[i].time,value:v}:null).filter(Boolean);
-    series.setData(seriesData);
-    // For shared indicators the id already starts with 'custom_', avoid double prefix
+    let values = [];
+    let indName = ind.name;
+    let indColor = color;
+    let lineWidth = 2;
+
+    const parsed = new Function('return (' + ind.code + ')')();
+
+    if (typeof parsed === 'function') {
+      // Legacy format: function(candleData, params) => {name, data, color}
+      const result = parsed(candleData, {});
+      if (!result || !result.data) throw new Error('Must return {name, data, color}');
+      values = result.data;
+      indName = result.name || indName;
+      indColor = result.color || indColor;
+      lineWidth = result.lineWidth || 2;
+    } else if (parsed && typeof parsed.calculate === 'function') {
+      // Standard format — same as /app page
+      values = parsed.calculate(candleData, parsed.defaultParams || {});
+      indName = parsed.name || indName;
+      indColor = parsed.color || indColor;
+      lineWidth = parsed.lineWidth || 2;
+    } else {
+      throw new Error('Indicator must export an object with calculate() or a function returning {data}');
+    }
+
+    if (!Array.isArray(values)) throw new Error('calculate() must return an array');
+
     const seriesKey = String(id).startsWith('custom_') ? id : 'custom_'+id;
+    if (customIndSeries[seriesKey]) { try { mainChart.removeSeries(customIndSeries[seriesKey]); } catch(e){} }
+
+    const series = mainChart.addLineSeries({color:indColor, lineWidth, priceLineVisible:false, lastValueVisible:true, title:indName});
+    const seriesData = values.map((v,i) => (v !== null && v !== undefined && candles[i]) ? {time:candles[i].time, value:v} : null).filter(Boolean);
+    series.setData(seriesData);
     customIndSeries[seriesKey] = series;
   } catch(e) { console.error('Custom indicator error:', e); alert('Error running indicator: '+e.message); }
 }
@@ -2751,6 +2779,41 @@ function reRenderCustomInds() {
 }
 
 // ── Edit Modal ──
+const CI_TEMPLATE = `({
+  name: "My Indicator",
+  color: "#FF4500",
+  lineWidth: 2,
+  window: 1,
+  defaultParams: { period: 14 },
+
+  calculate: function(data, params) {
+    const period = params.period || 14;
+    return data.map((_, i) => {
+      if (i < period - 1) return null;
+      const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b.close, 0);
+      return sum / period;
+    });
+  },
+
+  draw: function(ctx, values, pad, spacing, yFunc, params) {
+    ctx.beginPath();
+    let started = false;
+    values.forEach((val, i) => {
+      if (val !== null) {
+        const x = pad + i * spacing + spacing / 2;
+        const y = yFunc(val);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+  }
+})`;
+
+function ciInsertTemplate() {
+  document.getElementById('ciCode').value = CI_TEMPLATE;
+}
+
 function openCIModal(id) {
   const ind = userCustomInds.find(i=>i.id===id);
   if (!ind) return;
@@ -2777,12 +2840,24 @@ function ciTest() {
   const code = document.getElementById('ciCode').value;
   const errEl = document.getElementById('ciError');
   try {
-    const fn = new Function('return ('+code+')')();
+    const parsed = new Function('return (' + code + ')')();
     const sample = Array.from({length:20},(_,i)=>({open:100+i,high:105+i,low:95+i,close:102+i,volume:1000,time:Date.now()/1000+i*60}));
-    const out = fn(sample,{});
-    if (!out||!out.data) throw new Error('Must return {name, type, data, color}');
+    let values, name;
+    if (typeof parsed === 'function') {
+      // Legacy format
+      const out = parsed(sample, {});
+      if (!out || !out.data) throw new Error('Function must return {name, data, color}');
+      values = out.data; name = out.name;
+    } else if (parsed && typeof parsed.calculate === 'function') {
+      // Standard format (same as /app)
+      values = parsed.calculate(sample, parsed.defaultParams || {});
+      name = parsed.name;
+      if (!Array.isArray(values)) throw new Error('calculate() must return an array');
+    } else {
+      throw new Error('Must export an object with calculate() — see template');
+    }
     errEl.style.display='none';
-    alert('✅ Valid! Returns: '+out.name+' with '+out.data.length+' values');
+    alert('✅ Valid! "' + name + '" returns ' + values.filter(v=>v!==null).length + ' values');
   } catch(e) { errEl.textContent='❌ '+e.message; errEl.style.display='block'; }
 }
 
@@ -2816,49 +2891,21 @@ function loadSharedCustomIndicators() {
   try {
     const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
     if (!shared.length) return;
-
     const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
-
     shared.forEach((entry, idx) => {
-      if (!entry.id || !entry.name) return;
-
-      // Avoid duplicates with server-loaded indicators
+      if (!entry.id || !entry.name || !entry.code) return;
+      // Skip if already loaded from server
       if (userCustomInds.find(i => 'custom_'+i.id === entry.id || i.name === entry.name)) return;
-
-      // Build a synthetic indicator object compatible with updown's renderCustomIndOnChart
-      // app.html format: object with calculate(data,params) returning array + draw()
-      // updown format: function(candleData, params) returning {name, data, color}
-      // We wrap the app.html indicator into updown's expected function format
-      const syntheticInd = {
-        id: entry.id,          // string id like "custom_my_indicator"
+      // The code is already in standard format — no wrapping needed
+      userCustomInds.push({
+        id: entry.id,
         name: entry.name,
-        _isShared: true,
-        _color: entry.color || colors[idx % colors.length],
-        _window: entry.window || 1,
-        // Store raw code so renderCustomIndOnChart can eval it
-        code: entry.code ? buildUpdownWrapper(entry.code, entry.name, entry.color || colors[idx % colors.length]) : null
-      };
-
-      if (!syntheticInd.code) return; // no raw code, can't render
-
-      userCustomInds.push(syntheticInd);
+        code: entry.code,
+        _isShared: true
+      });
     });
-
     renderCustomIndDropdown();
   } catch(e) { console.warn('sharedCustomIndicators load error:', e); }
-}
-
-// Wraps an app.html-style indicator code into updown's expected function signature
-function buildUpdownWrapper(appCode, name, color) {
-  // app.html indicator: ({name, calculate(data,params), draw(ctx,...), ...})
-  // updown expects: function(candleData, params) => {name, data, color}
-  return `(function(candleData, params) {
-    try {
-      const ind = (${appCode});
-      const result = ind.calculate(candleData, params || ind.defaultParams || {});
-      return { name: ind.name || ${JSON.stringify(name)}, data: result, color: ind.color || ${JSON.stringify(color)} };
-    } catch(e) { return null; }
-  })`;
 }
 
 // Patch loadCustomIndicators to also load shared ones after server load
