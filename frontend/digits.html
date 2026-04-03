@@ -1412,6 +1412,7 @@
             <div class="bot-tabs">
                 <button class="bot-tab active" onclick="switchBotTab('load')"><i class="fas fa-folder-open"></i> Load</button>
                 <button class="bot-tab" onclick="switchBotTab('run')"><i class="fas fa-play"></i> Runner</button>
+                <button class="bot-tab" onclick="switchBotTab('auto')"><i class="fas fa-robot"></i> Auto</button>
             </div>
 
             <!-- Load Tab -->
@@ -1437,6 +1438,112 @@
                     </div>
                     <iframe class="bot-runner-frame" id="botRunnerFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
                 </div>
+            </div>
+
+            <!-- Auto-Trade Tab -->
+            <div class="bot-tab-content" id="bot-tab-auto" style="flex-direction:column;overflow-y:auto;padding:14px;gap:10px;">
+
+              <!-- Status bar -->
+              <div id="autoStatusBar" style="display:none;background:rgba(16,185,129,0.12);border:1px solid #10b981;border-radius:8px;padding:10px 14px;font-size:12px;color:#10b981;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fas fa-circle" style="font-size:8px;margin-right:6px;animation:blink 1s infinite"></i><span id="autoStatusText">Running</span></span>
+                <span style="color:#e2e8f0">Trades: <b id="autoTradeCount">0</b> &nbsp;|&nbsp; P&L: <b id="autoPnl">$0.00</b></span>
+              </div>
+
+              <!-- Strategy -->
+              <div style="background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Strategy</div>
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Contract Type</label>
+                  <select id="autoContractType" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                    <option value="DIGITEVEN">Even</option>
+                    <option value="DIGITODD">Odd</option>
+                    <option value="DIGITOVER">Over</option>
+                    <option value="DIGITUNDER">Under</option>
+                    <option value="DIGITMATCH">Match Digit</option>
+                    <option value="DIGITDIFF">Differ Digit</option>
+                    <option value="SIGNAL">Signal-Based (auto-detect)</option>
+                  </select>
+                </div>
+                <div id="autoBarrierRow" style="margin-bottom:8px;display:none;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Barrier / Digit</label>
+                  <input type="number" id="autoBarrier" value="5" min="0" max="9" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                </div>
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Ticks per Trade</label>
+                  <input type="number" id="autoTicks" value="5" min="1" max="10" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                </div>
+              </div>
+
+              <!-- Stake Management -->
+              <div style="background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Stake Management</div>
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Initial Stake (USD)</label>
+                  <input type="number" id="autoInitStake" value="1" min="0.35" step="0.01" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                </div>
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Stake Mode</label>
+                  <select id="autoStakeMode" onchange="updateAutoStakeUI()" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                    <option value="fixed">Fixed</option>
+                    <option value="martingale">Martingale (double on loss)</option>
+                    <option value="antimartingale">Anti-Martingale (double on win)</option>
+                    <option value="dalembert">D'Alembert (+1 on loss, -1 on win)</option>
+                  </select>
+                </div>
+                <div id="autoMultiplierRow" style="margin-bottom:8px;display:none;">
+                  <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Multiplier</label>
+                  <input type="number" id="autoMultiplier" value="2" min="1.1" step="0.1" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:13px;">
+                </div>
+              </div>
+
+              <!-- Risk Controls -->
+              <div style="background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Risk Controls</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                  <div>
+                    <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Take Profit ($)</label>
+                    <input type="number" id="autoTakeProfit" value="10" min="0" step="0.5" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Stop Loss ($)</label>
+                    <input type="number" id="autoStopLoss" value="5" min="0" step="0.5" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;">
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div>
+                    <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Max Consec. Losses</label>
+                    <input type="number" id="autoMaxLosses" value="5" min="1" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Max Trades</label>
+                    <input type="number" id="autoMaxTrades" value="50" min="1" style="width:100%;background:#1a1f2e;border:1px solid #2d3748;color:#e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Session P&L mini chart -->
+              <div style="background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Session P&L</div>
+                <canvas id="pnlChart" height="60" style="width:100%;display:block;"></canvas>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;">
+                  <span style="color:#64748b">Wins: <b id="autoWins" style="color:#10b981">0</b></span>
+                  <span style="color:#64748b">Losses: <b id="autoLosses" style="color:#ef4444">0</b></span>
+                  <span style="color:#64748b">Win%: <b id="autoWinRate" style="color:#e2e8f0">0%</b></span>
+                </div>
+              </div>
+
+              <!-- Trade log -->
+              <div style="background:#0D1421;border:1px solid #2d3748;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Trade Log</div>
+                <div id="autoTradeLog" style="max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;font-size:11px;color:#64748b;">
+                  <span>No trades yet</span>
+                </div>
+              </div>
+
+              <!-- Start / Stop -->
+              <button id="autoStartBtn" onclick="toggleAutoTrade()" style="width:100%;padding:14px;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fas fa-play"></i> Start Auto-Trade
+              </button>
             </div>
         </div>
 
@@ -1500,7 +1607,7 @@
 
         function switchBotTab(tab) {
             document.querySelectorAll('.bot-tab').forEach((t, i) => {
-                t.classList.toggle('active', ['load','run'][i] === tab);
+                t.classList.toggle('active', ['load','run','auto'][i] === tab);
             });
             document.querySelectorAll('.bot-tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(`bot-tab-${tab}`).classList.add('active');
@@ -1638,6 +1745,244 @@
 
         // ── Restore on load ──
         loadFromStorage();
+
+        // ══════════════════════════════════════════════════════
+        //  AUTO-TRADE ENGINE
+        // ══════════════════════════════════════════════════════
+        let autoRunning = false;
+        let autoState = {
+            tradeCount: 0, wins: 0, losses: 0,
+            pnl: 0, currentStake: 1,
+            consecLosses: 0, pnlHistory: [],
+            pendingContractId: null, waitingResult: false
+        };
+
+        function updateAutoStakeUI() {
+            const mode = document.getElementById('autoStakeMode').value;
+            const row = document.getElementById('autoMultiplierRow');
+            row.style.display = (mode === 'martingale' || mode === 'antimartingale') ? 'block' : 'none';
+        }
+
+        document.getElementById('autoContractType').addEventListener('change', function() {
+            const v = this.value;
+            const br = document.getElementById('autoBarrierRow');
+            br.style.display = (v === 'DIGITOVER' || v === 'DIGITUNDER' || v === 'DIGITMATCH' || v === 'DIGITDIFF') ? 'block' : 'none';
+        });
+
+        function toggleAutoTrade() {
+            if (autoRunning) stopAutoTrade();
+            else startAutoTrade();
+        }
+
+        function startAutoTrade() {
+            if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
+                alert('Not connected to Deriv. Please wait for connection.');
+                return;
+            }
+            autoRunning = true;
+            autoState = {
+                tradeCount: 0, wins: 0, losses: 0, pnl: 0,
+                currentStake: parseFloat(document.getElementById('autoInitStake').value) || 1,
+                consecLosses: 0, pnlHistory: [0],
+                pendingContractId: null, waitingResult: false
+            };
+            const btn = document.getElementById('autoStartBtn');
+            btn.innerHTML = '<i class="fas fa-stop"></i> Stop Auto-Trade';
+            btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+            document.getElementById('autoStatusBar').style.display = 'flex';
+            document.getElementById('autoTradeLog').innerHTML = '';
+            logAutoTrade('🟢 Auto-trade started', '#10b981');
+            // Hook into derivWS messages
+            const origOnMessage = derivWS.onmessage;
+            derivWS._autoOrigOnMessage = origOnMessage;
+            derivWS.onmessage = (event) => {
+                if (origOnMessage) origOnMessage(event);
+                handleAutoMessage(JSON.parse(event.data));
+            };
+            placeAutoTrade();
+        }
+
+        function stopAutoTrade(reason) {
+            autoRunning = false;
+            const btn = document.getElementById('autoStartBtn');
+            btn.innerHTML = '<i class="fas fa-play"></i> Start Auto-Trade';
+            btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+            document.getElementById('autoStatusBar').style.display = 'none';
+            if (derivWS && derivWS._autoOrigOnMessage) {
+                derivWS.onmessage = derivWS._autoOrigOnMessage;
+                delete derivWS._autoOrigOnMessage;
+            }
+            logAutoTrade(`🔴 Stopped${reason ? ': ' + reason : ''}`, '#ef4444');
+        }
+
+        function getAutoContractType() {
+            const type = document.getElementById('autoContractType').value;
+            if (type !== 'SIGNAL') return type;
+            // Signal-based: use current analysis to pick best trade
+            const total = digitHistory.length;
+            if (total < 20) return 'DIGITEVEN';
+            const evenCount = digitHistory.filter(d => d % 2 === 0).length;
+            const evenPct = evenCount / total;
+            if (evenPct > 0.55) return 'DIGITEVEN';
+            if (evenPct < 0.45) return 'DIGITODD';
+            const overCount = digitHistory.filter(d => d > 5).length;
+            return (overCount / total) > 0.5 ? 'DIGITOVER' : 'DIGITUNDER';
+        }
+
+        function placeAutoTrade() {
+            if (!autoRunning || autoState.waitingResult) return;
+            const maxTrades = parseInt(document.getElementById('autoMaxTrades').value) || 50;
+            if (autoState.tradeCount >= maxTrades) { stopAutoTrade('Max trades reached'); return; }
+            const tp = parseFloat(document.getElementById('autoTakeProfit').value) || 0;
+            const sl = parseFloat(document.getElementById('autoStopLoss').value) || 0;
+            if (tp > 0 && autoState.pnl >= tp) { stopAutoTrade('Take profit hit 🎯'); return; }
+            if (sl > 0 && autoState.pnl <= -sl) { stopAutoTrade('Stop loss hit 🛑'); return; }
+            const maxLosses = parseInt(document.getElementById('autoMaxLosses').value) || 5;
+            if (autoState.consecLosses >= maxLosses) { stopAutoTrade('Max consecutive losses reached'); return; }
+
+            const contractType = getAutoContractType();
+            const ticks = parseInt(document.getElementById('autoTicks').value) || 5;
+            const barrier = parseInt(document.getElementById('autoBarrier').value) || 5;
+            const stake = Math.max(0.35, parseFloat(autoState.currentStake.toFixed(2)));
+
+            const req = {
+                buy: 1, price: stake,
+                parameters: {
+                    contract_type: contractType,
+                    symbol: currentSymbol,
+                    duration: ticks, duration_unit: 't',
+                    currency: 'USD', amount: stake, basis: 'stake'
+                }
+            };
+            if (['DIGITOVER','DIGITUNDER','DIGITMATCH','DIGITDIFF'].includes(contractType)) {
+                req.parameters.barrier = barrier;
+            }
+            autoState.waitingResult = true;
+            derivWS.send(JSON.stringify(req));
+            logAutoTrade(`📤 Trade #${autoState.tradeCount + 1} — ${contractType} $${stake.toFixed(2)}`, '#94a3b8');
+        }
+
+        function handleAutoMessage(data) {
+            if (!autoRunning) return;
+            if (data.buy && data.buy.contract_id) {
+                autoState.pendingContractId = data.buy.contract_id;
+                autoState.tradeCount++;
+                updateAutoStatus();
+                // Subscribe to contract updates
+                derivWS.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
+            }
+            if (data.proposal_open_contract) {
+                const poc = data.proposal_open_contract;
+                if (poc.contract_id !== autoState.pendingContractId) return;
+                if (poc.is_sold || poc.status === 'won' || poc.status === 'lost') {
+                    const won = poc.status === 'won';
+                    const profit = won ? (poc.profit || 0) : -(poc.buy_price || autoState.currentStake);
+                    autoState.pnl += profit;
+                    autoState.pnlHistory.push(parseFloat(autoState.pnl.toFixed(2)));
+                    if (won) {
+                        autoState.wins++;
+                        autoState.consecLosses = 0;
+                        logAutoTrade(`✅ Win +$${Math.abs(profit).toFixed(2)} | P&L: $${autoState.pnl.toFixed(2)}`, '#10b981');
+                        adjustStake(true);
+                    } else {
+                        autoState.losses++;
+                        autoState.consecLosses++;
+                        logAutoTrade(`❌ Loss -$${Math.abs(profit).toFixed(2)} | P&L: $${autoState.pnl.toFixed(2)}`, '#ef4444');
+                        adjustStake(false);
+                    }
+                    autoState.waitingResult = false;
+                    autoState.pendingContractId = null;
+                    updateAutoStatus();
+                    drawPnlChart();
+                    // Small delay before next trade
+                    setTimeout(placeAutoTrade, 600);
+                }
+            }
+        }
+
+        function adjustStake(won) {
+            const mode = document.getElementById('autoStakeMode').value;
+            const initStake = parseFloat(document.getElementById('autoInitStake').value) || 1;
+            const mult = parseFloat(document.getElementById('autoMultiplier').value) || 2;
+            if (mode === 'fixed') {
+                autoState.currentStake = initStake;
+            } else if (mode === 'martingale') {
+                autoState.currentStake = won ? initStake : autoState.currentStake * mult;
+            } else if (mode === 'antimartingale') {
+                autoState.currentStake = won ? autoState.currentStake * mult : initStake;
+            } else if (mode === 'dalembert') {
+                autoState.currentStake = won
+                    ? Math.max(initStake, autoState.currentStake - initStake)
+                    : autoState.currentStake + initStake;
+            }
+        }
+
+        function updateAutoStatus() {
+            document.getElementById('autoTradeCount').textContent = autoState.tradeCount;
+            const pnlEl = document.getElementById('autoPnl');
+            pnlEl.textContent = '$' + autoState.pnl.toFixed(2);
+            pnlEl.style.color = autoState.pnl >= 0 ? '#10b981' : '#ef4444';
+            document.getElementById('autoWins').textContent = autoState.wins;
+            document.getElementById('autoLosses').textContent = autoState.losses;
+            const total = autoState.wins + autoState.losses;
+            document.getElementById('autoWinRate').textContent = total > 0 ? ((autoState.wins / total) * 100).toFixed(0) + '%' : '0%';
+        }
+
+        function logAutoTrade(msg, color) {
+            const log = document.getElementById('autoTradeLog');
+            if (log.querySelector('span')) log.querySelector('span')?.remove();
+            const el = document.createElement('div');
+            el.style.cssText = `color:${color};padding:3px 0;border-bottom:1px solid #1a1f2e;`;
+            el.textContent = msg;
+            log.insertBefore(el, log.firstChild);
+            if (log.children.length > 30) log.removeChild(log.lastChild);
+        }
+
+        function drawPnlChart() {
+            const canvas = document.getElementById('pnlChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.offsetWidth || 300, h = 60;
+            canvas.width = w; canvas.height = h;
+            ctx.clearRect(0, 0, w, h);
+            const data = autoState.pnlHistory;
+            if (data.length < 2) return;
+            const min = Math.min(...data), max = Math.max(...data);
+            const range = max - min || 1;
+            const toY = v => h - 4 - ((v - min) / range) * (h - 8);
+            const toX = i => (i / (data.length - 1)) * w;
+            // Fill
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            const lastVal = data[data.length - 1];
+            const col = lastVal >= 0 ? '#10b981' : '#ef4444';
+            grad.addColorStop(0, lastVal >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.beginPath();
+            ctx.moveTo(toX(0), toY(data[0]));
+            data.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
+            ctx.lineTo(toX(data.length - 1), h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // Line
+            ctx.beginPath();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1.5;
+            data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+            ctx.stroke();
+            // Zero line
+            if (min < 0 && max > 0) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(0, toY(0));
+                ctx.lineTo(w, toY(0));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
     </script>
 </body>
 </html>
