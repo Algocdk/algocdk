@@ -1759,11 +1759,19 @@
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         try {
-                            const code = event.target.result;
+                            const code = event.target.result.trim();
                             console.log('Loading custom indicator code:', code);
-                            const customIndicator = eval(`(${code})`);
-                            console.log('Parsed custom indicator:', customIndicator);
+                            let customIndicator;
+                            try {
+                                customIndicator = eval(`(${code})`);
+                            } catch(e) {
+                                const fn = new Function(code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+                                const result = fn();
+                                if (!result) throw new Error('Could not parse indicator code');
+                                customIndicator = { name: 'Custom Indicator', _legacyFn: result };
+                            }
                             customIndicator._rawCode = code;
+                            console.log('Parsed custom indicator:', customIndicator);
                             loadCustomIndicator(customIndicator);
                         } catch (error) {
                             console.error('Error loading custom indicator:', error);
@@ -2215,9 +2223,18 @@
         
         function saveCustomIndicator() {
             try {
-                const code = document.getElementById('customIndicatorCode').value;
-                const customIndicator = eval(`(${code})`);
-                customIndicator._rawCode = code; // carry raw code for cross-page sharing
+                const code = document.getElementById('customIndicatorCode').value.trim();
+                let customIndicator;
+                try {
+                    customIndicator = eval(`(${code})`);
+                } catch(e) {
+                    // Try as function declaration
+                    const fn = new Function(code + '\nif(typeof calculateIndicator!=="undefined") return calculateIndicator; return null;');
+                    const result = fn();
+                    if (!result) throw new Error('Could not parse indicator code');
+                    customIndicator = { name: 'Custom Indicator', _legacyFn: result };
+                }
+                customIndicator._rawCode = code;
                 loadCustomIndicator(customIndicator);
                 cancelCustomIndicator();
             } catch (error) {
@@ -2232,8 +2249,15 @@
         
         function loadCustomIndicator(indicator) {
             console.log('Loading indicator:', indicator);
-            if (!indicator.name || !indicator.calculate || !indicator.draw) {
-                alert('Invalid indicator format. Must have name, calculate, and draw functions.');
+            // Accept both formats:
+            // 1. New: {name, calculate, draw}
+            // 2. Old: function calculateIndicator — wrapped as {name, _legacyFn}
+            if (!indicator.name) {
+                alert('Invalid indicator: missing name.');
+                return;
+            }
+            if (!indicator.calculate && !indicator._legacyFn) {
+                alert('Invalid indicator format. Must have a calculate() method or be a calculateIndicator function.');
                 return;
             }
             
