@@ -1763,6 +1763,7 @@
                             console.log('Loading custom indicator code:', code);
                             const customIndicator = eval(`(${code})`);
                             console.log('Parsed custom indicator:', customIndicator);
+                            customIndicator._rawCode = code;
                             loadCustomIndicator(customIndicator);
                         } catch (error) {
                             console.error('Error loading custom indicator:', error);
@@ -2216,6 +2217,7 @@
             try {
                 const code = document.getElementById('customIndicatorCode').value;
                 const customIndicator = eval(`(${code})`);
+                customIndicator._rawCode = code; // carry raw code for cross-page sharing
                 loadCustomIndicator(customIndicator);
                 cancelCustomIndicator();
             } catch (error) {
@@ -2245,6 +2247,21 @@
             option.value = id;
             option.textContent = indicator.name;
             select.appendChild(option);
+
+            // ── Persist raw code to shared key so /updown can also use it ──
+            try {
+                const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
+                const existing = shared.findIndex(e => e.id === id);
+                const entry = {
+                    id,
+                    name: indicator.name,
+                    color: indicator.color || '#ffffff',
+                    window: indicator.window || 1,
+                    code: indicator._rawCode || null   // set below when coming from textarea
+                };
+                if (existing >= 0) shared[existing] = entry; else shared.push(entry);
+                localStorage.setItem('sharedCustomIndicators', JSON.stringify(shared));
+            } catch(e) {}
             
             // Auto-add the indicator
             addIndicator(id);

@@ -2688,7 +2688,7 @@ function renderCustomIndDropdown() {
 }
 
 function toggleCustomInd(id, color) {
-  const key = 'custom_'+id;
+  const key = String(id).startsWith('custom_') ? id : 'custom_'+id;
   if (activeCustomInds.has(key)) {
     activeCustomInds.delete(key);
     if (customIndSeries[key]) { mainChart.removeSeries(customIndSeries[key]); delete customIndSeries[key]; }
@@ -2714,7 +2714,9 @@ function renderCustomIndOnChart(id, color) {
     const series = mainChart.addLineSeries({color:result.color||color,lineWidth:result.lineWidth||2,priceLineVisible:false,lastValueVisible:true,title:result.name||ind.name});
     const seriesData = result.data.map((v,i)=>v!==null?{time:candles[i].time,value:v}:null).filter(Boolean);
     series.setData(seriesData);
-    customIndSeries['custom_'+id] = series;
+    // For shared indicators the id already starts with 'custom_', avoid double prefix
+    const seriesKey = String(id).startsWith('custom_') ? id : 'custom_'+id;
+    customIndSeries[seriesKey] = series;
   } catch(e) { console.error('Custom indicator error:', e); alert('Error running indicator: '+e.message); }
 }
 
@@ -2808,6 +2810,63 @@ async function ciSave() {
 
 // Load custom indicators on page ready
 document.addEventListener('DOMContentLoaded', () => { setTimeout(loadCustomIndicators, 500); });
+
+// ── Load shared custom indicators from /app page ──────────────────────
+function loadSharedCustomIndicators() {
+  try {
+    const shared = JSON.parse(localStorage.getItem('sharedCustomIndicators') || '[]');
+    if (!shared.length) return;
+
+    const colors = ['#FF4500','#10b981','#818cf8','#f59e0b','#06b6d4','#ec4899','#a855f7','#fb923c'];
+
+    shared.forEach((entry, idx) => {
+      if (!entry.id || !entry.name) return;
+
+      // Avoid duplicates with server-loaded indicators
+      if (userCustomInds.find(i => 'custom_'+i.id === entry.id || i.name === entry.name)) return;
+
+      // Build a synthetic indicator object compatible with updown's renderCustomIndOnChart
+      // app.html format: object with calculate(data,params) returning array + draw()
+      // updown format: function(candleData, params) returning {name, data, color}
+      // We wrap the app.html indicator into updown's expected function format
+      const syntheticInd = {
+        id: entry.id,          // string id like "custom_my_indicator"
+        name: entry.name,
+        _isShared: true,
+        _color: entry.color || colors[idx % colors.length],
+        _window: entry.window || 1,
+        // Store raw code so renderCustomIndOnChart can eval it
+        code: entry.code ? buildUpdownWrapper(entry.code, entry.name, entry.color || colors[idx % colors.length]) : null
+      };
+
+      if (!syntheticInd.code) return; // no raw code, can't render
+
+      userCustomInds.push(syntheticInd);
+    });
+
+    renderCustomIndDropdown();
+  } catch(e) { console.warn('sharedCustomIndicators load error:', e); }
+}
+
+// Wraps an app.html-style indicator code into updown's expected function signature
+function buildUpdownWrapper(appCode, name, color) {
+  // app.html indicator: ({name, calculate(data,params), draw(ctx,...), ...})
+  // updown expects: function(candleData, params) => {name, data, color}
+  return `(function(candleData, params) {
+    try {
+      const ind = (${appCode});
+      const result = ind.calculate(candleData, params || ind.defaultParams || {});
+      return { name: ind.name || ${JSON.stringify(name)}, data: result, color: ind.color || ${JSON.stringify(color)} };
+    } catch(e) { return null; }
+  })`;
+}
+
+// Patch loadCustomIndicators to also load shared ones after server load
+const _origLoadCustomIndicators = loadCustomIndicators;
+async function loadCustomIndicators() {
+  await _origLoadCustomIndicators();
+  loadSharedCustomIndicators();
+}
 </script>
 
 <!-- Indicator Settings Modal -->
