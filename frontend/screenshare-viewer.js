@@ -158,7 +158,7 @@ async function loadActiveSessions() {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         const data = await response.json();
-        const userResASE}/api/user/profile`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const userRes = await fetch(`${API_BASE}/api/user/profile`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         const userData = await userRes.json();
         const currentUserId = userData.user?.id;
 
@@ -166,7 +166,7 @@ async function loadActiveSessions() {
             .filter(s => s.is_active && s.admin_id !== currentUserId)
             .reduce((acc, session) => {
                 const existing = acc.find(s => s.admin_id === session.admin_id);
-                if (!existing || new Date(session.started_at) > new Date(existing.startat)) {
+                if (!existing || new Date(session.started_at) > new Date(existing.started_at)) {
                     return [...acc.filter(s => s.admin_id !== session.admin_id), session];
                 }
                 return acc;
