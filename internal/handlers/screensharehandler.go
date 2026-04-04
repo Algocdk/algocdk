@@ -38,13 +38,17 @@ type ViewerConn struct {
 }
 
 type WSMessage struct {
-	Type      string      `json:"type"`
-	SessionID uint        `json:"session_id,omitempty"`
-	UserID    uint        `json:"user_id,omitempty"`
-	Username  string      `json:"username,omitempty"`
-	Data      interface{} `json:"data,omitempty"`
-	Message   string      `json:"message,omitempty"`
-	Timestamp time.Time   `json:"timestamp"`
+	Type         string      `json:"type"`
+	SessionID    uint        `json:"session_id,omitempty"`
+	UserID       uint        `json:"user_id,omitempty"`
+	TargetUserID uint        `json:"target_user_id,omitempty"`
+	FromUserID   uint        `json:"from_user_id,omitempty"`
+	Username     string      `json:"username,omitempty"`
+	Data         interface{} `json:"data,omitempty"`
+	Message      string      `json:"message,omitempty"`
+	SDP          interface{} `json:"sdp,omitempty"`
+	Candidate    interface{} `json:"candidate,omitempty"`
+	Timestamp    time.Time   `json:"timestamp"`
 }
 
 var hub = &ScreenShareHub{
@@ -345,67 +349,105 @@ func ScreenShareWebSocket(c *gin.Context) {
 		room.mu.RLock()
 		switch msg.Type {
 		case "screen_data":
-			// Admin sends screen data to all viewers
+			// Admin sends screen data to all viewers (legacy fallback)
 			if isAdmin {
 				for _, viewerConn := range room.viewers {
 					go func(vc *ViewerConn) {
-						defer func() {
-							if r := recover(); r != nil {
-								log.Printf("WebSocket write panic recovered: %v", r)
-							}
-						}()
+						defer func() { recover() }()
 						vc.mutex.Lock()
 						vc.conn.WriteJSON(msg)
 						vc.mutex.Unlock()
 					}(viewerConn)
 				}
 			}
-		case "audio_data":
-			// Broadcast audio to all participants
+
+		// ── WebRTC signaling ──────────────────────────────────────────
+		case "webrtc_offer":
+			// Admin → specific viewer
 			if isAdmin {
-				// Admin audio to all viewers
+				targetID := msg.TargetUserID
+				room.mu.RUnlock()
+				room.mu.RLock()
+				if vc, ok := room.viewers[targetID]; ok {
+					go func(vc *ViewerConn) {
+						defer func() { recover() }()
+						vc.mutex.Lock()
+						vc.conn.WriteJSON(msg)
+						vc.mutex.Unlock()
+					}(vc)
+				}
+			}
+
+		case "webrtc_answer":
+			// Viewer → admin
+			if !isAdmin && room.adminConn != nil {
+				go func() {
+					defer func() { recover() }()
+					room.adminMutex.Lock()
+					room.adminConn.WriteJSON(map[string]interface{}{
+						"type":         "webrtc_answer",
+						"from_user_id": user.ID,
+						"sdp":          msg.SDP,
+					})
+					room.adminMutex.Unlock()
+				}()
+			}
+
+		case "webrtc_ice":
+			// Relay ICE candidate in both directions
+			if isAdmin {
+				// Admin → specific viewer
+				targetID := msg.TargetUserID
+				room.mu.RUnlock()
+				room.mu.RLock()
+				if vc, ok := room.viewers[targetID]; ok {
+					go func(vc *ViewerConn) {
+						defer func() { recover() }()
+						vc.mutex.Lock()
+						vc.conn.WriteJSON(msg)
+						vc.mutex.Unlock()
+					}(vc)
+				}
+			} else {
+				// Viewer → admin
+				if room.adminConn != nil {
+					go func() {
+						defer func() { recover() }()
+						room.adminMutex.Lock()
+						room.adminConn.WriteJSON(map[string]interface{}{
+							"type":         "webrtc_ice",
+							"from_user_id": user.ID,
+							"candidate":    msg.Candidate,
+						})
+						room.adminMutex.Unlock()
+					}()
+				}
+			}
+
+		case "viewer_ready":
+			// Viewer tells admin it's ready to receive WebRTC offer
+			if !isAdmin && room.adminConn != nil {
+				go func() {
+					defer func() { recover() }()
+					room.adminMutex.Lock()
+					room.adminConn.WriteJSON(map[string]interface{}{
+						"type":    "viewer_ready",
+						"user_id": user.ID,
+					})
+					room.adminMutex.Unlock()
+				}()
+			}
+
+		case "audio_data":
+			// Legacy audio relay — WebRTC handles audio natively now, kept for fallback
+			if isAdmin {
 				for _, viewerConn := range room.viewers {
 					go func(vc *ViewerConn) {
-						defer func() {
-							if r := recover(); r != nil {
-								log.Printf("WebSocket write panic recovered: %v", r)
-							}
-						}()
+						defer func() { recover() }()
 						vc.mutex.Lock()
 						vc.conn.WriteJSON(msg)
 						vc.mutex.Unlock()
 					}(viewerConn)
-				}
-			} else {
-				log.Printf("Viewer %s sending audio to admin and other viewers", user.Name)
-				// Viewer audio to admin and other viewers
-				if room.adminConn != nil {
-					go func() {
-						defer func() {
-							if r := recover(); r != nil {
-								log.Printf("WebSocket write panic recovered: %v", r)
-							}
-						}()
-						room.adminMutex.Lock()
-						room.adminConn.WriteJSON(msg)
-						room.adminMutex.Unlock()
-					}()
-				} else {
-					log.Printf("Admin connection is nil, cannot send audio")
-				}
-				for viewerID, viewerConn := range room.viewers {
-					if viewerID != user.ID {
-						go func(vc *ViewerConn) {
-							defer func() {
-								if r := recover(); r != nil {
-									log.Printf("WebSocket write panic recovered: %v", r)
-								}
-							}()
-							vc.mutex.Lock()
-							vc.conn.WriteJSON(msg)
-							vc.mutex.Unlock()
-						}(viewerConn)
-					}
 				}
 			}
 		case "chat":
