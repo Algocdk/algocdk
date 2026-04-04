@@ -956,8 +956,12 @@ function handleMessage(data) {
     }
     return;
   }
-  // Proposal (accumulator)
+  // Proposal (barriers trade)
   if (data.proposal && pendingProposal) {
+    // Store the proposal ID so we can buy it
+    pendingProposal.proposalId = data.proposal.id;
+    pendingProposal.askPrice = data.proposal.ask_price;
+    // Auto-buy immediately
     ws.send(JSON.stringify({ buy: data.proposal.id, price: data.proposal.ask_price }));
     return;
   }
@@ -2033,37 +2037,16 @@ function validateDuration() {
     input.min = 1;
     if (duration < 1) input.value = 1;
   }
-  
-  // Only update calculations if Rise/Fall is selected
-  const type = document.getElementById('contractType').value;
-  if (type === 'CALL') {
-    updateCalculations();
-  }
+  updateCalculations();
 }
 
 function updateContractAvailability() {
-  const select = document.getElementById('contractType');
-  const hasCall = availableContracts['CALL']?.length > 0;
-  const hasCalle = availableContracts['CALLE']?.length > 0;
-  
-  select.innerHTML = '';
-  if (hasCall) {
-    const opt = document.createElement('option');
-    opt.value = 'CALL';
-    opt.textContent = 'Rise/Fall';
-    select.appendChild(opt);
-  }
-  if (hasCalle) {
-    const opt = document.createElement('option');
-    opt.value = 'CALLE';
-    opt.textContent = 'Higher/Lower';
-    select.appendChild(opt);
-  }
-  if (!hasCall && !hasCalle) {
-    select.innerHTML = '<option value="CALL">Rise/Fall</option><option value="CALLE">Higher/Lower</option>';
-  }
-  updateContractType();
+  // Barriers page doesn't use the updown contractType select — skip
+  updateContractGroup();
 }
+
+// Stub — barriers uses updateContractGroup instead
+function updateContractType() { updateContractGroup(); }
 
 function setBarrierToCurrent() {
   if (currentPrice && currentPrice > 0) {
