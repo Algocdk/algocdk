@@ -53,6 +53,9 @@ func InitDB() {
 		&models.UserIndicator{},
 		&models.UserCustomIndicator{},
 		&models.Subscription{},
+		&models.CopyTradingProvider{},
+		&models.CopyTradingSubscription{},
+		&models.CopyTrade{},
 	)
 	fmt.Println("database connected")
 }

@@ -172,6 +172,28 @@ func SetUpRouter(router *gin.Engine) {
 			admin.POST("/screenshare/start", handlers.StartScreenShareSession)
 			admin.POST("/screenshare/stop/:id", handlers.StopScreenShareSession)
 			admin.GET("/screenshare/participants/:id", handlers.GetSessionParticipants)
+
+			// Copy Trading (Admin as provider)
+			admin.POST("/copy-trading/enable", handlers.EnableCopyTrading)
+			admin.POST("/copy-trading/disable", handlers.DisableCopyTrading)
+			admin.GET("/copy-trading/stats", handlers.GetProviderStats)
+			admin.GET("/copy-trading/copiers", handlers.GetProviderCopiers)
+			admin.GET("/copy-trading/trades", handlers.GetProviderTrades)
+		}
+
+		// Copy Trading (Public + User)
+		copyTrading := api.Group("/copy-trading")
+		{
+			copyTrading.GET("/providers", handlers.ListCopyTradingProviders)
+			copyTrading.GET("/providers/:id", handlers.GetProviderByID)
+			copyTrading.Use(middleware.AuthMiddleware())
+			{
+				copyTrading.POST("/subscribe/:provider_id", handlers.StartCopying)
+				copyTrading.DELETE("/subscribe/:provider_id", handlers.StopCopying)
+				copyTrading.GET("/my-subscriptions", handlers.GetMySubscriptions)
+				copyTrading.GET("/my-trades", handlers.GetMyCopiedTrades)
+				copyTrading.POST("/record-trade", handlers.RecordCopyTrade)
+			}
 		}
 
 		// Public Sites
@@ -381,6 +403,9 @@ func SetUpRouter(router *gin.Engine) {
 	})
 	router.GET("/barriers", func(c *gin.Context) {
 		c.File(frontendPath + "/barriers.html")
+	})
+	router.GET("/copy-trading", func(c *gin.Context) {
+		c.File(frontendPath + "/copy-trading.html")
 	})
 	router.GET("/multipliers", func(c *gin.Context) {
 		c.File(frontendPath + "/multipliers.html")

@@ -212,6 +212,10 @@
                     <i class="fas fa-desktop mr-3"></i>
                     Screen Share
                 </a>
+                <a href="#copy-trading" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('copy-trading');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
+                    <i class="fas fa-copy mr-3"></i>
+                    Copy Trading
+                </a>
                 <a href="#bank" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('bank');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
                     <i class="fas fa-university mr-3"></i>
                     Bank Details
@@ -800,6 +804,88 @@
             
             <!-- Chart Indicators View -->
             <div id="indicatorsView" class="view-content hidden"></div>
+
+            <!-- Copy Trading View -->
+            <div id="copy-tradingView" class="view-content hidden">
+              <div class="bg-gray-800 rounded-xl p-6">
+                <h3 class="text-xl font-semibold mb-2">Copy Trading</h3>
+                <p class="text-gray-400 text-sm mb-6">Enable copy trading so users can automatically mirror your Deriv trades. Your Deriv Login ID is required — users will use Deriv's <code>copy_start</code> API to follow you.</p>
+
+                <div id="ctProviderStatus" class="mb-6"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <!-- Setup form -->
+                  <div>
+                    <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">Provider Settings</h4>
+                    <div class="space-y-4">
+                      <div>
+                        <label class="block text-sm text-gray-400 mb-1">Display Name</label>
+                        <input id="ct_displayName" type="text" placeholder="e.g. Pro Trader" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                      </div>
+                      <div>
+                        <label class="block text-sm text-gray-400 mb-1">Description</label>
+                        <textarea id="ct_description" rows="2" placeholder="Brief description of your trading style..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"></textarea>
+                      </div>
+                      <div>
+                        <label class="block text-sm text-gray-400 mb-1">Your Deriv Login ID <span class="text-red-400">*</span></label>
+                        <input id="ct_derivLoginId" type="text" placeholder="e.g. CR123456" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        <p class="text-xs text-gray-500 mt-1">Found in your Deriv account settings. This is your public login ID, not your token.</p>
+                      </div>
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="block text-sm text-gray-400 mb-1">Min Copy Stake ($)</label>
+                          <input id="ct_minStake" type="number" value="1" min="0.35" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                          <label class="block text-sm text-gray-400 mb-1">Max Copy Stake ($)</label>
+                          <input id="ct_maxStake" type="number" value="100" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                      </div>
+                      <div class="flex gap-3">
+                        <button onclick="saveCopyTradingSettings()" class="flex-1 bg-primary hover:bg-secondary px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                          <i class="fas fa-save mr-2"></i>Save & Enable
+                        </button>
+                        <button onclick="disableCopyTrading()" class="bg-red-900 hover:bg-red-800 px-4 py-2 rounded-lg text-sm font-semibold transition-colors text-red-300">
+                          <i class="fas fa-pause mr-2"></i>Pause
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Stats -->
+                  <div>
+                    <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">Performance</h4>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                      <div class="bg-gray-700 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400" id="ct_winRate">0%</div>
+                        <div class="text-xs text-gray-400 mt-1">Win Rate</div>
+                      </div>
+                      <div class="bg-gray-700 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-400" id="ct_totalTrades">0</div>
+                        <div class="text-xs text-gray-400 mt-1">Total Trades</div>
+                      </div>
+                      <div class="bg-gray-700 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-400" id="ct_copiers">0</div>
+                        <div class="text-xs text-gray-400 mt-1">Active Copiers</div>
+                      </div>
+                      <div class="bg-gray-700 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400" id="ct_totalProfit">$0</div>
+                        <div class="text-xs text-gray-400 mt-1">Total P&L</div>
+                      </div>
+                    </div>
+                    <a href="/copy-trading" target="_blank" class="block text-center bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 text-sm transition-colors">
+                      <i class="fas fa-external-link-alt mr-2"></i>View Public Copy Trading Page
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Copiers list -->
+                <div class="mt-6">
+                  <h4 class="font-semibold mb-3 text-sm text-gray-300 uppercase tracking-wide">Active Copiers</h4>
+                  <div id="ct_copiersList" class="text-sm text-gray-400">Loading...</div>
+                </div>
+              </div>
+            </div>
         </main>
     </div>
 
@@ -1630,6 +1716,89 @@
                     <button onclick="document.getElementById('subExpiredOverlay').remove();switchView('subscription');" style="background:#374151;color:#d1d5db;border:none;padding:0.5rem 1.5rem;border-radius:0.5rem;cursor:pointer;width:100%;">View Subscription Details</button>
                 </div>`;
             document.body.appendChild(overlay);
+        }
+
+        // ── Copy Trading Admin Functions ───────────────────────────────
+        async function loadCopyTradingView() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/admin/copy-trading/stats', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const p = data.provider;
+                    document.getElementById('ct_displayName').value = p.display_name || '';
+                    document.getElementById('ct_description').value = p.description || '';
+                    document.getElementById('ct_derivLoginId').value = p.deriv_login_id || '';
+                    document.getElementById('ct_minStake').value = p.min_copy_stake || 1;
+                    document.getElementById('ct_maxStake').value = p.max_copy_stake || 100;
+                    document.getElementById('ct_winRate').textContent = p.win_rate.toFixed(1) + '%';
+                    document.getElementById('ct_totalTrades').textContent = p.total_trades;
+                    document.getElementById('ct_copiers').textContent = p.total_copiers;
+                    document.getElementById('ct_totalProfit').textContent = '$' + p.total_profit.toFixed(2);
+                    document.getElementById('ctProviderStatus').innerHTML = p.allow_copying
+                        ? '<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#10b981;margin-bottom:0"><i class="fas fa-circle" style="font-size:8px;margin-right:6px"></i>Copy trading is <strong>active</strong> — users can copy your trades</div>'
+                        : '<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#ef4444;margin-bottom:0"><i class="fas fa-pause-circle" style="margin-right:6px"></i>Copy trading is <strong>paused</strong></div>';
+                    loadCopiers();
+                } else {
+                    document.getElementById('ctProviderStatus').innerHTML = '<div style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#93c5fd"><i class="fas fa-info-circle" style="margin-right:6px"></i>You have not enabled copy trading yet. Fill in the form below to get started.</div>';
+                    document.getElementById('ct_copiersList').textContent = 'No copiers yet.';
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function saveCopyTradingSettings() {
+            const token = localStorage.getItem('token');
+            const body = {
+                display_name: document.getElementById('ct_displayName').value,
+                description: document.getElementById('ct_description').value,
+                deriv_login_id: document.getElementById('ct_derivLoginId').value,
+                min_copy_stake: parseFloat(document.getElementById('ct_minStake').value) || 1,
+                max_copy_stake: parseFloat(document.getElementById('ct_maxStake').value) || 100
+            };
+            if (!body.deriv_login_id) { alert('Deriv Login ID is required'); return; }
+            try {
+                const res = await fetch('/api/admin/copy-trading/enable', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) { alert('✅ Copy trading enabled!'); loadCopyTradingView(); }
+                else alert(data.error || 'Failed to save');
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        async function disableCopyTrading() {
+            if (!confirm('Pause copy trading? Existing copiers will be notified.')) return;
+            const token = localStorage.getItem('token');
+            await fetch('/api/admin/copy-trading/disable', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+            loadCopyTradingView();
+        }
+
+        async function loadCopiers() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/admin/copy-trading/copiers', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                const copiers = data.copiers || [];
+                const el = document.getElementById('ct_copiersList');
+                if (!copiers.length) { el.textContent = 'No active copiers yet.'; return; }
+                el.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-gray-400 border-b border-gray-700"><th class="text-left py-2">User</th><th class="text-left py-2">Multiplier</th><th class="text-left py-2">Max Stake</th><th class="text-left py-2">Copied</th><th class="text-left py-2">P&L</th><th class="text-left py-2">Status</th></tr></thead><tbody>${
+                    copiers.map(s => `<tr class="border-b border-gray-700/50"><td class="py-2">${s.user?.name || s.user_id}</td><td>${s.stake_multiplier}x</td><td>$${s.max_stake_per_trade}</td><td>${s.total_copied}</td><td class="${s.total_profit>=0?'text-green-400':'text-red-400'}">$${s.total_profit.toFixed(2)}</td><td>${s.is_active?'<span class="text-green-400">Active</span>':'<span class="text-gray-500">Stopped</span>'}</td></tr>`).join('')
+                }</tbody></table></div>`;
+            } catch(e) {}
+        }
+
+        // Hook into switchView to load copy trading data
+        const _origSwitchView = window.switchView;
+        if (typeof switchView === 'function') {
+            const __sv = switchView;
+            window.switchView = function(view) {
+                __sv(view);
+                if (view === 'copy-trading') loadCopyTradingView();
+            };
         }
 
         document.addEventListener('DOMContentLoaded', () => {
