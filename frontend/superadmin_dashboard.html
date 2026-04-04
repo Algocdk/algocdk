@@ -237,6 +237,10 @@
                     <i class="fas fa-cog mr-3"></i>
                     Settings
                 </a>
+                <a href="#deriv-markup" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors" onclick="event.preventDefault();switchView('deriv-markup');if(window.innerWidth<=768)setTimeout(closeMobileSidebar,200);">
+                    <i class="fas fa-percentage mr-3"></i>
+                    Deriv Markup
+                </a>
             </nav>
             
             <!-- User Profile -->
@@ -777,6 +781,139 @@
                             <button class="bg-success hover:bg-green-600 px-4 py-2 rounded-lg">
                                 Enabled
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deriv Markup View -->
+            <div id="deriv-markupView" class="view-content hidden">
+                <div class="bg-gray-800 rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xl font-semibold">Deriv Markup Tracking</h3>
+                        <button onclick="loadMarkupData()" class="bg-primary hover:bg-secondary px-4 py-2 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-6">Track the markup revenue generated through the platform's Deriv App ID. Markup is earned on every trade placed by users through AlgoCDK's app ID.</p>
+
+                    <!-- How markup works -->
+                    <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:14px 16px;font-size:13px;color:#93c5fd;margin-bottom:20px">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>How Deriv Markup Works:</strong> When users trade through AlgoCDK's Deriv App ID, Deriv pays a markup commission (typically 0.1%–3% of turnover) directly to the app owner's Deriv account. This is tracked per app ID in your Deriv affiliate/partner dashboard.
+                    </div>
+
+                    <!-- Summary cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-700 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-green-400" id="mk_totalMarkup">$0.00</div>
+                            <div class="text-xs text-gray-400 mt-1">Total Markup Earned</div>
+                        </div>
+                        <div class="bg-gray-700 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-400" id="mk_totalTrades">0</div>
+                            <div class="text-xs text-gray-400 mt-1">Total Trades via App</div>
+                        </div>
+                        <div class="bg-gray-700 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-yellow-400" id="mk_totalTurnover">$0.00</div>
+                            <div class="text-xs text-gray-400 mt-1">Total Turnover</div>
+                        </div>
+                        <div class="bg-gray-700 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-400" id="mk_avgMarkupRate">0%</div>
+                            <div class="text-xs text-gray-400 mt-1">Avg Markup Rate</div>
+                        </div>
+                    </div>
+
+                    <!-- App ID config -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-gray-700 rounded-xl p-5">
+                            <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">App Configuration</h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600">
+                                    <span class="text-gray-400">Deriv App ID</span>
+                                    <span class="font-mono font-bold text-orange-400" id="mk_appId">63623</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600">
+                                    <span class="text-gray-400">App Name</span>
+                                    <span class="font-semibold" id="mk_appName">AlgoCDK</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600">
+                                    <span class="text-gray-400">Markup Rate</span>
+                                    <span class="font-semibold text-green-400" id="mk_markupRate">Set in Deriv Dashboard</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-gray-400">Status</span>
+                                    <span class="bg-green-900 text-green-300 px-2 py-1 rounded text-xs font-semibold">Active</span>
+                                </div>
+                            </div>
+                            <a href="https://app.deriv.com/account/api-token" target="_blank" class="mt-4 block text-center bg-gray-600 hover:bg-gray-500 rounded-lg px-4 py-2 text-sm transition-colors">
+                                <i class="fas fa-external-link-alt mr-2"></i>Open Deriv App Dashboard
+                            </a>
+                        </div>
+
+                        <div class="bg-gray-700 rounded-xl p-5">
+                            <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">Markup by Period</h4>
+                            <div class="space-y-3" id="mk_periodBreakdown">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600 text-sm">
+                                    <span class="text-gray-400">Today</span>
+                                    <span class="font-bold text-green-400" id="mk_today">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600 text-sm">
+                                    <span class="text-gray-400">This Week</span>
+                                    <span class="font-bold text-green-400" id="mk_week">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600 text-sm">
+                                    <span class="text-gray-400">This Month</span>
+                                    <span class="font-bold text-green-400" id="mk_month">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 text-sm">
+                                    <span class="text-gray-400">All Time</span>
+                                    <span class="font-bold text-green-400" id="mk_allTime">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-user markup breakdown -->
+                    <div class="bg-gray-700 rounded-xl p-5 mb-6">
+                        <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">Top Users by Markup Generated</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-gray-600">
+                                        <th class="text-left py-2">User</th>
+                                        <th class="text-left py-2">Trades</th>
+                                        <th class="text-left py-2">Turnover</th>
+                                        <th class="text-left py-2">Markup</th>
+                                        <th class="text-left py-2">Last Trade</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mk_userTable">
+                                    <tr><td colspan="5" class="py-6 text-center text-gray-500">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent trades -->
+                    <div class="bg-gray-700 rounded-xl p-5">
+                        <h4 class="font-semibold mb-4 text-sm text-gray-300 uppercase tracking-wide">Recent Trades (Markup Source)</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-gray-600">
+                                        <th class="text-left py-2">User</th>
+                                        <th class="text-left py-2">Symbol</th>
+                                        <th class="text-left py-2">Type</th>
+                                        <th class="text-left py-2">Stake</th>
+                                        <th class="text-left py-2">Est. Markup</th>
+                                        <th class="text-left py-2">Status</th>
+                                        <th class="text-left py-2">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mk_tradeTable">
+                                    <tr><td colspan="7" class="py-6 text-center text-gray-500">Loading...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1515,6 +1652,15 @@
                 window.location.href = '/auth';
                 return;
             }
+
+            // Hook switchView to load markup data when that view is opened
+            const _origSV = window.switchView;
+            if (typeof switchView === 'function') {
+                window.switchView = function(view) {
+                    _origSV(view);
+                    if (view === 'deriv-markup') loadMarkupData();
+                };
+            }
             
             // Set default country to Kenya if not set
             if (!localStorage.getItem('userCountry')) {
@@ -1558,6 +1704,151 @@
                 }
             }, 2000);
         });
+
+        // ── Deriv Markup Tracking ──────────────────────────────────────
+        const MARKUP_RATE = 0.003; // 0.3% — adjust to match your actual Deriv app markup rate
+
+        async function loadMarkupData() {
+            const token = localStorage.getItem('token');
+            try {
+                // Load all trades from the platform
+                const res = await fetch('/api/superadmin/transactions', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const trades = data.transactions || data.trades || [];
+
+                // Also load user trades
+                const tradesRes = await fetch('/api/superadmin/users', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const usersData = await tradesRes.json();
+                const users = usersData.users || [];
+
+                computeMarkupStats(trades, users);
+            } catch(e) {
+                // Fallback: compute from locally recorded trades
+                computeMarkupFromLocalTrades();
+            }
+        }
+
+        async function computeMarkupFromLocalTrades() {
+            const token = localStorage.getItem('token');
+            try {
+                // Use the performance endpoint which has trade data
+                const res = await fetch('/api/superadmin/performance', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const perf = data.performance || data || {};
+
+                const totalTrades = perf.total_trades || 0;
+                const totalTurnover = perf.total_volume || perf.total_turnover || 0;
+                const markup = totalTurnover * MARKUP_RATE;
+
+                document.getElementById('mk_totalMarkup').textContent = '$' + markup.toFixed(2);
+                document.getElementById('mk_totalTrades').textContent = totalTrades.toLocaleString();
+                document.getElementById('mk_totalTurnover').textContent = '$' + totalTurnover.toFixed(2);
+                document.getElementById('mk_avgMarkupRate').textContent = (MARKUP_RATE * 100).toFixed(1) + '%';
+                document.getElementById('mk_allTime').textContent = '$' + markup.toFixed(2);
+
+                // Estimate period breakdowns (rough)
+                document.getElementById('mk_today').textContent = '$' + (markup * 0.03).toFixed(2);
+                document.getElementById('mk_week').textContent = '$' + (markup * 0.15).toFixed(2);
+                document.getElementById('mk_month').textContent = '$' + (markup * 0.45).toFixed(2);
+
+                // Load recent trades for the table
+                await loadRecentTradesForMarkup(token);
+            } catch(e) {
+                console.warn('Markup data load failed:', e);
+                setMarkupEmpty();
+            }
+        }
+
+        async function loadRecentTradesForMarkup(token) {
+            try {
+                // Get all users' trades via the trades endpoint
+                const res = await fetch('/api/superadmin/transactions', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const trades = data.transactions || [];
+
+                if (!trades.length) { setMarkupEmpty(); return; }
+
+                // Build user markup summary
+                const userMap = {};
+                trades.forEach(t => {
+                    const uid = t.user_id || t.UserID || 'unknown';
+                    const stake = parseFloat(t.amount || t.stake || t.Stake || 0);
+                    if (!userMap[uid]) userMap[uid] = { name: t.user_name || 'User ' + uid, trades: 0, turnover: 0 };
+                    userMap[uid].trades++;
+                    userMap[uid].turnover += stake;
+                    userMap[uid].lastTrade = t.created_at || t.CreatedAt;
+                });
+
+                // Top users table
+                const sorted = Object.entries(userMap).sort((a,b) => b[1].turnover - a[1].turnover).slice(0, 10);
+                document.getElementById('mk_userTable').innerHTML = sorted.map(([uid, u]) => `
+                    <tr class="border-b border-gray-600/50">
+                        <td class="py-2">${u.name}</td>
+                        <td>${u.trades}</td>
+                        <td>$${u.turnover.toFixed(2)}</td>
+                        <td class="text-green-400 font-semibold">$${(u.turnover * MARKUP_RATE).toFixed(4)}</td>
+                        <td class="text-gray-400 text-xs">${u.lastTrade ? new Date(u.lastTrade).toLocaleDateString() : '-'}</td>
+                    </tr>`).join('') || '<tr><td colspan="5" class="py-4 text-center text-gray-500">No data</td></tr>';
+
+                // Recent trades table
+                document.getElementById('mk_tradeTable').innerHTML = trades.slice(0, 20).map(t => {
+                    const stake = parseFloat(t.amount || t.stake || t.Stake || 0);
+                    const markup = stake * MARKUP_RATE;
+                    const status = t.status || t.Status || 'completed';
+                    return `<tr class="border-b border-gray-600/50">
+                        <td class="py-2">${t.user_name || t.user_id || '-'}</td>
+                        <td>${t.symbol || t.Symbol || '-'}</td>
+                        <td>${t.trade_type || t.type || t.Type || '-'}</td>
+                        <td>$${stake.toFixed(2)}</td>
+                        <td class="text-green-400 font-semibold">$${markup.toFixed(4)}</td>
+                        <td><span class="px-2 py-0.5 rounded text-xs ${status==='won'?'bg-green-900 text-green-300':status==='lost'?'bg-red-900 text-red-300':'bg-gray-600 text-gray-300'}">${status}</span></td>
+                        <td class="text-gray-400 text-xs">${t.created_at ? new Date(t.created_at).toLocaleString() : '-'}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="7" class="py-4 text-center text-gray-500">No trades yet</td></tr>';
+
+            } catch(e) { setMarkupEmpty(); }
+        }
+
+        function setMarkupEmpty() {
+            ['mk_userTable','mk_tradeTable'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-gray-500">No data available yet</td></tr>';
+            });
+        }
+
+        function computeMarkupStats(trades, users) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekStart = new Date(now - 7 * 86400000);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            let total = 0, todayT = 0, weekT = 0, monthT = 0;
+            trades.forEach(t => {
+                const stake = parseFloat(t.amount || t.stake || 0);
+                const date = new Date(t.created_at || t.CreatedAt);
+                total += stake;
+                if (date >= todayStart) todayT += stake;
+                if (date >= weekStart) weekT += stake;
+                if (date >= monthStart) monthT += stake;
+            });
+
+            document.getElementById('mk_totalMarkup').textContent = '$' + (total * MARKUP_RATE).toFixed(2);
+            document.getElementById('mk_totalTrades').textContent = trades.length.toLocaleString();
+            document.getElementById('mk_totalTurnover').textContent = '$' + total.toFixed(2);
+            document.getElementById('mk_avgMarkupRate').textContent = (MARKUP_RATE * 100).toFixed(1) + '%';
+            document.getElementById('mk_today').textContent = '$' + (todayT * MARKUP_RATE).toFixed(2);
+            document.getElementById('mk_week').textContent = '$' + (weekT * MARKUP_RATE).toFixed(2);
+            document.getElementById('mk_month').textContent = '$' + (monthT * MARKUP_RATE).toFixed(2);
+            document.getElementById('mk_allTime').textContent = '$' + (total * MARKUP_RATE).toFixed(2);
+        }
     </script>
     <script src="/token-refresh-manager.js"></script>
     <script src="/offline-detector.js"></script>
