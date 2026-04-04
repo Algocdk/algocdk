@@ -325,7 +325,15 @@ select option{background:#0f1923}
           <input type="text" id="barrierInput" step="0.001" class="input-field" style="flex:1" placeholder="+0.5 or absolute" oninput="updateCalculations()">
           <button onclick="setBarrierToCurrent()" style="background:#1E293B;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">Current</button>
         </div>
-        <div style="font-size:10px;color:#64748b;margin-top:2px">Use +0.5 for relative or absolute price. Current: <span id="currentPriceHint">--</span></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px">Touch/No Touch: use +0.5 (relative) or absolute price</div>
+      </div>
+      <!-- Turbo barrier select — populated from API -->
+      <div id="turboBarrierSection" style="margin-bottom:8px;display:none">
+        <label class="form-label">Barrier (select from available)</label>
+        <select id="turboBarrierSelect" class="input-field" style="width:100%">
+          <option value="">Loading barriers...</option>
+        </select>
+        <div style="font-size:10px;color:#64748b;margin-top:2px">Turbo barriers are fixed offsets from spot price</div>
       </div>
       <div style="background:#1E293B;border-radius:6px;padding:9px;font-size:11px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -435,6 +443,8 @@ let isHistoryLoaded = false;
 let isLoadingMore = false;
 let oldestCandleTime = 0;
 let activeContract = null, pendingProposal = null;
+let turboBarriersLong = [];   // available barriers for TURBOSLONG (negative offsets)
+let turboBarriersShort = [];  // available barriers for TURBOSSHORT (positive offsets)
 let availableContracts = {};
 
 // Charts
@@ -532,6 +542,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initResizeBar();
   connectWebSocket();
   updateCalculations();
+  // Set default barrier so the field is never empty
+  document.getElementById('barrierInput').value = '+0.500';
   const saved = localStorage.getItem('accountType');
   if (saved === 'real') { isDemo = false; updateAccountDisplay(); }
   // Restore market selection
@@ -837,22 +849,17 @@ function handleMessage(data) {
     data.contracts_for.available.forEach(contract => {
       const type = contract.contract_type;
       if (!availableContracts[type]) availableContracts[type] = [];
-      // Store full contract details
       availableContracts[type].push({
         min_contract_duration: contract.min_contract_duration,
         max_contract_duration: contract.max_contract_duration,
-        barriers: contract.barriers
+        barriers: contract.barriers,
+        available_barriers: contract.available_barriers || []
       });
     });
     console.log('[Contracts] Available for', data.contracts_for.symbol, ':', Object.keys(availableContracts));
-    // Log all CALLE contract variations
-    if (availableContracts['CALLE']) {
-      console.log('[CALLE] Found', availableContracts['CALLE'].length, 'variations');
-      availableContracts['CALLE'].forEach((c, i) => {
-        console.log(`  [${i}] Min: ${c.min_contract_duration}, Max: ${c.max_contract_duration}, Barriers: ${c.barriers}`);
-      });
-    }
     updateContractAvailability();
+    // Pre-fetch turbo barriers by sending a probe proposal
+    fetchTurboBarriers();
     return;
   }
   // ── Historical candles (one-time response, no subscription) ──
@@ -973,8 +980,24 @@ function handleMessage(data) {
   // Error
   if (data.error) {
     const code = data.error.code;
-    if (code !== 'AlreadySubscribed' && code !== 'WrongResponse') {
-      console.warn('[API]', code, data.error.message);
+    const msg = data.error.message || '';
+    // Capture available turbo barriers from error message
+    if (code === 'ContractBuyValidationError' && msg.includes('Barriers available are')) {
+      const match = msg.match(/Barriers available are (.+)/);
+      if (match) {
+        const barriers = match[1].split(',').map(b => b.trim());
+        const negatives = barriers.filter(b => b.startsWith('-'));
+        const positives = barriers.filter(b => b.startsWith('+'));
+        if (negatives.length) { turboBarriersLong = negatives; updateTurboBarrierSelect(); }
+        if (positives.length) { turboBarriersShort = positives; updateTurboBarrierSelect(); }
+      }
+    } else if (code !== 'AlreadySubscribed' && code !== 'WrongResponse' && pendingProposal) {
+      // Show error to user only if it was their trade attempt
+      console.warn('[API]', code, msg);
+      alert('Trade error: ' + msg);
+      pendingProposal = null;
+    } else if (code !== 'AlreadySubscribed' && code !== 'WrongResponse') {
+      console.warn('[API]', code, msg);
     }
   }
 }
@@ -1673,7 +1696,7 @@ function initCanvas() {
   window.addEventListener('mousemove', onDrawMouseMove);
   drawCanvas.addEventListener('wheel', e => {
     const c = document.querySelector('#mainChart canvas');
-    if (c) c.dispatchEvent(new WheelEvent(e.type, { bubbles:true, cancelable:true, deltaX:e.deltaX, deltaY:e.deltaY, deltaMode:e.deltaMode, clientX:e.clientX, clientY:e.clientY }));
+    if (c) c.dispatchEvent(new WheelEvent(e.type, { bubbles:false, cancelable:true, deltaX:e.deltaX, deltaY:e.deltaY, deltaMode:e.deltaMode, clientX:e.clientX, clientY:e.clientY }));
   }, { passive: true });
   drawCanvas.addEventListener('dblclick', e => {
     const rect = drawCanvas.getBoundingClientRect();
@@ -1750,7 +1773,7 @@ function onDrawMouseDown(e) {
     } else {
       selectedDrawing = null; redrawCanvas();
       const c = document.querySelector('#mainChart canvas');
-      if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY, button:e.button, buttons:e.buttons }));
+      if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:false, cancelable:true, clientX:e.clientX, clientY:e.clientY, button:e.button, buttons:e.buttons }));
     }
     return;
   }
@@ -1785,7 +1808,11 @@ function onDrawMouseMove(e) {
   }
   if (!drawTool || drawTool === 'none') {
     const c = document.querySelector('#mainChart canvas');
-    if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY, buttons:e.buttons }));
+    if (c && !e._synthetic) {
+      const synth = new MouseEvent(e.type, { bubbles:false, cancelable:true, clientX:e.clientX, clientY:e.clientY, buttons:e.buttons });
+      synth._synthetic = true;
+      c.dispatchEvent(synth);
+    }
     drawCanvas.style.cursor = findDrawingAt(x, y) ? 'move' : 'default';
   }
 }
@@ -1802,7 +1829,7 @@ function onDrawMouseUp(e) {
   }
   if (!drawTool || drawTool === 'none') {
     const c = document.querySelector('#mainChart canvas');
-    if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:true, cancelable:true, clientX:e.clientX, clientY:e.clientY }));
+    if (c) c.dispatchEvent(new MouseEvent(e.type, { bubbles:false, cancelable:true, clientX:e.clientX, clientY:e.clientY }));
   }
 }
 
@@ -2048,13 +2075,22 @@ function updateContractAvailability() {
 // Stub — barriers uses updateContractGroup instead
 function updateContractType() { updateContractGroup(); }
 
-function setBarrierToCurrent() {
-  if (currentPrice && currentPrice > 0) {
-    // Set barrier slightly above current price (0.1% higher)
-    const suggestedBarrier = currentPrice + (currentPrice * 0.001);
-    document.getElementById('barrierInput').value = suggestedBarrier.toFixed(2);
-    updateCalculations();
-  }
+// Fetch available turbo barriers by sending probe proposals
+function fetchTurboBarriers() {
+  if (!wsOpen() || !currentPrice) { setTimeout(fetchTurboBarriers, 1000); return; }
+  ws.send(JSON.stringify({ proposal: 1, amount: 1, basis: 'stake', contract_type: 'TURBOSLONG', currency: 'USD', duration: 5, duration_unit: 'm', symbol: getMarket(), barrier: '-10' }));
+  ws.send(JSON.stringify({ proposal: 1, amount: 1, basis: 'stake', contract_type: 'TURBOSSHORT', currency: 'USD', duration: 5, duration_unit: 'm', symbol: getMarket(), barrier: '+10' }));
+}
+
+function updateTurboBarrierSelect() {
+  const group = document.getElementById('contractGroup')?.value;
+  if (group !== 'turbo') return;
+  // Determine which direction is active
+  const isLong = document.querySelector('#tradeButtons button[onclick*="TURBOSLONG"]') !== null;
+  const barriers = isLong ? turboBarriersLong : turboBarriersShort;
+  const sel = document.getElementById('turboBarrierSelect');
+  if (!sel || !barriers.length) return;
+  sel.innerHTML = barriers.map(b => `<option value="${b}">${b}</option>`).join('');
 }
 
 // ── Barriers contract group ────────────────────────────────────────────
@@ -2076,6 +2112,11 @@ function updateContractGroup() {
     if (btns) btns.innerHTML = `
       <button class="trade-btn" style="background:#22c55e" onclick="placeTrade('TURBOSLONG')"><i class="fas fa-arrow-up"></i> <span>Turbo Up</span></button>
       <button class="trade-btn" style="background:#ef4444" onclick="placeTrade('TURBOSSHORT')"><i class="fas fa-arrow-down"></i> <span>Turbo Down</span></button>`;
+    // Show turbo barrier select, hide text input
+    document.getElementById('barrierSection').style.display = 'none';
+    document.getElementById('turboBarrierSection').style.display = 'block';
+    updateTurboBarrierSelect();
+    if (!turboBarriersLong.length) fetchTurboBarriers();
   } else {
     if (btnUp) btnUp.textContent = 'Touch';
     if (btnDown) btnDown.textContent = 'No Touch';
@@ -2085,6 +2126,9 @@ function updateContractGroup() {
     if (btns) btns.innerHTML = `
       <button class="trade-btn" style="background:#22c55e" onclick="placeTrade('ONETOUCH')"><i class="fas fa-hand-pointer"></i> <span>Touch</span></button>
       <button class="trade-btn" style="background:#ef4444" onclick="placeTrade('NOTOUCH')"><i class="fas fa-ban"></i> <span>No Touch</span></button>`;
+    // Show text input, hide turbo select
+    document.getElementById('barrierSection').style.display = 'block';
+    document.getElementById('turboBarrierSection').style.display = 'none';
   }
   updateCalculations();
 }
@@ -2092,15 +2136,24 @@ function updateContractGroup() {
 function getBarrierValue() {
   const raw = (document.getElementById('barrierInput')?.value || '').trim();
   if (!raw) return null;
-  if (raw.startsWith('+') || raw.startsWith('-')) return currentPrice + parseFloat(raw);
-  return parseFloat(raw) || null;
+  // Relative offset: send as-is e.g. "+0.500"
+  if (raw.startsWith('+') || raw.startsWith('-')) {
+    const offset = parseFloat(raw);
+    if (isNaN(offset)) return null;
+    // Return formatted relative string with sign
+    return (offset >= 0 ? '+' : '') + offset.toFixed(3);
+  }
+  // Absolute price
+  const abs = parseFloat(raw);
+  return isNaN(abs) ? null : abs.toFixed(3);
 }
 
 function setBarrierToCurrent() {
   if (!currentPrice) return;
   const group = document.getElementById('contractGroup')?.value || 'touch';
+  // Touch/No Touch: offset above current; Turbo: very tight offset
   const offset = group === 'turbo' ? 0.001 : 0.5;
-  document.getElementById('barrierInput').value = (currentPrice + offset).toFixed(3);
+  document.getElementById('barrierInput').value = '+' + offset.toFixed(3);
   updateCalculations();
 }
 
@@ -2111,7 +2164,31 @@ function placeTrade(contractType) {
   const duration = parseInt(document.getElementById('duration').value) || 5;
   const unit = document.getElementById('durationUnit').value;
   const mkt = getMarket();
-  const barrier = getBarrierValue();
+
+  // Get barrier based on contract group
+  const isTurbo = contractType === 'TURBOSLONG' || contractType === 'TURBOSSHORT';
+  let barrier;
+  if (isTurbo) {
+    const sel = document.getElementById('turboBarrierSelect');
+    barrier = sel?.value || null;
+    if (!barrier) {
+      alert('Turbo barriers are loading. Please wait a moment and try again.');
+      fetchTurboBarriers();
+      return;
+    }
+    // Update select to show relevant direction
+    const barriers = contractType === 'TURBOSLONG' ? turboBarriersLong : turboBarriersShort;
+    if (barriers.length) {
+      sel.innerHTML = barriers.map(b => `<option value="${b}">${b}</option>`).join('');
+      barrier = sel.value;
+    }
+  } else {
+    barrier = getBarrierValue();
+    if (!barrier) {
+      alert('Please set a barrier value first. Click "Current" to use the current price.');
+      return;
+    }
+  }
 
   const proposal = {
     proposal: 1,
@@ -2121,13 +2198,9 @@ function placeTrade(contractType) {
     currency: 'USD',
     duration: duration,
     duration_unit: unit,
-    symbol: mkt
+    symbol: mkt,
+    barrier: barrier
   };
-
-  if (barrier !== null) {
-    const raw = (document.getElementById('barrierInput')?.value || '').trim();
-    proposal.barrier = (raw.startsWith('+') || raw.startsWith('-')) ? raw : String(barrier);
-  }
 
   console.log('[Barriers] Sending proposal:', proposal);
   pendingProposal = { stake, contractType };
