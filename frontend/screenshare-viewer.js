@@ -60,7 +60,7 @@ function showNotification(message, type = 'info') {
     const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle', warning: 'exclamation-triangle' };
     const notification = document.createElement('div');
     notification.className = `notification fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
-    no"fas fa-${icons[type]} mr-2"></i>${message}`;
+    notification.innerHTML = `<i class="fas fa-${icons[type]} mr-2"></i>${message}`;
     document.body.appendChild(notification);
     setTimeout(() => { notification.style.opacity = '0'; setTimeout(() => notification.remove(), 300); }, 4000);
 }
