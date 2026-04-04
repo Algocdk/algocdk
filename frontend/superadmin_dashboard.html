@@ -800,7 +800,7 @@
                     <!-- How markup works -->
                     <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:14px 16px;font-size:13px;color:#93c5fd;margin-bottom:20px">
                         <i class="fas fa-info-circle mr-2"></i>
-                        <strong>How Deriv Markup Works:</strong> When users trade through AlgoCDK's Deriv App ID, Deriv pays a markup commission (typically 0.1%–3% of turnover) directly to the app owner's Deriv account. This is tracked per app ID in your Deriv affiliate/partner dashboard.
+                        <strong>How Deriv Markup Works:</strong> Every trade placed through the <strong>Algocdk</strong> app (ID: <code style="color:#fb923c">63623</code>) earns a markup commission on the trade turnover. With <strong>Read + Trade</strong> scopes, Algocdk can place trades and read account data on behalf of users. Deriv pays the markup directly to the app owner's Deriv account — track it in your <a href="https://app.deriv.com/account/api-token" target="_blank" style="color:#60a5fa;text-decoration:underline">Deriv partner dashboard</a>.
                     </div>
 
                     <!-- Summary cards -->
@@ -834,11 +834,19 @@
                                 </div>
                                 <div class="flex justify-between items-center py-2 border-b border-gray-600">
                                     <span class="text-gray-400">App Name</span>
-                                    <span class="font-semibold" id="mk_appName">AlgoCDK</span>
+                                    <span class="font-semibold" id="mk_appName">Algocdk</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600">
+                                    <span class="text-gray-400">Scopes</span>
+                                    <span class="font-semibold text-blue-400">Read, Trade</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-600">
+                                    <span class="text-gray-400">Category</span>
+                                    <span class="font-semibold text-purple-400">Trading Information</span>
                                 </div>
                                 <div class="flex justify-between items-center py-2 border-b border-gray-600">
                                     <span class="text-gray-400">Markup Rate</span>
-                                    <span class="font-semibold text-green-400" id="mk_markupRate">Set in Deriv Dashboard</span>
+                                    <span class="font-semibold text-green-400" id="mk_markupRate">0.3% per trade turnover</span>
                                 </div>
                                 <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-400">Status</span>
