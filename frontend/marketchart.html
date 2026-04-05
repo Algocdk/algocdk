@@ -1282,49 +1282,116 @@
         <!-- Scrollable body -->
         <div class="sidebar-body">
 
-            <!-- Strategy -->
+            <!-- ── Strategy Lab ── -->
             <div style="padding:0 12px 12px;">
-                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#3a4a60;margin-bottom:8px;padding-top:4px;">Strategy</div>
-                <select class="sb-select" id="strategySelect" style="margin-bottom:10px;">
-                    <option value="">— No Strategy —</option>
-                    <option value="ma_cross">MA Crossover</option>
-                    <option value="rsi_reversal">RSI Reversal</option>
-                    <option value="breakout">Breakout</option>
-                    <option value="custom">Custom Strategy</option>
-                </select>
-
-                <!-- Status row -->
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                    <span style="font-size:11px;color:#4a6080;">Status</span>
-                    <span class="sb-status-pill paused" id="sbStrategyStatus">
-                        <span class="sb-status-dot"></span>
-                        <span id="sbStrategyStatusText">Paused</span>
-                    </span>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px;margin-bottom:10px;">
+                    <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#3a4a60;">Strategy Lab</div>
+                    <span style="font-size:9px;font-weight:700;background:rgba(255,69,0,0.12);color:#FF4500;border:1px solid rgba(255,69,0,0.2);border-radius:10px;padding:2px 8px;letter-spacing:0.5px;">BACKTEST</span>
                 </div>
 
-                <!-- 2-col stat cards -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
-                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:5px;">Capital</div>
-                        <input class="sb-metric-input" type="number" id="strategyCapital" value="1000" style="font-size:15px;font-weight:800;color:#e6edf3;background:transparent;border:none;outline:none;width:100%;font-family:inherit;">
-                    </div>
-                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
-                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:5px;">Risk %</div>
-                        <input class="sb-metric-input" type="number" id="strategyRisk" value="2" min="0.1" max="10" step="0.1" style="font-size:15px;font-weight:800;color:#e6edf3;background:transparent;border:none;outline:none;width:100%;font-family:inherit;">
-                    </div>
-                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
-                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:5px;">Win Rate</div>
-                        <div style="font-size:15px;font-weight:800;color:#00c176;" id="strategyWinRate">0%</div>
-                    </div>
-                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
-                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:5px;">Profit Factor</div>
-                        <div style="font-size:15px;font-weight:800;color:#e6edf3;" id="strategyPF">0.00</div>
+                <!-- Bot selector -->
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:10px;color:#4a6080;margin-bottom:5px;font-weight:600;">Attach Bot / Strategy</div>
+                    <select class="sb-select" id="botStrategySelect" onchange="onBotStrategyChange(this.value)" style="margin-bottom:0;">
+                        <option value="">— Select a bot or strategy —</option>
+                        <optgroup label="Built-in Strategies">
+                            <option value="builtin:ma_cross">MA Crossover</option>
+                            <option value="builtin:rsi_reversal">RSI Reversal</option>
+                            <option value="builtin:breakout">Breakout</option>
+                            <option value="builtin:engulfing">Engulfing Pattern</option>
+                        </optgroup>
+                        <optgroup label="My Bots" id="myBotsOptgroup">
+                            <option value="" disabled style="color:#3a4a60;font-style:italic;">Loading bots…</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Bot info card (shown when a bot is selected) -->
+                <div id="botInfoCard" style="display:none;background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div id="botInfoImg" style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#FF4500,#FF8C00);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;">🤖</div>
+                        <div style="min-width:0;">
+                            <div style="font-size:13px;font-weight:700;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="botInfoName">—</div>
+                            <div style="font-size:11px;color:#4a6080;" id="botInfoCategory">—</div>
+                        </div>
+                        <div style="margin-left:auto;text-align:right;flex-shrink:0;">
+                            <div style="font-size:12px;font-weight:700;color:#00c176;" id="botInfoWinRate">—</div>
+                            <div style="font-size:9px;color:#3a4a60;">Win Rate</div>
+                        </div>
                     </div>
                 </div>
 
-                <button class="sb-btn" id="editStrategyBtn">
-                    ⚙ Edit Parameters
-                </button>
+                <!-- Backtest config -->
+                <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+                    <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:8px;">Backtest Config</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Capital ($)</div>
+                            <input type="number" id="btCapital" value="1000" min="10" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                        </div>
+                        <div>
+                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Risk per trade (%)</div>
+                            <input type="number" id="btRisk" value="2" min="0.1" max="20" step="0.1" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                        </div>
+                        <div>
+                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">From candle</div>
+                            <input type="number" id="btFrom" value="0" min="0" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                        </div>
+                        <div>
+                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">To candle</div>
+                            <input type="number" id="btTo" value="500" min="10" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                        </div>
+                    </div>
+                    <button onclick="runStrategyBacktest()" style="width:100%;padding:9px;background:linear-gradient(135deg,#FF4500,#FF8C00);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.5px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                        ▶ Run Backtest
+                    </button>
+                </div>
+
+                <!-- Results (hidden until run) -->
+                <div id="btResults" style="display:none;">
+                    <!-- Summary stats -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Net P&L</div>
+                            <div style="font-size:16px;font-weight:800;" id="btPnl">—</div>
+                        </div>
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Win Rate</div>
+                            <div style="font-size:16px;font-weight:800;color:#00c176;" id="btWinRate">—</div>
+                        </div>
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Trades</div>
+                            <div style="font-size:16px;font-weight:800;color:#e6edf3;" id="btTrades">—</div>
+                        </div>
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Profit Factor</div>
+                            <div style="font-size:16px;font-weight:800;color:#e6edf3;" id="btPF">—</div>
+                        </div>
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Max Drawdown</div>
+                            <div style="font-size:16px;font-weight:800;color:#ffa500;" id="btDD">—</div>
+                        </div>
+                        <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:4px;">Sharpe</div>
+                            <div style="font-size:16px;font-weight:800;color:#e6edf3;" id="btSharpe">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Equity curve -->
+                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:6px;">Equity Curve</div>
+                        <canvas id="equityCanvas" style="width:100%;height:80px;display:block;"></canvas>
+                    </div>
+
+                    <!-- Trade list -->
+                    <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;">
+                        <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:6px;">Recent Trades</div>
+                        <div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:2px;font-size:9px;color:#3a4a60;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;padding:0 2px;">
+                            <span>DIR</span><span>ENTRY</span><span>EXIT</span><span style="text-align:right;">P&L</span>
+                        </div>
+                        <div id="btTradeList" style="max-height:140px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2b2f3a transparent;"></div>
+                    </div>
+                </div>
             </div>
 
             <div style="height:1px;background:#1a2035;margin:0 12px;"></div>
@@ -5181,6 +5248,7 @@
     <script src="/api.js"></script>
     <script src="/token-refresh-manager.js"></script>
     <script src="/offline-detector.js"></script>
+    <script src="/marketchart-functions.js"></script>
 </body>
 
 </html>

@@ -136,13 +136,307 @@ function checkAlerts(price) {
     if (changed) { localStorage.setItem('chart_alerts', JSON.stringify(priceAlerts)); renderAlerts(); }
 }
 
-/* ===== BACKTESTER ===== */
-function runBacktest() {
-    const from = parseInt(document.getElementById('btFrom').value) || 0;
-    const to = Math.min(parseInt(document.getElementById('btTo').value) || 500, candles.length);
+/* ===== STRATEGY LAB ===== */
+
+// Holds the currently selected bot/strategy
+let activeLabStrategy = null;
+let lastBacktestTrades = [];
+
+// Load user's bots into the selector
+async function loadUserBotsIntoSelector() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+        const r = await fetch('/api/user/bots', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!r.ok) return;
+        const d = await r.json();
+        const bots = d.bots || d || [];
+        const og = document.getElementById('myBotsOptgroup');
+        if (!og) return;
+        if (!bots.length) {
+            og.innerHTML = '<option value="" disabled style="color:#3a4a60;font-style:italic;">No bots purchased yet</option>';
+            return;
+        }
+        og.innerHTML = bots.map(b =>
+            `<option value="bot:${b.bot_id || b.id}" data-name="${b.bot?.name || b.name || 'Bot'}" data-cat="${b.bot?.category || ''}" data-wr="${b.bot?.win_rate || ''}" data-img="${b.bot?.image || ''}">${b.bot?.name || b.name || 'Bot #' + (b.bot_id || b.id)}</option>`
+        ).join('');
+    } catch(e) { console.warn('Could not load bots:', e); }
+}
+
+function onBotStrategyChange(val) {
+    const card = document.getElementById('botInfoCard');
+    if (!val) { card.style.display = 'none'; activeLabStrategy = null; return; }
+
+    if (val.startsWith('bot:')) {
+        const opt = document.querySelector(`#botStrategySelect option[value="${val}"]`);
+        const name = opt?.dataset.name || 'Bot';
+        const cat  = opt?.dataset.cat  || '';
+        const wr   = opt?.dataset.wr   || '—';
+        const img  = opt?.dataset.img  || '';
+        document.getElementById('botInfoName').textContent = name;
+        document.getElementById('botInfoCategory').textContent = cat || 'Trading Bot';
+        document.getElementById('botInfoWinRate').textContent = wr || '—';
+        const imgEl = document.getElementById('botInfoImg');
+        if (img) imgEl.innerHTML = `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">`;
+        else imgEl.textContent = '🤖';
+        card.style.display = 'block';
+        activeLabStrategy = { type: 'bot', id: val.replace('bot:', ''), name };
+    } else if (val.startsWith('builtin:')) {
+        const key = val.replace('builtin:', '');
+        const names = { ma_cross: 'MA Crossover', rsi_reversal: 'RSI Reversal', breakout: 'Breakout', engulfing: 'Engulfing Pattern' };
+        document.getElementById('botInfoName').textContent = names[key] || key;
+        document.getElementById('botInfoCategory').textContent = 'Built-in Strategy';
+        document.getElementById('botInfoWinRate').textContent = '—';
+        document.getElementById('botInfoImg').textContent = '📊';
+        card.style.display = 'block';
+        activeLabStrategy = { type: 'builtin', key };
+    }
+}
+
+/* ── Signal generators for each built-in strategy ── */
+function signalMA(data, i) {
+    if (i < 50) return null;
+    const fast = 20, slow = 50;
+    const sma = (arr, n, end) => arr.slice(end - n, end).reduce((s, c) => s + c.close, 0) / n;
+    const f1 = sma(data, fast, i), s1 = sma(data, slow, i);
+    const f0 = sma(data, fast, i - 1), s0 = sma(data, slow, i - 1);
+    if (f0 <= s0 && f1 > s1) return 'buy';
+    if (f0 >= s0 && f1 < s1) return 'sell';
+    return null;
+}
+
+function signalRSI(data, i) {
+    if (i < 15) return null;
+    const period = 14;
+    let gains = 0, losses = 0;
+    for (let j = i - period; j < i; j++) {
+        const d = data[j].close - data[j - 1].close;
+        if (d > 0) gains += d; else losses -= d;
+    }
+    const rs = losses === 0 ? 100 : gains / losses;
+    const rsi = 100 - 100 / (1 + rs);
+    if (rsi < 30) return 'buy';
+    if (rsi > 70) return 'sell';
+    return null;
+}
+
+function signalBreakout(data, i) {
+    if (i < 21) return null;
+    const period = 20;
+    const highs = data.slice(i - period, i).map(c => c.high);
+    const lows  = data.slice(i - period, i).map(c => c.low);
+    const highest = Math.max(...highs), lowest = Math.min(...lows);
+    if (data[i].close > highest) return 'buy';
+    if (data[i].close < lowest)  return 'sell';
+    return null;
+}
+
+function signalEngulfing(data, i) {
+    if (i < 1) return null;
+    const prev = data[i - 1], curr = data[i];
+    const prevBear = prev.close < prev.open;
+    const prevBull = prev.close > prev.open;
+    if (prevBear && curr.open <= prev.close && curr.close >= prev.open) return 'buy';
+    if (prevBull && curr.open >= prev.close && curr.close <= prev.open) return 'sell';
+    return null;
+}
+
+function getSignal(data, i, strategy) {
+    if (!strategy) return null;
+    if (strategy.type === 'builtin') {
+        if (strategy.key === 'ma_cross')    return signalMA(data, i);
+        if (strategy.key === 'rsi_reversal') return signalRSI(data, i);
+        if (strategy.key === 'breakout')    return signalBreakout(data, i);
+        if (strategy.key === 'engulfing')   return signalEngulfing(data, i);
+    }
+    // For user bots, fall back to engulfing as a proxy (bot logic runs on Deriv, not here)
+    if (strategy.type === 'bot') return signalEngulfing(data, i);
+    return null;
+}
+
+/* ── Main backtest runner ── */
+function runStrategyBacktest() {
+    if (!activeLabStrategy) {
+        // Flash the selector
+        const sel = document.getElementById('botStrategySelect');
+        sel.style.borderColor = '#FF4500';
+        setTimeout(() => sel.style.borderColor = '', 1200);
+        return;
+    }
+
+    const from    = Math.max(0, parseInt(document.getElementById('btFrom').value) || 0);
+    const to      = Math.min(parseInt(document.getElementById('btTo').value) || 500, candles.length);
     const capital = parseFloat(document.getElementById('btCapital').value) || 1000;
-    const data = candles.slice(from, to);
-    if (data.length < 10) { alert('Not enough candles in range'); return; }
+    const riskPct = parseFloat(document.getElementById('btRisk').value) / 100 || 0.02;
+    const data    = candles.slice(from, to);
+
+    if (data.length < 20) {
+        alert('Need at least 20 candles — wait for more data to load or adjust the range.');
+        return;
+    }
+
+    let balance = capital, wins = 0, losses = 0, maxBal = capital, maxDD = 0;
+    const trades = [], equity = [capital];
+
+    for (let i = 1; i < data.length - 1; i++) {
+        const signal = getSignal(data, i, activeLabStrategy);
+        if (!signal) continue;
+
+        const entry = data[i + 1].open;
+        const exit  = data[i + 1].close;
+        const lot   = balance * riskPct;
+        const pnl   = signal === 'buy'
+            ? (exit - entry) / entry * lot
+            : (entry - exit) / entry * lot;
+
+        balance += pnl;
+        if (pnl > 0) wins++; else losses++;
+        maxBal = Math.max(maxBal, balance);
+        const dd = (maxBal - balance) / maxBal * 100;
+        maxDD = Math.max(maxDD, dd);
+        trades.push({ signal, entry, exit, pnl });
+        equity.push(balance);
+    }
+
+    lastBacktestTrades = trades;
+    const total    = wins + losses;
+    const winRate  = total ? (wins / total * 100).toFixed(1) : 0;
+    const netPnl   = balance - capital;
+    const grossWin = trades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0);
+    const grossLoss= Math.abs(trades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0));
+    const pf       = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : '∞';
+    const returns  = equity.map((v, i) => i > 0 ? (v - equity[i-1]) / equity[i-1] : 0).slice(1);
+    const mean     = returns.reduce((a, b) => a + b, 0) / (returns.length || 1);
+    const std      = Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (returns.length || 1));
+    const sharpe   = std > 0 ? (mean / std * Math.sqrt(252)).toFixed(2) : '0';
+    const expectancy = total ? (netPnl / total).toFixed(2) : '0';
+
+    // Update risk metrics panel too
+    const ddEl = document.getElementById('riskDrawdown');
+    if (ddEl) { ddEl.textContent = maxDD.toFixed(1) + '%'; ddEl.className = 'sb-risk-val ' + (maxDD < 10 ? 'good' : maxDD < 25 ? 'warn' : 'bad'); }
+    const shEl = document.getElementById('riskSharpe');
+    if (shEl) shEl.textContent = sharpe;
+    const exEl = document.getElementById('riskExpectancy');
+    if (exEl) exEl.textContent = '$' + expectancy;
+
+    // Show results panel
+    document.getElementById('btResults').style.display = 'block';
+
+    const pnlEl = document.getElementById('btPnl');
+    pnlEl.textContent = (netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2);
+    pnlEl.style.color = netPnl >= 0 ? '#00c176' : '#ff4d4f';
+
+    document.getElementById('btWinRate').textContent = winRate + '%';
+    document.getElementById('btWinRate').style.color = parseFloat(winRate) >= 50 ? '#00c176' : '#ff4d4f';
+    document.getElementById('btTrades').textContent = total;
+    document.getElementById('btPF').textContent = pf;
+    document.getElementById('btPF').style.color = parseFloat(pf) >= 1.5 ? '#00c176' : parseFloat(pf) >= 1 ? '#ffa500' : '#ff4d4f';
+    document.getElementById('btDD').textContent = maxDD.toFixed(1) + '%';
+    document.getElementById('btDD').style.color = maxDD < 10 ? '#00c176' : maxDD < 25 ? '#ffa500' : '#ff4d4f';
+    document.getElementById('btSharpe').textContent = sharpe;
+
+    // Draw equity curve
+    const ec = document.getElementById('equityCanvas');
+    if (ec && equity.length > 1) {
+        const ectx = ec.getContext('2d');
+        ec.width = ec.offsetWidth || 220;
+        ec.height = 80;
+        ectx.clearRect(0, 0, ec.width, ec.height);
+        const minE = Math.min(...equity), maxE = Math.max(...equity);
+        const range = maxE - minE || 1;
+
+        // Fill gradient
+        const grad = ectx.createLinearGradient(0, 0, 0, ec.height);
+        const col = netPnl >= 0 ? '0,193,118' : '255,77,79';
+        grad.addColorStop(0, `rgba(${col},0.25)`);
+        grad.addColorStop(1, `rgba(${col},0)`);
+
+        ectx.beginPath();
+        equity.forEach((v, i) => {
+            const x = (i / (equity.length - 1)) * ec.width;
+            const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
+            i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
+        });
+        ectx.lineTo(ec.width, ec.height);
+        ectx.lineTo(0, ec.height);
+        ectx.closePath();
+        ectx.fillStyle = grad;
+        ectx.fill();
+
+        // Line
+        ectx.beginPath();
+        equity.forEach((v, i) => {
+            const x = (i / (equity.length - 1)) * ec.width;
+            const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
+            i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
+        });
+        ectx.strokeStyle = `rgb(${col})`;
+        ectx.lineWidth = 1.5;
+        ectx.stroke();
+    }
+
+    // Trade list
+    document.getElementById('btTradeList').innerHTML = trades.slice(-30).reverse().map(t =>
+        `<div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:2px;font-size:10px;padding:3px 2px;border-bottom:1px solid #1a2035;">
+            <span style="color:${t.signal === 'buy' ? '#00c176' : '#ff4d4f'};font-weight:700;">${t.signal.toUpperCase()}</span>
+            <span style="color:#8b949e;">${t.entry.toFixed(5)}</span>
+            <span style="color:#8b949e;">${t.exit.toFixed(5)}</span>
+            <span style="color:${t.pnl >= 0 ? '#00c176' : '#ff4d4f'};font-weight:700;text-align:right;">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</span>
+        </div>`
+    ).join('');
+
+    // Draw signals on chart
+    drawBacktestSignals(trades, data, from);
+}
+
+// Draw buy/sell arrows on the chart canvas for the last backtest
+let backtestSignalOverlay = [];
+function drawBacktestSignals(trades, data, offset) {
+    backtestSignalOverlay = trades.map((t, i) => ({
+        ...t,
+        candleIndex: offset + i + 1
+    }));
+    if (typeof draw === 'function') draw();
+}
+
+// Called from the main draw() loop — overlay arrows on chart
+function drawBacktestOverlay(ctx, canvas, candles, zoom, scrollOffset, pad) {
+    if (!backtestSignalOverlay.length) return;
+    const w = canvas.width, h = canvas.height;
+    const visibleCount = Math.floor((w - pad * 2) / (8 * zoom));
+    const startIdx = Math.max(0, candles.length - visibleCount - scrollOffset);
+
+    backtestSignalOverlay.forEach(sig => {
+        const ci = sig.candleIndex;
+        if (ci < startIdx || ci >= startIdx + visibleCount) return;
+        const x = pad + (ci - startIdx) * 8 * zoom + 4 * zoom;
+        const price = sig.entry;
+        // Get y from price — approximate using canvas height
+        const prices = candles.slice(startIdx, startIdx + visibleCount);
+        const maxP = Math.max(...prices.map(c => c.high));
+        const minP = Math.min(...prices.map(c => c.low));
+        const range = maxP - minP || 1;
+        const y = h - pad - ((price - minP) / range) * (h - pad * 2);
+
+        ctx.save();
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        if (sig.signal === 'buy') {
+            ctx.fillStyle = '#00c176';
+            ctx.fillText('▲', x, y + 18);
+        } else {
+            ctx.fillStyle = '#ff4d4f';
+            ctx.fillText('▼', x, y - 8);
+        }
+        ctx.restore();
+    });
+}
+
+// Init on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserBotsIntoSelector();
+    renderAlerts();
+});
 
     let balance = capital, wins = 0, losses = 0, maxBal = capital, maxDD = 0;
     const trades = [], equity = [capital];
@@ -332,6 +626,4 @@ function ctxAction(action) {
 }
 
 /* ===== INIT ===== */
-document.addEventListener('DOMContentLoaded', function() {
-    renderAlerts();
-});
+// (init handled in Strategy Lab section above)

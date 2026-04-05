@@ -406,6 +406,7 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/custom_strategy_template.js", frontendPath+"/custom_strategy_template.js")
 	router.StaticFile("/indicator-loader.js", frontendPath+"/indicator-loader.js")
 	router.StaticFile("/indicator-renderer.js", frontendPath+"/indicator-renderer.js")
+	router.StaticFile("/marketchart-functions.js", frontendPath+"/marketchart-functions.js")
 
 	// PWA Files
 	router.StaticFile("/manifest.json", frontendPath+"/manifest.json")
