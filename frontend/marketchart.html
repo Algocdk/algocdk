@@ -1292,7 +1292,7 @@
                 <!-- Bot selector -->
                 <div style="margin-bottom:8px;">
                     <div style="font-size:10px;color:#4a6080;margin-bottom:5px;font-weight:600;">Attach Bot / Strategy</div>
-                    <select class="sb-select" id="botStrategySelect" onchange="onBotStrategyChange(this.value)" style="margin-bottom:0;">
+                    <select class="sb-select" id="botStrategySelect" onchange="onBotStrategyChange(this.value)" style="margin-bottom:8px;">
                         <option value="">— Select a bot or strategy —</option>
                         <optgroup label="Built-in Strategies">
                             <option value="builtin:ma_cross">MA Crossover</option>
@@ -1304,6 +1304,16 @@
                             <option value="" disabled style="color:#3a4a60;font-style:italic;">Loading bots…</option>
                         </optgroup>
                     </select>
+                    <!-- Load options -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                        <button onclick="openBotMarketplaceModal()" style="padding:8px;background:#161b22;border:1px solid #2b2f3a;color:#d1d4dc;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#FF4500'" onmouseout="this.style.borderColor='#2b2f3a'">
+                            <i class="fas fa-store" style="color:#FF4500;"></i> Marketplace
+                        </button>
+                        <label style="padding:8px;background:#161b22;border:1px solid #2b2f3a;color:#d1d4dc;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#FF4500'" onmouseout="this.style.borderColor='#2b2f3a'">
+                            <i class="fas fa-file-upload" style="color:#FF4500;"></i> Load File
+                            <input type="file" id="botFileInput" accept=".html,.js,.json" style="display:none;" onchange="loadBotFromFile(this)">
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Bot info card (shown when a bot is selected) -->
@@ -1321,7 +1331,66 @@
                     </div>
                 </div>
 
-                <!-- Backtest config -->
+                <!-- Strategy params panel (shown when a builtin strategy is selected) -->
+                <div id="stratParamsPanel" style="display:none;background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+                    <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:8px;">Strategy Parameters</div>
+                    <div id="params_ma_cross">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">MA Type</div>
+                                <select id="p_ma_type" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                                    <option value="SMA">SMA</option><option value="EMA">EMA</option>
+                                </select></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Fast Period</div>
+                                <input type="number" id="p_ma_fast" value="20" min="2" max="200" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Slow Period</div>
+                                <input type="number" id="p_ma_slow" value="50" min="2" max="500" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Stop Loss %</div>
+                                <input type="number" id="p_ma_sl" value="1" min="0.1" max="20" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Take Profit %</div>
+                                <input type="number" id="p_ma_tp" value="2" min="0.1" max="50" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Lot Size ($)</div>
+                                <input type="number" id="p_ma_lot" value="100" min="1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                        </div>
+                    </div>
+                    <div id="params_rsi_reversal" style="display:none;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">RSI Period</div>
+                                <input type="number" id="p_rsi_period" value="14" min="2" max="100" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Oversold</div>
+                                <input type="number" id="p_rsi_os" value="30" min="1" max="49" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Overbought</div>
+                                <input type="number" id="p_rsi_ob" value="70" min="51" max="99" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Stop Loss %</div>
+                                <input type="number" id="p_rsi_sl" value="1" min="0.1" max="20" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Take Profit %</div>
+                                <input type="number" id="p_rsi_tp" value="2" min="0.1" max="50" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Lot Size ($)</div>
+                                <input type="number" id="p_rsi_lot" value="100" min="1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                        </div>
+                    </div>
+                    <div id="params_breakout" style="display:none;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Lookback Period</div>
+                                <input type="number" id="p_bo_period" value="20" min="5" max="200" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Stop Loss %</div>
+                                <input type="number" id="p_bo_sl" value="1.5" min="0.1" max="20" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Take Profit %</div>
+                                <input type="number" id="p_bo_tp" value="3" min="0.1" max="50" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Lot Size ($)</div>
+                                <input type="number" id="p_bo_lot" value="100" min="1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                        </div>
+                    </div>
+                    <div id="params_engulfing" style="display:none;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Stop Loss %</div>
+                                <input type="number" id="p_eng_sl" value="1" min="0.1" max="20" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Take Profit %</div>
+                                <input type="number" id="p_eng_tp" value="2" min="0.1" max="50" step="0.1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                            <div><div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Lot Size ($)</div>
+                                <input type="number" id="p_eng_lot" value="100" min="1" onchange="syncStratParams()" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;"></div>
+                        </div>
+                    </div>
+                </div>
                 <div style="background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
                     <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:8px;">Backtest Config</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
@@ -4019,27 +4088,87 @@
                 const fullData = [...candles];
                 if (currentCandle) fullData.push(currentCandle);
                 const key = activeLabStrategy.key || '';
+                const p = activeLabStrategy.params || {};
+
                 if (key === 'ma_cross' || activeLabStrategy.type === 'bot') {
-                    // Fast MA (green) + Slow MA (red)
+                    const fast = p.fast || 20, slow = p.slow || 50;
+                    const maType = p.maType || 'SMA';
+                    const calcMA = (d, n) => maType === 'EMA' ? calculateEMA(d, n) : calculateSMA(d, n);
                     ctx.strokeStyle = '#00c176'; ctx.lineWidth = 1.5;
-                    const fma = calculateSMA(fullData, 20);
-                    drawLine(fma.slice(start, start + visible), candleSpacing, y, pad);
+                    drawLine(calcMA(fullData, fast).slice(start, start + visible), candleSpacing, y, pad);
                     ctx.strokeStyle = '#ff4d4f'; ctx.lineWidth = 1.5;
-                    const sma = calculateSMA(fullData, 50);
-                    drawLine(sma.slice(start, start + visible), candleSpacing, y, pad);
+                    drawLine(calcMA(fullData, slow).slice(start, start + visible), candleSpacing, y, pad);
+
                 } else if (key === 'rsi_reversal') {
-                    // Draw RSI as oscillator
-                    const rsiVals = calculateRSI(fullData, 14);
-                    const fakeInd = { id: -1, type: 'rsi', color: '#32cd32', params: { period: 14 } };
+                    const period = p.period || 14;
+                    const rsiVals = calculateRSI(fullData, period);
+                    const fakeInd = { id: -1, type: 'rsi', color: '#32cd32', params: { period } };
                     drawOscillator(rsiVals.slice(start, start + visible), candleSpacing, pad, view.length, fakeInd, 'RSI');
+
                 } else if (key === 'breakout') {
-                    // Draw 20-period high/low channel
-                    const highs = fullData.map((_, i) => i < 20 ? null : Math.max(...fullData.slice(i-20, i).map(c => c.high)));
-                    const lows  = fullData.map((_, i) => i < 20 ? null : Math.min(...fullData.slice(i-20, i).map(c => c.low)));
+                    const boPeriod = p.period || 20;
+                    const highs = fullData.map((_, i) => i < boPeriod ? null : Math.max(...fullData.slice(i-boPeriod, i).map(c => c.high)));
+                    const lows  = fullData.map((_, i) => i < boPeriod ? null : Math.min(...fullData.slice(i-boPeriod, i).map(c => c.low)));
                     ctx.strokeStyle = 'rgba(255,165,0,0.6)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
                     drawLine(highs.slice(start, start + visible), candleSpacing, y, pad);
                     drawLine(lows.slice(start, start + visible), candleSpacing, y, pad);
                     ctx.setLineDash([]);
+
+                } else if (activeLabStrategy.type === 'file') {
+                    // ── AI / file strategy: draw all its indicators ──────
+                    const emaPeriod = p.emaPeriod || 50;
+                    const rsiPeriod = p.rsiPeriod || 14;
+
+                    // 1. EMA trend line (orange)
+                    const emaVals = calculateEMA(fullData, emaPeriod);
+                    ctx.strokeStyle = 'rgba(255,165,0,0.85)';
+                    ctx.lineWidth = 1.5;
+                    drawLine(emaVals.slice(start, start + visible), candleSpacing, y, pad);
+
+                    // 2. EMA label
+                    const lastEma = emaVals[start + visible - 1];
+                    if (lastEma) {
+                        ctx.fillStyle = 'rgba(255,165,0,0.9)';
+                        ctx.font = 'bold 10px Arial';
+                        ctx.textAlign = 'left';
+                        ctx.fillText('EMA' + emaPeriod, pad + 4, y(lastEma) - 5);
+                    }
+
+                    // 3. RSI oscillator in sub-window
+                    const rsiVals = calculateRSI(fullData, rsiPeriod);
+                    const fakeRsi = { id: -99, type: 'rsi', color: '#a78bfa', params: { period: rsiPeriod } };
+                    drawOscillator(rsiVals.slice(start, start + visible), candleSpacing, pad, view.length, fakeRsi, 'RSI');
+
+                    // 4. Highlight candles where backtestSignalOverlay has entries
+                    // Draw a subtle glow box around each signal candle
+                    if (typeof backtestSignalOverlay !== 'undefined') {
+                        backtestSignalOverlay.forEach(sig => {
+                            const ci = sig.candleIndex;
+                            if (ci < start || ci >= start + visible) return;
+                            const relIdx = ci - start;
+                            const cx = pad + relIdx * candleSpacing + candleSpacing / 2;
+                            const cw = Math.max(candleSpacing * 0.8, 2);
+                            const candle = fullData[ci];
+                            if (!candle) return;
+                            const top    = y(candle.high) - 4;
+                            const bottom = y(candle.low)  + 4;
+                            const color  = sig.signal === 'buy' ? 'rgba(0,193,118,0.15)' : 'rgba(255,77,79,0.15)';
+                            const border = sig.signal === 'buy' ? 'rgba(0,193,118,0.5)'  : 'rgba(255,77,79,0.5)';
+                            ctx.fillStyle = color;
+                            ctx.fillRect(cx - cw / 2, top, cw, bottom - top);
+                            ctx.strokeStyle = border;
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(cx - cw / 2, top, cw, bottom - top);
+
+                            // Score badge
+                            if (sig.score) {
+                                ctx.fillStyle = sig.signal === 'buy' ? '#00c176' : '#ff4d4f';
+                                ctx.font = 'bold 9px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('⚡' + sig.score, cx, sig.signal === 'buy' ? bottom + 14 : top - 5);
+                            }
+                        });
+                    }
                 }
             }
 
@@ -5328,6 +5457,28 @@
             }
         }
     </script>
+
+    <!-- Bot Marketplace Modal -->
+    <div id="botMktModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#0d1117;border:1px solid #2b2f3a;border-radius:16px;width:min(560px,95vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #1e2433;">
+                <div>
+                    <div style="font-size:15px;font-weight:800;color:#fff;">My Bot Marketplace</div>
+                    <div style="font-size:11px;color:#4a6080;margin-top:2px;">Select a bot to attach to the Strategy Lab</div>
+                </div>
+                <button onclick="closeBotMarketplaceModal()" style="background:rgba(255,255,255,0.06);border:none;color:#8b949e;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <!-- Search -->
+            <div style="padding:12px 20px;border-bottom:1px solid #1e2433;">
+                <input type="search" id="botMktSearch" placeholder="Search bots…" oninput="filterMktBots(this.value)" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:9px 14px;border-radius:8px;font-size:13px;outline:none;font-family:inherit;">
+            </div>
+            <!-- Bot list -->
+            <div id="botMktList" style="flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px;">
+                <div style="text-align:center;padding:32px;color:#4a6080;font-size:13px;">Loading your bots…</div>
+            </div>
+        </div>
+    </div>
 
     <script src="/api.js"></script>
     <script src="/token-refresh-manager.js"></script>

@@ -148,6 +148,8 @@ let btPlaybackRunning = false;
 let btPlaybackEquity = [];
 
 // ── Load user bots ──────────────────────────────────────────────────────────
+let _allUserBots = [];
+
 async function loadUserBotsIntoSelector() {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -155,22 +157,141 @@ async function loadUserBotsIntoSelector() {
         const r = await fetch('/api/user/bots', { headers: { 'Authorization': 'Bearer ' + token } });
         if (!r.ok) return;
         const d = await r.json();
-        const bots = d.bots || d || [];
+        _allUserBots = d.bots || d || [];
         const og = document.getElementById('myBotsOptgroup');
         if (!og) return;
-        if (!bots.length) {
+        if (!_allUserBots.length) {
             og.innerHTML = '<option value="" disabled style="color:#3a4a60;font-style:italic;">No bots purchased yet</option>';
             return;
         }
-        og.innerHTML = bots.map(b =>
+        og.innerHTML = _allUserBots.map(b =>
             `<option value="bot:${b.bot_id || b.id}" data-name="${b.bot?.name || b.name || 'Bot'}" data-cat="${b.bot?.category || ''}" data-wr="${b.bot?.win_rate || ''}" data-img="${b.bot?.image || ''}">${b.bot?.name || b.name || 'Bot #' + (b.bot_id || b.id)}</option>`
         ).join('');
     } catch(e) { console.warn('Could not load bots:', e); }
 }
 
+// ── Marketplace modal ───────────────────────────────────────────────────────
+function openBotMarketplaceModal() {
+    const modal = document.getElementById('botMktModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    renderMktBots(_allUserBots);
+}
+function closeBotMarketplaceModal() {
+    const modal = document.getElementById('botMktModal');
+    if (modal) modal.style.display = 'none';
+}
+function filterMktBots(q) {
+    const filtered = q ? _allUserBots.filter(b => (b.bot?.name || b.name || '').toLowerCase().includes(q.toLowerCase())) : _allUserBots;
+    renderMktBots(filtered);
+}
+function renderMktBots(bots) {
+    const list = document.getElementById('botMktList');
+    if (!list) return;
+    if (!bots.length) {
+        list.innerHTML = '<div style="text-align:center;padding:32px;color:#4a6080;font-size:13px;">No bots found. <a href="/botstore" style="color:#FF4500;">Browse the marketplace →</a></div>';
+        return;
+    }
+    list.innerHTML = bots.map(b => {
+        const id = b.bot_id || b.id;
+        const name = (b.bot?.name || b.name || 'Bot #' + id).replace(/'/g, "\\'");
+        const cat  = (b.bot?.category || 'Trading Bot').replace(/'/g, "\\'");
+        const wr   = b.bot?.win_rate || '—';
+        const img  = (b.bot?.image || '').replace(/'/g, "\\'");
+        const perf = b.bot?.performance || '';
+        return `<div style="display:flex;align-items:center;gap:12px;background:#161b22;border:1px solid #2b2f3a;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.2s;"
+                     onmouseover="this.style.borderColor='#FF4500'" onmouseout="this.style.borderColor='#2b2f3a'"
+                     onclick="selectBotFromMarketplace('bot:${id}','${name}','${cat}','${wr}','${img}')">
+            <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#FF4500,#FF8C00);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;">
+                ${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">` : '🤖'}
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:700;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                <div style="font-size:11px;color:#4a6080;">${cat}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:13px;font-weight:700;color:#00c176;">${wr}</div>
+                <div style="font-size:9px;color:#3a4a60;">Win Rate</div>
+                ${perf ? `<div style="font-size:10px;color:#ffa500;margin-top:2px;">${perf}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+function selectBotFromMarketplace(val, name, cat, wr, img) {
+    const sel = document.getElementById('botStrategySelect');
+    if (sel && !sel.querySelector(`option[value="${val}"]`)) {
+        const og = document.getElementById('myBotsOptgroup');
+        if (og) {
+            const opt = document.createElement('option');
+            opt.value = val; opt.textContent = name;
+            opt.dataset.name = name; opt.dataset.cat = cat;
+            opt.dataset.wr = wr; opt.dataset.img = img;
+            og.appendChild(opt);
+        }
+    }
+    if (sel) sel.value = val;
+    onBotStrategyChange(val);
+    closeBotMarketplaceModal();
+}
+
+// ── Load bot from file ──────────────────────────────────────────────────────
+function loadBotFromFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const content = e.target.result;
+        const name = file.name.replace(/\.[^.]+$/, '');
+        const val = 'file:' + Date.now();
+        // Add to dropdown
+        const og = document.getElementById('myBotsOptgroup');
+        if (og) {
+            const opt = document.createElement('option');
+            opt.value = val; opt.textContent = '📁 ' + name;
+            opt.dataset.name = name; opt.dataset.cat = 'Loaded from file';
+            opt.dataset.wr = '—'; opt.dataset.img = '';
+            og.appendChild(opt);
+        }
+        const sel = document.getElementById('botStrategySelect');
+        if (sel) sel.value = val;
+        // Set active strategy — try to parse as strategy object, fallback to engulfing
+        let extracted = null;
+        try { extracted = new Function('"use strict"; return (' + content + ')')(); } catch {}
+        activeLabStrategy = { type: 'file', key: 'engulfing', name, fileContent: content, extracted, params: { slPct: 1, tpPct: 2, lot: 100 } };
+        // Show bot info card
+        const card = document.getElementById('botInfoCard');
+        if (card) {
+            document.getElementById('botInfoName').textContent = '📁 ' + name;
+            document.getElementById('botInfoCategory').textContent = 'Loaded from file';
+            document.getElementById('botInfoWinRate').textContent = '—';
+            document.getElementById('botInfoImg').textContent = '📁';
+            card.style.display = 'block';
+        }
+        // Show engulfing params for TP/SL/lot
+        const pp = document.getElementById('stratParamsPanel');
+        if (pp) {
+            pp.style.display = 'block';
+            ['ma_cross','rsi_reversal','breakout','engulfing'].forEach(k => {
+                const el = document.getElementById('params_' + k);
+                if (el) el.style.display = k === 'engulfing' ? 'block' : 'none';
+            });
+        }
+        input.value = '';
+        if (typeof draw === 'function') draw();
+    };
+    reader.readAsText(file);
+}
+
 function onBotStrategyChange(val) {
     const card = document.getElementById('botInfoCard');
-    if (!val) { card.style.display = 'none'; activeLabStrategy = null; return; }
+    const paramsPanel = document.getElementById('stratParamsPanel');
+    if (!val) {
+        card.style.display = 'none';
+        if (paramsPanel) paramsPanel.style.display = 'none';
+        activeLabStrategy = null;
+        if (typeof draw === 'function') draw();
+        return;
+    }
     if (val.startsWith('bot:')) {
         const opt = document.querySelector(`#botStrategySelect option[value="${val}"]`);
         const name = opt?.dataset.name || 'Bot';
@@ -181,6 +302,7 @@ function onBotStrategyChange(val) {
         const img = opt?.dataset.img || '';
         imgEl.innerHTML = img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">` : '🤖';
         card.style.display = 'block';
+        if (paramsPanel) paramsPanel.style.display = 'none';
         activeLabStrategy = { type: 'bot', id: val.replace('bot:', ''), name };
     } else if (val.startsWith('builtin:')) {
         const key = val.replace('builtin:', '');
@@ -190,36 +312,87 @@ function onBotStrategyChange(val) {
         document.getElementById('botInfoWinRate').textContent = '—';
         document.getElementById('botInfoImg').textContent = '📊';
         card.style.display = 'block';
+        // Show the right params sub-panel
+        if (paramsPanel) {
+            paramsPanel.style.display = 'block';
+            ['ma_cross','rsi_reversal','breakout','engulfing'].forEach(k => {
+                const el = document.getElementById('params_' + k);
+                if (el) el.style.display = k === key ? 'block' : 'none';
+            });
+        }
         activeLabStrategy = { type: 'builtin', key };
     }
+    if (typeof draw === 'function') draw();
+}
+
+// Sync UI inputs → activeLabStrategy.params so backtest + chart overlay use them
+function syncStratParams() {
+    if (!activeLabStrategy || activeLabStrategy.type !== 'builtin') return;
+    const key = activeLabStrategy.key;
+    const g = (id, def) => { const el = document.getElementById(id); return el ? parseFloat(el.value) || def : def; };
+    const gi = (id, def) => { const el = document.getElementById(id); return el ? parseInt(el.value) || def : def; };
+    const gs = (id, def) => { const el = document.getElementById(id); return el ? el.value || def : def; };
+    if (key === 'ma_cross') {
+        activeLabStrategy.params = { maType: gs('p_ma_type','SMA'), fast: gi('p_ma_fast',20), slow: gi('p_ma_slow',50), slPct: g('p_ma_sl',1), tpPct: g('p_ma_tp',2), lot: g('p_ma_lot',100) };
+    } else if (key === 'rsi_reversal') {
+        activeLabStrategy.params = { period: gi('p_rsi_period',14), oversold: gi('p_rsi_os',30), overbought: gi('p_rsi_ob',70), slPct: g('p_rsi_sl',1), tpPct: g('p_rsi_tp',2), lot: g('p_rsi_lot',100) };
+    } else if (key === 'breakout') {
+        activeLabStrategy.params = { period: gi('p_bo_period',20), slPct: g('p_bo_sl',1.5), tpPct: g('p_bo_tp',3), lot: g('p_bo_lot',100) };
+    } else if (key === 'engulfing') {
+        activeLabStrategy.params = { slPct: g('p_eng_sl',1), tpPct: g('p_eng_tp',2), lot: g('p_eng_lot',100) };
+    }
+    if (typeof draw === 'function') draw();
 }
 
 // ── Signal generators ───────────────────────────────────────────────────────
-function signalMA(data, i) {
-    if (i < 50) return null;
-    const sma = (arr, n, end) => arr.slice(end - n, end).reduce((s, c) => s + c.close, 0) / n;
-    const f1 = sma(data, 20, i), s1 = sma(data, 50, i);
-    const f0 = sma(data, 20, i-1), s0 = sma(data, 50, i-1);
+function signalMA(data, i, params) {
+    const fast = params?.fast || 20, slow = params?.slow || 50;
+    const maType = params?.maType || 'SMA';
+    if (i < slow) return null;
+    const calc = (n) => {
+        if (maType === 'EMA') {
+            const k = 2 / (n + 1);
+            let ema = data[0].close;
+            for (let j = 1; j <= i; j++) ema = data[j].close * k + ema * (1 - k);
+            return ema;
+        }
+        return data.slice(i - n, i).reduce((s, c) => s + c.close, 0) / n;
+    };
+    const calcPrev = (n) => {
+        if (maType === 'EMA') {
+            const k = 2 / (n + 1);
+            let ema = data[0].close;
+            for (let j = 1; j < i; j++) ema = data[j].close * k + ema * (1 - k);
+            return ema;
+        }
+        return data.slice(i - n - 1, i - 1).reduce((s, c) => s + c.close, 0) / n;
+    };
+    const f1 = calc(fast), s1 = calc(slow);
+    const f0 = calcPrev(fast), s0 = calcPrev(slow);
     if (f0 <= s0 && f1 > s1) return 'buy';
     if (f0 >= s0 && f1 < s1) return 'sell';
     return null;
 }
-function signalRSI(data, i) {
-    if (i < 15) return null;
+function signalRSI(data, i, params) {
+    const period = params?.period || 14;
+    const oversold = params?.oversold || 30;
+    const overbought = params?.overbought || 70;
+    if (i < period + 1) return null;
     let gains = 0, losses = 0;
-    for (let j = i - 14; j < i; j++) {
+    for (let j = i - period; j < i; j++) {
         const d = data[j].close - data[j-1].close;
         if (d > 0) gains += d; else losses -= d;
     }
     const rsi = 100 - 100 / (1 + (losses === 0 ? 100 : gains / losses));
-    if (rsi < 30) return 'buy';
-    if (rsi > 70) return 'sell';
+    if (rsi < oversold) return 'buy';
+    if (rsi > overbought) return 'sell';
     return null;
 }
-function signalBreakout(data, i) {
-    if (i < 21) return null;
-    const highs = data.slice(i-20, i).map(c => c.high);
-    const lows  = data.slice(i-20, i).map(c => c.low);
+function signalBreakout(data, i, params) {
+    const period = params?.period || 20;
+    if (i < period + 1) return null;
+    const highs = data.slice(i - period, i).map(c => c.high);
+    const lows  = data.slice(i - period, i).map(c => c.low);
     if (data[i].close > Math.max(...highs)) return 'buy';
     if (data[i].close < Math.min(...lows))  return 'sell';
     return null;
@@ -233,11 +406,20 @@ function signalEngulfing(data, i) {
 }
 function getSignal(data, i, strategy) {
     if (!strategy) return null;
-    if (strategy.type === 'builtin') {
-        if (strategy.key === 'ma_cross')     return signalMA(data, i);
-        if (strategy.key === 'rsi_reversal') return signalRSI(data, i);
-        if (strategy.key === 'breakout')     return signalBreakout(data, i);
-        if (strategy.key === 'engulfing')    return signalEngulfing(data, i);
+    const p = strategy.params || {};
+    // File-loaded strategy with getSignalAt method
+    if (strategy.type === 'file' && strategy.extracted && typeof strategy.extracted.getSignalAt === 'function') {
+        const result = strategy.extracted.getSignalAt(data, i, p);
+        if (!result) return null;
+        // Return object with score if available, plain string otherwise
+        return typeof result === 'object' ? result : result;
+    }
+    if (strategy.type === 'builtin' || strategy.type === 'file') {
+        const key = strategy.key || 'engulfing';
+        if (key === 'ma_cross')     return signalMA(data, i, p);
+        if (key === 'rsi_reversal') return signalRSI(data, i, p);
+        if (key === 'breakout')     return signalBreakout(data, i, p);
+        if (key === 'engulfing')    return signalEngulfing(data, i);
     }
     if (strategy.type === 'bot') return signalEngulfing(data, i);
     return null;
@@ -276,22 +458,50 @@ function fetchHistoricalCandles(symbol, granularity, startEpoch, endEpoch, count
 
 // ── Core backtest engine ────────────────────────────────────────────────────
 function runBacktestOnData(data, strategy, capital, riskPct) {
+    const p = strategy.params || {};
+    // Use fixed lot from params, fallback to risk% of capital
+    const lot = p.lot || (capital * riskPct);
+    const slPct = (p.slPct || 1) / 100;
+    const tpPct = (p.tpPct || 2) / 100;
+
     let balance = capital, wins = 0, losses = 0, maxBal = capital, maxDD = 0;
     const trades = [], equity = [capital], signals = [];
 
     for (let i = 1; i < data.length - 1; i++) {
-        const signal = getSignal(data, i, strategy);
-        if (!signal) continue;
-        const entry = data[i+1].open;
-        const exit  = data[i+1].close;
-        const lot   = balance * riskPct;
-        const pnl   = signal === 'buy' ? (exit - entry) / entry * lot : (entry - exit) / entry * lot;
+        const raw = getSignal(data, i, strategy);
+        if (!raw) continue;
+        // Support both plain string and { signal, score } object
+        const signal = typeof raw === 'object' ? raw.signal : raw;
+        const score  = typeof raw === 'object' ? raw.score  : undefined;
+
+        const entry = data[i + 1].open;
+        const sl = signal === 'buy' ? entry * (1 - slPct) : entry * (1 + slPct);
+        const tp = signal === 'buy' ? entry * (1 + tpPct) : entry * (1 - tpPct);
+
+        // Simulate: scan forward candles to see if TP or SL is hit first
+        let exit = data[Math.min(i + 1, data.length - 1)].close;
+        let hitTP = false, hitSL = false;
+        for (let j = i + 1; j < Math.min(i + 50, data.length); j++) {
+            const c = data[j];
+            if (signal === 'buy') {
+                if (c.low <= sl)  { exit = sl; hitSL = true; break; }
+                if (c.high >= tp) { exit = tp; hitTP = true; break; }
+            } else {
+                if (c.high >= sl) { exit = sl; hitSL = true; break; }
+                if (c.low <= tp)  { exit = tp; hitTP = true; break; }
+            }
+        }
+
+        // P&L = lot * price_move / entry  (dollar return on the lot)
+        const priceDiff = signal === 'buy' ? exit - entry : entry - exit;
+        const pnl = lot * (priceDiff / entry);
+
         balance += pnl;
         if (pnl > 0) wins++; else losses++;
         maxBal = Math.max(maxBal, balance);
         maxDD  = Math.max(maxDD, (maxBal - balance) / maxBal * 100);
-        trades.push({ signal, entry, exit, pnl, candleIndex: i + 1, price: entry });
-        signals.push({ signal, candleIndex: i + 1, price: entry, pnl });
+        trades.push({ signal, entry, exit, pnl, candleIndex: i + 1, price: entry, hitTP, hitSL });
+        signals.push({ signal, candleIndex: i + 1, price: entry, pnl, score });
         equity.push(balance);
     }
     return { trades, signals, equity, wins, losses, maxDD, finalBalance: balance };
@@ -407,8 +617,8 @@ function renderBacktestResults(result, capital) {
     document.getElementById('btTradeList').innerHTML = trades.slice(-30).reverse().map(t =>
         `<div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:2px;font-size:10px;padding:3px 2px;border-bottom:1px solid #1a2035;">
             <span style="color:${t.signal === 'buy' ? '#00c176' : '#ff4d4f'};font-weight:700;">${t.signal.toUpperCase()}</span>
-            <span style="color:#8b949e;">${t.entry.toFixed(5)}</span>
-            <span style="color:#8b949e;">${t.exit.toFixed(5)}</span>
+            <span style="color:#8b949e;">${t.entry.toFixed(3)}</span>
+            <span style="color:${t.hitTP ? '#00c176' : t.hitSL ? '#ff4d4f' : '#8b949e'};">${t.exit.toFixed(3)}${t.hitTP ? ' ✓TP' : t.hitSL ? ' ✗SL' : ''}</span>
             <span style="color:${t.pnl >= 0 ? '#00c176' : '#ff4d4f'};font-weight:700;text-align:right;">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</span>
         </div>`
     ).join('');
