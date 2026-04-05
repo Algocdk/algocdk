@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/keyadaniel56/algocdk/internal/handlers"
 	"github.com/keyadaniel56/algocdk/internal/middleware"
@@ -15,6 +17,17 @@ import (
 func SetUpRouter(router *gin.Engine) {
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.DBMiddleware()) // Add DB to context
+
+	// Helper: serve an HTML file with no-cache headers so the SW never serves stale pages
+	serveHTML := func(path string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+			c.Header("Pragma", "no-cache")
+			c.Header("Expires", "0")
+			c.File(path)
+		}
+	}
+	fp := "./frontend" // shorthand used below
 	// NOTE: /sites is NOT served statically - all access goes through ViewSiteHandler
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
@@ -334,108 +347,48 @@ func SetUpRouter(router *gin.Engine) {
 	router.StaticFile("/favicon.ico", frontendPath+"/favicon.svg")
 	router.StaticFile("/favicon.svg", frontendPath+"/favicon.svg")
 
-	// Serve HTML files manually
-	router.GET("/", func(c *gin.Context) {
-		c.File(frontendPath + "/index.html")
+	// Serve HTML files — all with no-cache headers so the SW never serves stale pages
+	router.GET("/", serveHTML(fp+"/index.html"))
+	router.GET("/auth", serveHTML(fp+"/auth.html"))
+	router.GET("/verify-email", serveHTML(fp+"/verify-email.html"))
+	router.GET("/reset-password", serveHTML(fp+"/reset-password.html"))
+	router.GET("/verify-success", serveHTML(fp+"/verify-success.html"))
+	router.GET("/settings", serveHTML(fp+"/settings.html"))
+	router.GET("/profile", serveHTML(fp+"/userprofile.html"))
+	router.GET("/notifications", serveHTML(fp+"/notifications.html"))
+	router.GET("/superadmin-signup", serveHTML(fp+"/superadmin-signup.html"))
+	router.GET("/unauthorized", serveHTML(fp+"/unauthorized.html"))
+	router.GET("/superadmin", middleware.PageGuardSuperAdmin(), serveHTML(fp+"/superadmin_dashboard.html"))
+	router.GET("/app", serveHTML(fp+"/app.html"))
+	router.GET("/mybots", serveHTML(fp+"/mybots.html"))
+	router.GET("/my-indicators", serveHTML(fp+"/my-indicators.html"))
+	router.GET("/botstore", serveHTML(fp+"/botstore.html"))
+	router.GET("/support", serveHTML(fp+"/support.html"))
+	router.GET("/privacy", serveHTML(fp+"/privacy.html"))
+	router.GET("/terms", serveHTML(fp+"/terms.html"))
+	router.GET("/marketchart", serveHTML(fp+"/marketchart.html"))
+	router.GET("/trading", serveHTML(fp+"/trading.html"))
+	router.GET("/digits", serveHTML(fp+"/digits.html"))
+	router.GET("/updown", serveHTML(fp+"/updown.html"))
+	router.GET("/barriers", serveHTML(fp+"/barriers.html"))
+	router.GET("/copy-trading", serveHTML(fp+"/copy-trading.html"))
+	router.GET("/multipliers", serveHTML(fp+"/multipliers.html"))
+	router.GET("/accumulators", serveHTML(fp+"/accumulators.html"))
+	router.GET("/options", serveHTML(fp+"/options.html"))
+	router.GET("/admin", middleware.PageGuardAdmin(), serveHTML(fp+"/admin_dashboard.html"))
+	router.GET("/sites", serveHTML(fp+"/sites.html"))
+	router.GET("/global.html", serveHTML(fp+"/global.html"))
+	router.GET("/indicator-template", serveHTML(fp+"/indicator-template.html"))
+	router.GET("/screenshare-admin", serveHTML(fp+"/screenshare-admin.html"))
+	router.GET("/screenshare-viewer", serveHTML(fp+"/screenshare-viewer.html"))
+	router.GET("/public-sites", serveHTML(fp+"/public-sites.html"))
+
+	// Alias .html paths so the service worker cache entries don't 404
+	router.GET("/index.html", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/")
 	})
-	router.GET("/auth", func(c *gin.Context) {
-		c.File(frontendPath + "/auth.html")
-	})
-	router.GET("/verify-email", func(c *gin.Context) {
-		c.File(frontendPath + "/verify-email.html")
-	})
-	router.GET("/reset-password", func(c *gin.Context) {
-		c.File(frontendPath + "/reset-password.html")
-	})
-	router.GET("/verify-success", func(c *gin.Context) {
-		c.File(frontendPath + "/verify-success.html")
-	})
-	router.GET("/settings", func(c *gin.Context) {
-		c.File(frontendPath + "/settings.html")
-	})
-	router.GET("/profile", func(c *gin.Context) {
-		c.File(frontendPath + "/userprofile.html")
-	})
-	router.GET("/notifications", func(c *gin.Context) {
-		c.File(frontendPath + "/notifications.html")
-	})
-	router.GET("/superadmin-signup", func(c *gin.Context) {
-		c.File(frontendPath + "/superadmin-signup.html")
-	})
-	router.GET("/unauthorized", func(c *gin.Context) {
-		c.File(frontendPath + "/unauthorized.html")
-	})
-	router.GET("/superadmin", middleware.PageGuardSuperAdmin(), func(c *gin.Context) {
-		c.File(frontendPath + "/superadmin_dashboard.html")
-	})
-	router.GET("/app", func(c *gin.Context) {
-		c.File(frontendPath + "/app.html")
-	})
-	router.GET("/mybots", func(c *gin.Context) {
-		c.File(frontendPath + "/mybots.html")
-	})
-	router.GET("/my-indicators", func(c *gin.Context) {
-		c.File(frontendPath + "/my-indicators.html")
-	})
-	router.GET("/botstore", func(c *gin.Context) {
-		c.File(frontendPath + "/botstore.html")
-	})
-	router.GET("/support", func(c *gin.Context) {
-		c.File(frontendPath + "/support.html")
-	})
-	router.GET("/privacy", func(c *gin.Context) {
-		c.File(frontendPath + "/privacy.html")
-	})
-	router.GET("/terms", func(c *gin.Context) {
-		c.File(frontendPath + "/terms.html")
-	})
-	router.GET("/marketchart", func(c *gin.Context) {
-		c.File(frontendPath + "/marketchart.html")
-	})
-	router.GET("/trading", func(c *gin.Context) {
-		c.File(frontendPath + "/trading.html")
-	})
-	router.GET("/digits", func(c *gin.Context) {
-		c.File(frontendPath + "/digits.html")
-	})
-	router.GET("/updown", func(c *gin.Context) {
-		c.File(frontendPath + "/updown.html")
-	})
-	router.GET("/barriers", func(c *gin.Context) {
-		c.File(frontendPath + "/barriers.html")
-	})
-	router.GET("/copy-trading", func(c *gin.Context) {
-		c.File(frontendPath + "/copy-trading.html")
-	})
-	router.GET("/multipliers", func(c *gin.Context) {
-		c.File(frontendPath + "/multipliers.html")
-	})
-	router.GET("/accumulators", func(c *gin.Context) {
-		c.File(frontendPath + "/accumulators.html")
-	})
-	router.GET("/options", func(c *gin.Context) {
-		c.File(frontendPath + "/options.html")
-	})
-	router.GET("/admin", middleware.PageGuardAdmin(), func(c *gin.Context) {
-		c.File(frontendPath + "/admin_dashboard.html")
-	})
-	router.GET("/sites", func(c *gin.Context) {
-		c.File(frontendPath + "/sites.html")
-	})
-	router.GET("/global.html", func(c *gin.Context) {
-		c.File(frontendPath + "/global.html")
-	})
-	router.GET("/indicator-template", func(c *gin.Context) {
-		c.File(frontendPath + "/indicator-template.html")
-	})
-	router.GET("/screenshare-admin", func(c *gin.Context) {
-		c.File(frontendPath + "/screenshare-admin.html")
-	})
-	router.GET("/screenshare-viewer", func(c *gin.Context) {
-		c.File(frontendPath + "/screenshare-viewer.html")
-	})
-	router.GET("/public-sites", func(c *gin.Context) {
-		c.File(frontendPath + "/public-sites.html")
+	router.GET("/app.html", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/app")
 	})
 
 	// Site files - serve static sites from ./sites directory
@@ -443,18 +396,10 @@ func SetUpRouter(router *gin.Engine) {
 
 	// Site viewer route (must be after static to handle direct file access)
 	router.GET("/site/:slug", handlers.ViewSiteHandler)
-	router.GET("/deriv-oauth", func(c *gin.Context) {
-		c.File(frontendPath + "/deriv-oauth.html")
-	})
-	router.GET("/deriv-connect", func(c *gin.Context) {
-		c.File(frontendPath + "/deriv-connect.html")
-	})
-	router.GET("/deriv/callback", func(c *gin.Context) {
-		c.File(frontendPath + "/deriv-connect.html")
-	})
-	router.GET("/test-balance", func(c *gin.Context) {
-		c.File(frontendPath + "/test-balance.html")
-	})
+	router.GET("/deriv-oauth", serveHTML(fp+"/deriv-oauth.html"))
+	router.GET("/deriv-connect", serveHTML(fp+"/deriv-connect.html"))
+	router.GET("/deriv/callback", serveHTML(fp+"/deriv-connect.html"))
+	router.GET("/test-balance", serveHTML(fp+"/test-balance.html"))
 	router.StaticFile("/screenshare-admin.js", frontendPath+"/screenshare-admin.js")
 	router.StaticFile("/screenshare-viewer.js", frontendPath+"/screenshare-viewer.js")
 	router.StaticFile("/admin-indicators.html", frontendPath+"/admin-indicators.html")

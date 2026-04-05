@@ -1,5 +1,5 @@
-// Algocdk Service Worker v2 - Enhanced PWA Support
-const CACHE_VERSION = 'algocdk-v2';
+// Algocdk Service Worker v3 - Enhanced PWA Support
+const CACHE_VERSION = 'algocdk-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -8,8 +8,7 @@ const OFFLINE_URL = '/offline.html';
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/app.html',
+  '/app',
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon-192x192.png',
@@ -150,13 +149,11 @@ async function networkFirst(request, cacheName) {
 }
 
 // Network-first with offline page fallback - for HTML pages
+// HTML pages are NEVER cached — always served fresh from network
 async function networkFirstWithOffline(request, cacheName) {
   try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-    }
+    const networkResponse = await fetch(request, { cache: 'no-store' });
+    // Do NOT cache HTML responses — return directly
     return networkResponse;
   } catch (error) {
     console.log('[SW] Network failed, checking cache or offline page');
@@ -270,7 +267,7 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'algocdk-notification',
       renotify: true,
       data: {
-        url: data.url || '/app.html',
+        url: data.url || '/app',
         timestamp: Date.now()
       },
       actions: [
@@ -296,7 +293,7 @@ self.addEventListener('notificationclick', (event) => {
       .then((clientList) => {
         // Check if app is already open
         for (const client of clientList) {
-          if (client.url.includes('/app.html') && 'focus' in client) {
+          if (client.url.includes('/app') && 'focus' in client) {
             client.focus();
             client.postMessage({
               type: 'NOTIFICATION_CLICK',
@@ -307,7 +304,7 @@ self.addEventListener('notificationclick', (event) => {
         }
         // Open new window
         if (clients.openWindow) {
-          clients.openWindow(event.notification.data.url || '/app.html');
+          clients.openWindow(event.notification.data.url || '/app');
         }
       })
   );

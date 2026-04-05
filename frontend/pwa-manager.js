@@ -41,6 +41,13 @@ class PWAManager {
     
     if (this.isStandalone) {
       document.documentElement.classList.add('pwa-standalone');
+
+      // Detect desktop: no coarse pointer (i.e. not a touchscreen)
+      const isDesktop = window.matchMedia('(pointer: fine)').matches ||
+                        (!('ontouchstart' in window) && navigator.maxTouchPoints === 0);
+      if (isDesktop) {
+        document.documentElement.classList.add('pwa-desktop');
+      }
     }
   }
 
@@ -517,6 +524,41 @@ class PWAManager {
       .pwa-standalone {
         overscroll-behavior-y: none;
       }
+      
+      /* ── Desktop PWA: force desktop layout regardless of window width ── */
+      /* Cancels mobile @media (max-width: 768px) overrides on index.html  */
+      html.pwa-desktop nav ul { display: flex !important; }
+      html.pwa-desktop nav .flex.gap-3 { display: flex !important; }
+      html.pwa-desktop #navHamburger { display: none !important; }
+      html.pwa-desktop #mobileCta { display: none !important; }
+      html.pwa-desktop body { padding-bottom: 0 !important; }
+
+      /* Restore desktop hero layout */
+      html.pwa-desktop section.mt-\\[60px\\] .grid { grid-template-columns: 1fr 1fr !important; gap: 48px !important; }
+      html.pwa-desktop section.mt-\\[60px\\] h1 { font-size: 3.5rem !important; line-height: 1.1 !important; }
+      html.pwa-desktop section.mt-\\[60px\\] p.text-xl { font-size: 1.25rem !important; }
+      html.pwa-desktop section.mt-\\[60px\\] .flex.gap-4 { flex-direction: row !important; }
+      html.pwa-desktop section.mt-\\[60px\\] .flex.gap-4 a { text-align: left !important; }
+      html.pwa-desktop section.mt-\\[60px\\] .animate-fadeInRight { display: block !important; }
+
+      /* Restore desktop section spacing */
+      html.pwa-desktop section.my-8.mx-6 { margin: 2rem 1.5rem !important; border-radius: 12px !important; }
+      html.pwa-desktop section.py-28 { padding-top: 7rem !important; padding-bottom: 7rem !important; }
+      html.pwa-desktop section.py-28.px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+
+      /* Restore desktop footer */
+      html.pwa-desktop footer .grid { grid-template-columns: repeat(4, 1fr) !important; }
+
+      /* Restore desktop text sizes */
+      html.pwa-desktop .text-5xl { font-size: 3rem !important; }
+      html.pwa-desktop .text-4xl.font-bold { font-size: 2.25rem !important; }
+      html.pwa-desktop .text-5xl.font-bold { font-size: 3rem !important; }
+
+      /* Restore market slide nav */
+      html.pwa-desktop .slide-nav-btn { display: flex !important; }
+      html.pwa-desktop .relative.h-96 { height: 24rem !important; }
+      html.pwa-desktop .market-slide p { display: block !important; }
+      html.pwa-desktop .market-slide .grid { grid-template-columns: repeat(4, 1fr) !important; }
       
       /* Mobile app-like touch behaviors */
       .pwa-standalone * {

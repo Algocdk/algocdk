@@ -3,687 +3,920 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0e1a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Explore - Algocdk</title>
+    <title>Explore Sites — Algocdk</title>
     <link rel="manifest" href="/manifest.json">
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        * {
-            -webkit-tap-highlight-color: transparent;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --accent: #FF4500;
+            --accent2: #FF8C00;
+            --bg: #0a0e1a;
+            --bg2: #0f1623;
+            --bg3: #161e2e;
+            --border: rgba(255,255,255,0.07);
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --card-bg: rgba(22,30,46,0.8);
         }
-        
+        html { scroll-behavior: smooth; }
         body {
-            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            min-height: 100dvh;
-            overscroll-behavior: none;
+            overflow-x: hidden;
         }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 4px;
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,69,0,0.3); border-radius: 4px; }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+        /* ── Animated background ── */
+        .bg-orbs {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12;
+            animation: orbFloat 12s ease-in-out infinite;
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
+        .orb1 { width: 500px; height: 500px; background: #FF4500; top: -150px; left: -100px; animation-delay: 0s; }
+        .orb2 { width: 400px; height: 400px; background: #3b82f6; bottom: -100px; right: -80px; animation-delay: 4s; }
+        .orb3 { width: 300px; height: 300px; background: #8b5cf6; top: 40%; left: 50%; animation-delay: 8s; }
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -40px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
         }
-        
-        /* App container */
-        .app-container {
-            max-width: 430px;
-            margin: 0 auto;
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
+
+        /* ── Navbar ── */
+        .navbar {
+            position: sticky; top: 0; z-index: 200;
+            background: rgba(10,14,26,0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: box-shadow 0.3s;
         }
-        
-        /* Header */
-        .app-header {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            padding: env(safe-area-inset-top) 20px 16px;
+        .navbar.scrolled { box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 18px; font-weight: 800; color: #fff;
         }
-        
-        /* Content area */
-        .app-content {
-            flex: 1;
-            padding-bottom: 100px;
+        .nav-logo .logo-icon {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; color: #fff;
+            box-shadow: 0 4px 12px rgba(255,69,0,0.4);
+        }
+        .nav-logo span { color: var(--accent); }
+        .nav-links {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .nav-links a {
+            padding: 7px 14px; border-radius: 8px;
+            font-size: 13.5px; font-weight: 500; color: var(--muted);
+            transition: color 0.2s, background 0.2s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .nav-links a.active { color: var(--accent); background: rgba(255,69,0,0.1); }
+        .nav-right { display: flex; align-items: center; gap: 10px; }
+        .nav-btn {
+            padding: 8px 18px; border-radius: 9px; font-size: 13px; font-weight: 600;
+            transition: all 0.2s;
+        }
+        .nav-btn-ghost { color: var(--muted); border: 1px solid var(--border); }
+        .nav-btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+        .nav-btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff; box-shadow: 0 4px 14px rgba(255,69,0,0.35);
+        }
+        .nav-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,69,0,0.45); }
+
+        /* Hamburger */
+        .nav-hamburger {
+            display: none; flex-direction: column; gap: 5px;
+            padding: 8px; border-radius: 8px; color: var(--muted);
+            transition: color 0.2s;
+        }
+        .nav-hamburger:hover { color: var(--text); }
+        .nav-hamburger span {
+            display: block; width: 22px; height: 2px;
+            background: currentColor; border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        /* Mobile drawer */
+        .mobile-drawer {
+            position: fixed; inset: 0; z-index: 300;
+            display: none; flex-direction: column;
+        }
+        .mobile-drawer.open { display: flex; }
+        .drawer-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+        }
+        .drawer-panel {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            width: min(80vw, 280px);
+            background: var(--bg2);
+            border-left: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
         }
-        
-        /* Bottom navigation */
+        .mobile-drawer.open .drawer-panel { transform: translateX(0); }
+        .drawer-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 20px; border-bottom: 1px solid var(--border);
+        }
+        .drawer-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(255,255,255,0.06); color: var(--muted);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: all 0.2s;
+        }
+        .drawer-close:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+        .drawer-links { padding: 12px; flex: 1; }
+        .drawer-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 14px; border-radius: 10px;
+            font-size: 15px; font-weight: 500; color: var(--muted);
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        .drawer-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .drawer-link.active { color: var(--accent); background: rgba(255,69,0,0.1); }
+        .drawer-link i { width: 18px; text-align: center; }
+        .drawer-footer {
+            padding: 16px; border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .drawer-footer a {
+            display: block; text-align: center; padding: 12px;
+            border-radius: 10px; font-size: 14px; font-weight: 600;
+        }
+        .drawer-footer .df-ghost {
+            background: rgba(255,255,255,0.06); color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .drawer-footer .df-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative; z-index: 1;
+            padding: 64px 24px 48px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,69,0,0.12); border: 1px solid rgba(255,69,0,0.25);
+            color: var(--accent); padding: 6px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            animation: fadeInDown 0.5s ease both;
+        }
+        .hero-badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent); animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800; line-height: 1.1;
+            color: #fff; margin-bottom: 16px;
+            animation: fadeInDown 0.5s ease 0.1s both;
+        }
+        .hero h1 .grad {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: clamp(14px, 2vw, 17px); color: var(--muted);
+            max-width: 520px; margin: 0 auto 32px; line-height: 1.7;
+            animation: fadeInDown 0.5s ease 0.2s both;
+        }
+        .hero-stats {
+            display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+            animation: fadeInDown 0.5s ease 0.3s both;
+        }
+        .hero-stat { text-align: center; }
+        .hero-stat .val {
+            font-size: 24px; font-weight: 800; color: #fff;
+            display: block;
+        }
+        .hero-stat .lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        /* ── Search & filters bar ── */
+        .toolbar {
+            position: relative; z-index: 1;
+            max-width: 1320px; margin: 0 auto;
+            padding: 0 24px 28px;
+        }
+        .search-wrap {
+            position: relative; margin-bottom: 20px;
+        }
+        .search-wrap i {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: var(--muted); font-size: 14px; pointer-events: none;
+        }
+        .search-input {
+            width: 100%; background: var(--bg3);
+            border: 1px solid var(--border); border-radius: 12px;
+            padding: 13px 16px 13px 44px;
+            color: var(--text); font-size: 14px; font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .search-input::placeholder { color: var(--muted); }
+        .search-input:focus {
+            border-color: rgba(255,69,0,0.5);
+            box-shadow: 0 0 0 3px rgba(255,69,0,0.1);
+        }
+        .filters-row {
+            display: flex; align-items: center; gap: 8px;
+            overflow-x: auto; padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .filters-row::-webkit-scrollbar { display: none; }
+        .filter-btn {
+            white-space: nowrap; padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 500; color: var(--muted);
+            background: var(--bg3); border: 1px solid var(--border);
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff; border-color: transparent;
+            box-shadow: 0 4px 12px rgba(255,69,0,0.3);
+        }
+        .filter-count {
+            background: rgba(255,255,255,0.15); padding: 1px 7px;
+            border-radius: 10px; font-size: 11px;
+        }
+        .filter-btn.active .filter-count { background: rgba(255,255,255,0.25); }
+        .sort-select {
+            margin-left: auto; flex-shrink: 0;
+            background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); padding: 8px 12px; border-radius: 10px;
+            font-size: 13px; font-family: inherit; outline: none;
+            cursor: pointer;
+        }
+        .sort-select:focus { border-color: rgba(255,69,0,0.4); }
+
+        /* ── Grid ── */
+        .sites-section {
+            position: relative; z-index: 1;
+            max-width: 1320px; margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--text); }
+        .section-count { font-size: 13px; color: var(--muted); }
+        #sitesGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* ── Site card ── */
+        .site-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1),
+                        border-color 0.25s, box-shadow 0.25s;
+            animation: cardIn 0.4s ease both;
+        }
+        .site-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,69,0,0.35);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,69,0,0.1);
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .card-preview {
+            aspect-ratio: 16/9;
+            background: linear-gradient(135deg, var(--bg3) 0%, #1e2a3a 100%);
+            position: relative; overflow: hidden;
+        }
+        .card-preview img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+        .site-card:hover .card-preview img { transform: scale(1.04); }
+        .card-preview-placeholder {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 8px;
+        }
+        .card-preview-placeholder i { font-size: 36px; color: rgba(255,255,255,0.1); }
+        .card-preview-placeholder span { font-size: 11px; color: rgba(255,255,255,0.15); }
+        .card-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(10,14,26,0.7) 0%, transparent 50%);
+            opacity: 0; transition: opacity 0.3s;
+            display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 14px;
+        }
+        .site-card:hover .card-overlay { opacity: 1; }
+        .card-overlay-btn {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 8px 20px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+            transition: background 0.2s;
+        }
+        .card-overlay-btn:hover { background: rgba(255,69,0,0.7); }
+        .card-badge {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 10px; font-weight: 600;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .badge-live { color: #10b981; }
+        .badge-live .dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: blink 1.5s infinite; }
+        .card-body { padding: 16px; }
+        .card-title {
+            font-size: 15px; font-weight: 700; color: #fff;
+            margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .card-desc {
+            font-size: 12.5px; color: var(--muted); line-height: 1.5;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden; margin-bottom: 12px;
+        }
+        .card-meta {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-stats { display: flex; gap: 12px; }
+        .card-stat { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+        .card-stat i { font-size: 11px; }
+        .card-author {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; color: var(--muted);
+        }
+        .author-avatar {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; color: #fff; font-weight: 700; flex-shrink: 0;
+        }
+        .card-footer {
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-tag {
+            background: rgba(255,69,0,0.1); color: var(--accent);
+            padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
+        }
+        .card-open-btn {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 600; color: var(--accent);
+            padding: 5px 12px; border-radius: 8px;
+            background: rgba(255,69,0,0.1); border: 1px solid rgba(255,69,0,0.2);
+            transition: all 0.2s;
+        }
+        .card-open-btn:hover { background: rgba(255,69,0,0.2); }
+
+        /* ── Skeleton shimmer ── */
+        .skeleton { border-radius: 8px; overflow: hidden; position: relative; }
+        .skeleton::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.6s infinite;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .skel-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+        .skel-img { aspect-ratio: 16/9; background: var(--bg3); }
+        .skel-body { padding: 16px; }
+        .skel-line { background: var(--bg3); border-radius: 6px; margin-bottom: 8px; }
+
+        /* ── Empty / Error states ── */
+        .state-box {
+            grid-column: 1/-1;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 80px 20px; text-align: center;
+        }
+        .state-icon {
+            width: 80px; height: 80px; border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; margin-bottom: 20px;
+        }
+        .state-icon.empty { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 8px 32px rgba(255,69,0,0.3); }
+        .state-icon.error { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; box-shadow: 0 8px 32px rgba(239,68,68,0.3); }
+        .state-box h3 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .state-box p { font-size: 14px; color: var(--muted); max-width: 300px; margin-bottom: 20px; }
+        .state-btn {
+            padding: 11px 24px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff; box-shadow: 0 4px 14px rgba(255,69,0,0.35);
+            transition: all 0.2s;
+        }
+        .state-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,69,0,0.45); }
+
+        /* ── Bottom mobile nav ── */
         .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 430px;
-            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(10,14,26,0.95);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 16px;
+            border-top: 1px solid var(--border);
+            padding: 8px 0;
             padding-bottom: max(8px, env(safe-area-inset-bottom));
             z-index: 100;
         }
-        
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 8px 12px;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-            color: #64748b;
+        .bottom-nav-inner {
+            display: flex; justify-content: space-around; align-items: center;
+            max-width: 430px; margin: 0 auto;
         }
-        
-        .nav-item:active {
-            transform: scale(0.95);
+        .bnav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            padding: 6px 14px; border-radius: 10px;
+            color: var(--muted); font-size: 10px; font-weight: 500;
+            transition: all 0.2s;
         }
-        
-        .nav-item.active {
-            color: #FF4500;
+        .bnav-item i { font-size: 19px; }
+        .bnav-item.active { color: var(--accent); }
+        .bnav-item:active { transform: scale(0.92); }
+
+        /* ── Nav user chip ── */
+        .nav-user {
+            display: flex; align-items: center; gap: 10px;
         }
-        
-        .nav-item i {
-            font-size: 20px;
+        .nav-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff;
+            border: 2px solid rgba(255,69,0,0.4);
+            flex-shrink: 0;
         }
-        
-        .nav-item span {
-            font-size: 10px;
-            font-weight: 500;
+        .nav-username {
+            font-size: 13px; font-weight: 600; color: var(--text);
+            max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        
-        /* Site cards */
-        .site-card {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
+        .nav-logout {
+            padding: 7px 14px; border-radius: 9px; font-size: 13px; font-weight: 500;
+            color: var(--muted); border: 1px solid var(--border);
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
         }
-        
-        .site-card:active {
-            transform: scale(0.98);
+        .nav-logout:hover { color: #ef4444; border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.06); }
+
+        /* ── Animations ── */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        
-        .site-card:hover {
-            border-color: rgba(255, 69, 0, 0.4);
-            box-shadow: 0 8px 32px rgba(255, 69, 0, 0.15);
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .nav-links, .nav-right { display: none; }
+            .nav-hamburger { display: flex; }
+            .hero { padding: 40px 20px 32px; }
+            .hero-stats { gap: 24px; }
+            .toolbar { padding: 0 16px 20px; }
+            .sites-section { padding: 0 16px 100px; }
+            #sitesGrid { grid-template-columns: 1fr; gap: 14px; }
+            .bottom-nav { display: block; }
         }
-        
-        /* Preview image */
-        .site-preview {
-            aspect-ratio: 16/10;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            position: relative;
-            overflow: hidden;
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #sitesGrid { grid-template-columns: repeat(2, 1fr); }
         }
-        
-        .site-preview::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: 
-                linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.02) 50%),
-                linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.02) 50%);
-            background-size: 8px 8px;
+        @media (min-width: 1025px) {
+            #sitesGrid { grid-template-columns: repeat(3, 1fr); }
         }
-        
-        /* Badge */
-        .site-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
-            padding: 6px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .badge-public {
-            color: #10b981;
-        }
-        
-        /* Loading shimmer */
-        .shimmer {
-            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
-        /* Pull indicator */
-        .pull-indicator {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-            font-size: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .pull-indicator i {
-            animation: bounce 1s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(6px); }
-        }
-        
-        /* Stats */
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        
-        .stat-item i {
-            font-size: 11px;
-            color: #64748b;
-        }
-        
-        /* Empty state */
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-            text-align: center;
-        }
-        
-        .empty-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #FF4500 0%, #ff6b35 100%);
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(255, 69, 0, 0.3);
-        }
-        
-        .empty-icon i {
-            font-size: 32px;
-            color: white;
-        }
-        
-        /* Floating action hint */
-        .fab-hint {
-            position: fixed;
-            bottom: 120px;
-            right: 20px;
-            background: linear-gradient(135deg, #FF4500 0%, #ff6b35 100%);
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(255, 69, 0, 0.4);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 50;
-        }
-        
-        .fab-hint:active {
-            transform: scale(0.9);
-        }
-        
-        .fab-hint i {
-            color: white;
-            font-size: 24px;
-        }
-        
-        /* Status indicator */
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        @media (min-width: 1400px) {
+            #sitesGrid { grid-template-columns: repeat(4, 1fr); }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-white">
-                        <span style="color: #FF4500;">Explore</span>
-                    </h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Discover amazing sites</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors" onclick="refreshSites()">
-                        <i class="fas fa-sync-alt text-sm"></i>
-                    </button>
-                    <a href="/app" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                        <i class="fas fa-user text-sm"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Search bar -->
-            <div class="mt-4 relative">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input 
-                    type="search" 
-                    id="searchInput"
-                    placeholder="Search sites..." 
-                    class="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all"
-                    oninput="filterSites(this.value)"
-                >
-            </div>
-        </header>
-        
-        <!-- Content -->
-        <main class="app-content">
-            <!-- Pull indicator -->
-            <div id="pullIndicator" class="pull-indicator" style="display: none;">
-                <i class="fas fa-chevron-down"></i>
-                <span>Pull to refresh</span>
-            </div>
-            
-            <!-- Categories -->
-            <div class="px-5 py-4">
-                <div class="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-                    <button class="category-btn active whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-orange-500 text-white" data-category="all" onclick="filterByCategory(this, 'all')">
-                        All <span class="category-count ml-1 opacity-70" id="count-all"></span>
-                    </button>
-                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="recent" onclick="filterByCategory(this, 'recent')">
-                        <i class="fas fa-clock mr-1"></i> Recent <span class="category-count ml-1 opacity-70" id="count-recent"></span>
-                    </button>
-                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="popular" onclick="filterByCategory(this, 'popular')">
-                        <i class="fas fa-fire mr-1"></i> Popular <span class="category-count ml-1 opacity-70" id="count-popular"></span>
-                    </button>
-                    <button class="category-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-slate-400" data-category="featured" onclick="filterByCategory(this, 'featured')">
-                        <i class="fas fa-star mr-1"></i> Featured <span class="category-count ml-1 opacity-70" id="count-featured"></span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Section title -->
-            <div class="px-5 pb-3 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-white">Public Sites</h2>
-                <span id="siteCount" class="text-sm text-slate-500">Loading...</span>
-            </div>
-            
-            <!-- Sites grid -->
-            <div id="sitesGrid" class="px-5 space-y-4">
-                <!-- Loading skeleton -->
-                <div class="space-y-4">
-                    <div class="site-card">
-                        <div class="site-preview shimmer"></div>
-                        <div class="p-4">
-                            <div class="h-5 w-32 bg-slate-700 rounded shimmer mb-2"></div>
-                            <div class="h-4 w-48 bg-slate-700 rounded shimmer mb-3"></div>
-                            <div class="flex gap-4">
-                                <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
-                                <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="site-card">
-                        <div class="site-preview shimmer"></div>
-                        <div class="p-4">
-                            <div class="h-5 w-40 bg-slate-700 rounded shimmer mb-2"></div>
-                            <div class="h-4 w-36 bg-slate-700 rounded shimmer mb-3"></div>
-                            <div class="flex gap-4">
-                                <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
-                                <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Empty state -->
-            <div id="emptyState" class="empty-state" style="display: none;">
-                <div class="empty-icon">
-                    <i class="fas fa-globe"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-2">No Sites Found</h3>
-                <p class="text-slate-400 text-sm max-w-xs">There are no public sites available yet. Check back soon!</p>
-            </div>
-            
-            <!-- Error state -->
-            <div id="errorState" class="empty-state" style="display: none;">
-                <div class="empty-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-2">Something went wrong</h3>
-                <p class="text-slate-400 text-sm max-w-xs mb-4">Unable to load sites. Please check your connection.</p>
-                <button onclick="refreshSites()" class="bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-xl transition-colors">
-                    <i class="fas fa-redo mr-2"></i>Try Again
-                </button>
-            </div>
-        </main>
-        
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <div class="flex justify-around items-center">
-                <a href="/" class="nav-item">
-                    <i class="fas fa-home"></i>
-                    <span>Home</span>
-                </a>
-                <a href="/marketchart" class="nav-item">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Markets</span>
-                </a>
-                <a href="/botstore" class="nav-item">
-                    <i class="fas fa-robot"></i>
-                    <span>Bots</span>
-                </a>
-                <a href="/public-sites" class="nav-item active">
-                    <i class="fas fa-globe"></i>
-                    <span>Explore</span>
-                </a>
-                <a href="/app" class="nav-item">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
-                </a>
-            </div>
-        </nav>
+
+<!-- Animated background orbs -->
+<div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+</div>
+
+<!-- ── Navbar ── -->
+<nav class="navbar" id="navbar">
+    <a href="/" class="nav-logo">
+        <div class="logo-icon"><i class="fas fa-robot"></i></div>
+        <span>Algo</span>cdk
+    </a>
+    <div class="nav-links">
+        <a href="/"><i class="fas fa-home"></i> Home</a>
+        <a href="/marketchart"><i class="fas fa-chart-line"></i> Markets</a>
+        <a href="/botstore"><i class="fas fa-robot"></i> Bots</a>
+        <a href="/public-sites" class="active"><i class="fas fa-globe"></i> Explore</a>
+        <a href="/app"><i class="fas fa-user"></i> Profile</a>
     </div>
-    
-    <script>
-        let allSites = [];
-        let currentFilter = 'all';
-        let searchQuery = '';
-        
-        async function loadPublicSites() {
-            showLoading();
-            
+    <div class="nav-right" id="navRight">
+        <!-- populated by JS -->
+    </div>
+    <button class="nav-hamburger" id="hamburgerBtn" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
+</nav>
+
+<!-- ── Mobile drawer ── -->
+<div class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-overlay" onclick="closeDrawer()"></div>
+    <div class="drawer-panel">
+        <div class="drawer-header">
+            <div class="nav-logo" style="font-size:16px">
+                <div class="logo-icon" style="width:28px;height:28px;font-size:12px"><i class="fas fa-robot"></i></div>
+                <span>Algo</span>cdk
+            </div>
+            <button class="drawer-close" onclick="closeDrawer()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="drawer-links">
+            <a href="/" class="drawer-link"><i class="fas fa-home"></i> Home</a>
+            <a href="/marketchart" class="drawer-link"><i class="fas fa-chart-line"></i> Markets</a>
+            <a href="/botstore" class="drawer-link"><i class="fas fa-robot"></i> Bots</a>
+            <a href="/public-sites" class="drawer-link active"><i class="fas fa-globe"></i> Explore</a>
+            <a href="/app" class="drawer-link"><i class="fas fa-user"></i> Profile</a>
+        </div>
+        <div class="drawer-footer" id="drawerFooter">
+            <!-- populated by JS -->
+        </div>
+    </div>
+</div>
+
+<!-- ── Hero ── -->
+<section class="hero">
+    <div class="hero-badge">
+        <div class="dot"></div>
+        LIVE COMMUNITY SITES
+    </div>
+    <h1>Discover <span class="grad">Amazing Sites</span><br>Built by Traders</h1>
+    <p>Browse, explore and get inspired by sites created by the Algocdk community. Find tools, dashboards and resources built by traders like you.</p>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <span class="val" id="statTotal">—</span>
+            <div class="lbl">Public Sites</div>
+        </div>
+        <div class="hero-stat">
+            <span class="val" id="statViews">—</span>
+            <div class="lbl">Total Views</div>
+        </div>
+        <div class="hero-stat">
+            <span class="val" id="statNew">—</span>
+            <div class="lbl">Added This Week</div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+    <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="search" class="search-input" id="searchInput" placeholder="Search sites, creators…" oninput="onSearch(this.value)">
+    </div>
+    <div class="filters-row">
+        <button class="filter-btn active" data-cat="all" onclick="setFilter(this,'all')">
+            <i class="fas fa-th-large"></i> All <span class="filter-count" id="cnt-all"></span>
+        </button>
+        <button class="filter-btn" data-cat="recent" onclick="setFilter(this,'recent')">
+            <i class="fas fa-clock"></i> Recent <span class="filter-count" id="cnt-recent"></span>
+        </button>
+        <button class="filter-btn" data-cat="popular" onclick="setFilter(this,'popular')">
+            <i class="fas fa-fire"></i> Popular <span class="filter-count" id="cnt-popular"></span>
+        </button>
+        <button class="filter-btn" data-cat="featured" onclick="setFilter(this,'featured')">
+            <i class="fas fa-star"></i> Featured <span class="filter-count" id="cnt-featured"></span>
+        </button>
+        <select class="sort-select" id="sortSelect" onchange="render()">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="views">Most viewed</option>
+            <option value="az">A → Z</option>
+        </select>
+    </div>
+</div>
+
+<!-- ── Sites grid ── -->
+<section class="sites-section">
+    <div class="section-header">
+        <span class="section-title" id="sectionTitle">All Sites</span>
+        <span class="section-count" id="sectionCount"></span>
+    </div>
+    <div id="sitesGrid">
+        <!-- skeletons injected by JS -->
+    </div>
+</section>
+
+<!-- ── Mobile bottom nav ── -->
+<nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <a href="/" class="bnav-item"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="/marketchart" class="bnav-item"><i class="fas fa-chart-line"></i><span>Markets</span></a>
+        <a href="/botstore" class="bnav-item"><i class="fas fa-robot"></i><span>Bots</span></a>
+        <a href="/public-sites" class="bnav-item active"><i class="fas fa-globe"></i><span>Explore</span></a>
+        <a href="/app" class="bnav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+</nav>
+
+<script>
+    /* ── State ── */
+    let allSites = [], currentCat = 'all', searchQ = '';
+
+    /* ── Navbar scroll shadow ── */
+    window.addEventListener('scroll', () => {
+        document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 10);
+    });
+
+    /* ── Drawer ── */
+    function openDrawer() {
+        const d = document.getElementById('mobileDrawer');
+        d.style.display = 'flex';
+        requestAnimationFrame(() => d.classList.add('open'));
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        const d = document.getElementById('mobileDrawer');
+        d.classList.remove('open');
+        setTimeout(() => { d.style.display = 'none'; }, 320);
+        document.body.style.overflow = '';
+    }
+    document.getElementById('hamburgerBtn').addEventListener('click', openDrawer);
+
+    /* ── Load ── */
+    async function load() {
+        showSkeletons();
+        try {
+            const r = await fetch('/api/sites/public?t=' + Date.now());
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            allSites = (d.sites || []).map(s => ({ ...s, _featured: isFeatured(s) }));
+            updateStats();
+            updateCounts();
+            render();
+        } catch {
+            showError();
+        }
+    }
+
+    function isFeatured(s) {
+        const views = s.view_count || 0;
+        const days = Math.floor((Date.now() - new Date(s.created_at)) / 86400000);
+        return views >= 50 || (days <= 3 && views >= 10) || views * Math.max(0.5, 1 - days/30) >= 30;
+    }
+
+    /* ── Stats ── */
+    function updateStats() {
+        const total = allSites.length;
+        const views = allSites.reduce((a, s) => a + (s.view_count || 0), 0);
+        const week = allSites.filter(s => Math.floor((Date.now() - new Date(s.created_at)) / 86400000) <= 7).length;
+        animateCount('statTotal', total);
+        animateCount('statViews', views);
+        animateCount('statNew', week);
+    }
+
+    function animateCount(id, target) {
+        const el = document.getElementById(id);
+        const dur = 1000, steps = 40, step = target / steps;
+        let cur = 0, i = 0;
+        const t = setInterval(() => {
+            cur = Math.min(cur + step, target);
+            el.textContent = formatNum(Math.round(cur));
+            if (++i >= steps) clearInterval(t);
+        }, dur / steps);
+    }
+
+    function updateCounts() {
+        const now = Date.now();
+        document.getElementById('cnt-all').textContent = allSites.length;
+        document.getElementById('cnt-recent').textContent = allSites.filter(s => (now - new Date(s.created_at)) / 86400000 <= 30).length;
+        document.getElementById('cnt-popular').textContent = allSites.filter(s => (s.view_count || 0) >= 5).length;
+        document.getElementById('cnt-featured').textContent = allSites.filter(s => s._featured).length;
+    }
+
+    /* ── Filter / sort / search ── */
+    function setFilter(btn, cat) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCat = cat;
+        render();
+    }
+    function onSearch(v) { searchQ = v; render(); }
+
+    function render() {
+        const now = Date.now();
+        let list = [...allSites];
+
+        if (currentCat === 'recent')   list = list.filter(s => (now - new Date(s.created_at)) / 86400000 <= 30);
+        if (currentCat === 'popular')  list = list.filter(s => (s.view_count || 0) >= 5);
+        if (currentCat === 'featured') list = list.filter(s => s._featured);
+
+        if (searchQ) {
+            const q = searchQ.toLowerCase();
+            list = list.filter(s =>
+                s.name?.toLowerCase().includes(q) ||
+                s.description?.toLowerCase().includes(q) ||
+                s.owner?.name?.toLowerCase().includes(q)
+            );
+        }
+
+        const sort = document.getElementById('sortSelect').value;
+        if (sort === 'newest')  list.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        if (sort === 'oldest')  list.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+        if (sort === 'views')   list.sort((a,b) => (b.view_count||0) - (a.view_count||0));
+        if (sort === 'az')      list.sort((a,b) => a.name.localeCompare(b.name));
+
+        const titles = { all:'All Sites', recent:'Recent Sites', popular:'Popular Sites', featured:'Featured Sites' };
+        document.getElementById('sectionTitle').textContent = searchQ ? `Results for "${searchQ}"` : titles[currentCat];
+        document.getElementById('sectionCount').textContent = `${list.length} site${list.length !== 1 ? 's' : ''}`;
+
+        const grid = document.getElementById('sitesGrid');
+        if (!list.length) { grid.innerHTML = emptyHTML(); return; }
+
+        grid.innerHTML = list.map((s, i) => cardHTML(s, i)).join('');
+    }
+
+    /* ── Card HTML ── */
+    function cardHTML(s, i) {
+        const delay = Math.min(i * 40, 400);
+        const initials = (s.owner?.name || s.owner?.email || '?').charAt(0).toUpperCase();
+        const authorName = s.owner?.name || s.owner?.email?.split('@')[0] || 'Unknown';
+        const preview = s.thumbnail
+            ? `<img src="${s.thumbnail}" alt="${esc(s.name)}" loading="lazy">`
+            : `<div class="card-preview-placeholder"><i class="fas fa-globe"></i><span>No preview</span></div>`;
+        return `
+        <div class="site-card" style="animation-delay:${delay}ms" onclick="openSite('${esc(s.slug)}')">
+            <div class="card-preview">
+                ${preview}
+                <div class="card-badge badge-live"><div class="dot"></div> Live</div>
+                <div class="card-overlay">
+                    <div class="card-overlay-btn"><i class="fas fa-external-link-alt"></i> Open Site</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="card-title">${esc(s.name)}</div>
+                <div class="card-desc">${esc(s.description || 'No description available')}</div>
+                <div class="card-meta">
+                    <div class="card-stats">
+                        <span class="card-stat"><i class="fas fa-eye"></i> ${formatNum(s.view_count||0)}</span>
+                        <span class="card-stat"><i class="fas fa-calendar-alt"></i> ${relDate(s.created_at)}</span>
+                    </div>
+                    <div class="card-author">
+                        <div class="author-avatar">${initials}</div>
+                        ${esc(authorName)}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="card-tag">Public</span>
+                    <button class="card-open-btn" onclick="event.stopPropagation();openSite('${esc(s.slug)}')">
+                        Visit <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function openSite(slug) { window.open('/site/' + slug, '_blank'); }
+
+    /* ── Skeleton ── */
+    function showSkeletons() {
+        document.getElementById('sitesGrid').innerHTML = [1,2,3,4,5,6].map(() => `
+            <div class="skel-card">
+                <div class="skel-img skeleton"></div>
+                <div class="skel-body">
+                    <div class="skel-line skeleton" style="height:16px;width:60%"></div>
+                    <div class="skel-line skeleton" style="height:12px;width:85%"></div>
+                    <div class="skel-line skeleton" style="height:12px;width:45%"></div>
+                </div>
+            </div>`).join('');
+    }
+
+    /* ── Empty / Error ── */
+    function emptyHTML() {
+        return `<div class="state-box">
+            <div class="state-icon empty"><i class="fas fa-globe"></i></div>
+            <h3>No Sites Found</h3>
+            <p>Try a different filter or search term.</p>
+        </div>`;
+    }
+    function showError() {
+        document.getElementById('sitesGrid').innerHTML = `<div class="state-box">
+            <div class="state-icon error"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3>Something went wrong</h3>
+            <p>Unable to load sites. Check your connection and try again.</p>
+            <button class="state-btn" onclick="load()"><i class="fas fa-redo" style="margin-right:6px"></i>Retry</button>
+        </div>`;
+    }
+
+    /* ── Helpers ── */
+    function formatNum(n) {
+        if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+        if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+        return n.toString();
+    }
+    function relDate(d) {
+        if (!d) return '';
+        const days = Math.floor((Date.now() - new Date(d)) / 86400000);
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        if (days < 7)  return days + 'd ago';
+        if (days < 30) return Math.floor(days/7) + 'w ago';
+        return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    }
+    function esc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Auth-aware nav ── */
+    function initNav() {
+        const token = localStorage.getItem('token');
+        let user = {};
+        try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch {}
+
+        // Also try to decode name from JWT payload if user object is empty
+        if (!user.name && !user.email && token) {
             try {
-                const response = await fetch('/api/sites/public?t=' + Date.now());
-                
-                if (!response.ok) throw new Error('Failed to fetch');
-                
-                const data = await response.json();
-                allSites = data.sites || [];
-                
-                // Pre-compute featured status based on engagement
-                allSites = allSites.map(site => ({
-                    ...site,
-                    _isFeatured: calculateFeatured(site)
-                }));
-                
-                // Update category counts
-                updateCategoryCounts();
-                
-                renderSites();
-            } catch (error) {
-                console.error('Failed to load sites:', error);
-                showError();
-            }
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                user.name = payload.name || payload.username || '';
+                user.email = payload.email || '';
+            } catch {}
         }
-        
-        // Calculate if a site qualifies as "Featured"
-        // A site is featured if it has high engagement (views + recency score)
-        function calculateFeatured(site) {
-            const views = site.view_count || 0;
-            const createdDate = new Date(site.created_at);
-            const now = new Date();
-            const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-            
-            // Featured criteria:
-            // 1. High view count (50+ views) OR
-            // 2. Recently created (within 3 days) with 10+ views OR
-            // 3. High engagement score (views adjusted by recency)
-            const engagementScore = views * Math.max(0.5, 1 - (daysSinceCreation / 30));
-            
-            return views >= 50 || (daysSinceCreation <= 3 && views >= 10) || engagementScore >= 30;
-        }
-        
-        function showLoading() {
-            const grid = document.getElementById('sitesGrid');
-            grid.innerHTML = `
-                <div class="space-y-4">
-                    ${[1,2,3].map(() => `
-                        <div class="site-card">
-                            <div class="site-preview shimmer"></div>
-                            <div class="p-4">
-                                <div class="h-5 w-32 bg-slate-700 rounded shimmer mb-2"></div>
-                                <div class="h-4 w-48 bg-slate-700 rounded shimmer mb-3"></div>
-                                <div class="flex gap-4">
-                                    <div class="h-3 w-16 bg-slate-700 rounded shimmer"></div>
-                                    <div class="h-3 w-20 bg-slate-700 rounded shimmer"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
+
+        const displayName = user.name || user.email?.split('@')[0] || 'Account';
+        const initial = displayName.charAt(0).toUpperCase();
+
+        const navRight = document.getElementById('navRight');
+        const drawerFooter = document.getElementById('drawerFooter');
+
+        if (token) {
+            navRight.innerHTML = `
+                <div class="nav-user">
+                    <div class="nav-avatar">${initial}</div>
+                    <span class="nav-username">${displayName}</span>
                 </div>
-            `;
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('errorState').style.display = 'none';
-        }
-        
-        function showError() {
-            document.getElementById('sitesGrid').innerHTML = '';
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('errorState').style.display = 'flex';
-        }
-        
-        function renderSites() {
-            const grid = document.getElementById('sitesGrid');
-            const emptyState = document.getElementById('emptyState');
-            const errorState = document.getElementById('errorState');
-            const siteCount = document.getElementById('siteCount');
-            
-            errorState.style.display = 'none';
-            
-            let filteredSites = [...allSites];
-            
-            // Apply category filter - each filter transforms the dataset
-            if (currentFilter === 'recent') {
-                // Recent: Newest first, only show sites from last 30 days
-                filteredSites = filteredSites
-                    .filter(site => {
-                        const daysSince = Math.floor((new Date() - new Date(site.created_at)) / (1000 * 60 * 60 * 24));
-                        return daysSince <= 30;
-                    })
-                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            } else if (currentFilter === 'popular') {
-                // Popular: Most views first, minimum 5 views
-                filteredSites = filteredSites
-                    .filter(site => (site.view_count || 0) >= 5)
-                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-            } else if (currentFilter === 'featured') {
-                // Featured: Only show sites that meet featured criteria
-                filteredSites = filteredSites
-                    .filter(site => site._isFeatured)
-                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-            } else {
-                // All: Default order (newest first)
-                filteredSites.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            }
-            
-            // Apply search filter
-            if (searchQuery) {
-                const query = searchQuery.toLowerCase();
-                filteredSites = filteredSites.filter(site => 
-                    site.name?.toLowerCase().includes(query) ||
-                    site.description?.toLowerCase().includes(query) ||
-                    site.owner?.name?.toLowerCase().includes(query)
-                );
-            }
-            
-            siteCount.textContent = `${filteredSites.length} site${filteredSites.length !== 1 ? 's' : ''}`;
-            
-            if (filteredSites.length === 0) {
-                grid.innerHTML = '';
-                emptyState.style.display = 'flex';
-                return;
-            }
-            
-            emptyState.style.display = 'none';
-            
-            grid.innerHTML = filteredSites.map((site, index) => `
-                <div class="site-card" onclick="window.open('/site/${site.slug}', '_blank')" style="animation: fadeInUp 0.3s ease ${index * 0.05}s both;">
-                    <div class="site-preview">
-                        ${site.thumbnail ? 
-                            `<img src="${site.thumbnail}" alt="${site.name}" class="w-full h-full object-cover">` : 
-                            `<div class="w-full h-full flex items-center justify-center">
-                                <i class="fas fa-globe text-slate-600" style="font-size: 48px;"></i>
-                            </div>`
-                        }
-                        <div class="site-badge badge-public">
-                            <i class="fas fa-circle" style="font-size: 6px;"></i>
-                            Public
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-white text-base mb-1 truncate">${site.name}</h3>
-                        <p class="text-slate-400 text-sm mb-3 line-clamp-2">${site.description || 'No description available'}</p>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <span class="stat-item">
-                                    <i class="fas fa-eye"></i>
-                                    ${formatCount(site.view_count || 0)}
-                                </span>
-                                <span class="stat-item">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    ${formatDate(site.created_at)}
-                                </span>
-                            </div>
-                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                                <i class="fas fa-external-link-alt text-slate-400 text-xs"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 pt-3 border-t border-slate-700/50 flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                                <i class="fas fa-user text-white text-xs"></i>
-                            </div>
-                            <span class="text-sm text-slate-400">by ${site.owner?.name || site.owner?.email?.split('@')[0] || 'Unknown'}</span>
-                        </div>
+                <button class="nav-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>`;
+            drawerFooter.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;padding:4px 0 10px">
+                    <div class="nav-avatar">${initial}</div>
+                    <div>
+                        <div style="font-size:14px;font-weight:600;color:#fff">${displayName}</div>
+                        <div style="font-size:12px;color:var(--muted)">${user.email || ''}</div>
                     </div>
                 </div>
-            `).join('');
-            
-            // Add animation styles
-            if (!document.getElementById('animationStyles')) {
-                const style = document.createElement('style');
-                style.id = 'animationStyles';
-                style.textContent = `
-                    @keyframes fadeInUp {
-                        from {
-                            opacity: 0;
-                            transform: translateY(20px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+                <a href="/app" class="df-ghost" style="margin-bottom:6px"><i class="fas fa-user" style="margin-right:6px"></i>My Profile</a>
+                <button onclick="logout()" class="df-ghost" style="color:#ef4444;border-color:rgba(239,68,68,0.3)">
+                    <i class="fas fa-sign-out-alt" style="margin-right:6px"></i>Logout
+                </button>`;
+        } else {
+            navRight.innerHTML = `
+                <a href="/auth" class="nav-btn nav-btn-ghost">Sign in</a>
+                <a href="/auth" class="nav-btn nav-btn-primary">Get started</a>`;
+            drawerFooter.innerHTML = `
+                <a href="/auth" class="df-ghost">Sign in</a>
+                <a href="/auth" class="df-primary">Get started free</a>`;
         }
-        
-        function updateCategoryCounts() {
-            const allCount = allSites.length;
-            const recentCount = allSites.filter(site => {
-                const daysSince = Math.floor((new Date() - new Date(site.created_at)) / (1000 * 60 * 60 * 24));
-                return daysSince <= 30;
-            }).length;
-            const popularCount = allSites.filter(site => (site.view_count || 0) >= 5).length;
-            const featuredCount = allSites.filter(site => site._isFeatured).length;
-            
-            document.getElementById('count-all').textContent = `(${allCount})`;
-            document.getElementById('count-recent').textContent = `(${recentCount})`;
-            document.getElementById('count-popular').textContent = `(${popularCount})`;
-            document.getElementById('count-featured').textContent = `(${featuredCount})`;
-        }
-        
-        function filterByCategory(btn, category) {
-            // Update active state
-            document.querySelectorAll('.category-btn').forEach(b => {
-                b.classList.remove('active', 'bg-orange-500', 'text-white');
-                b.classList.add('bg-slate-800', 'text-slate-400');
-            });
-            btn.classList.add('active', 'bg-orange-500', 'text-white');
-            btn.classList.remove('bg-slate-800', 'text-slate-400');
-            
-            currentFilter = category;
-            renderSites();
-        }
-        
-        function filterSites(query) {
-            searchQuery = query;
-            renderSites();
-        }
-        
-        function refreshSites() {
-            loadPublicSites();
-        }
-        
-        function formatCount(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toString();
-        }
-        
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diff = now - date;
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            
-            if (days === 0) return 'Today';
-            if (days === 1) return 'Yesterday';
-            if (days < 7) return days + 'd ago';
-            if (days < 30) return Math.floor(days / 7) + 'w ago';
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-        
-        // Initial load
-        loadPublicSites();
-    </script>
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userData');
+        window.location.href = '/auth';
+    }
+
+    initNav();
+    load();
+</script>
 </body>
 </html>

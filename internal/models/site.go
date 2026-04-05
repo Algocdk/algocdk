@@ -10,6 +10,7 @@ type Site struct {
 	Description string              `json:"description" gorm:"type:text"`
 	Slug        string              `json:"slug" gorm:"uniqueIndex;not null"`
 	HTMLContent string              `json:"html_content" gorm:"type:text"` // File path
+	Thumbnail   string              `json:"thumbnail" gorm:"type:text"`    // Logo/thumbnail URL
 	OwnerID     uint                `json:"owner_id" gorm:"not null"`
 	Owner       User                `json:"owner" gorm:"foreignKey:OwnerID"`
 	Status      string              `json:"status" gorm:"default:active"`

@@ -68,7 +68,7 @@ func CreateSiteHandler(ctx *gin.Context) {
 		return
 	}
 
-	// Create site directory
+	// Create site directory (ensure root sites dir exists too)
 	siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, slug)
 	absSiteDir, _ := filepath.Abs(siteDir)
 	if err := os.MkdirAll(absSiteDir, 0755); err != nil {
@@ -135,11 +135,29 @@ func CreateSiteHandler(ctx *gin.Context) {
 		})
 	}
 
+	// Handle logo upload
+	thumbnailURL := ""
+	logoFile, logoHeader, logoErr := ctx.Request.FormFile("logo")
+	if logoErr == nil {
+		defer logoFile.Close()
+		ext := strings.ToLower(filepath.Ext(logoHeader.Filename))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp" || ext == ".svg" {
+			logoPath := filepath.Join(absSiteDir, "logo"+ext)
+			if out, err := os.Create(logoPath); err == nil {
+				defer out.Close()
+				if _, err := out.ReadFrom(logoFile); err == nil {
+					thumbnailURL = fmt.Sprintf("/sites/user_%d/%s/logo%s", userID, slug, ext)
+				}
+			}
+		}
+	}
+
 	site := models.Site{
 		Name:        strings.TrimSpace(name),
 		Description: strings.TrimSpace(description),
 		Slug:        slug,
 		HTMLContent: indexPath,
+		Thumbnail:   thumbnailURL,
 		OwnerID:     userID,
 		IsPublic:    isPublic,
 		Status:      "active",
@@ -287,6 +305,24 @@ func UpdateSiteHandler(ctx *gin.Context) {
 				site.HTMLContent = indexPath
 			}
 		}
+
+		// Handle logo upload
+		logoFile, logoHeader, logoErr := ctx.Request.FormFile("logo")
+		if logoErr == nil {
+			defer logoFile.Close()
+			ext := strings.ToLower(filepath.Ext(logoHeader.Filename))
+			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp" || ext == ".svg" {
+				siteDir := fmt.Sprintf("./sites/user_%d/%s", userID, site.Slug)
+				os.MkdirAll(siteDir, 0755)
+				logoPath := filepath.Join(siteDir, "logo"+ext)
+				if out, err := os.Create(logoPath); err == nil {
+					defer out.Close()
+					if _, err := out.ReadFrom(logoFile); err == nil {
+						site.Thumbnail = fmt.Sprintf("/sites/user_%d/%s/logo%s", userID, site.Slug, ext)
+					}
+				}
+			}
+		}
 	}
 
 	site.UpdatedAt = utils.FormattedTime(time.Now())
@@ -362,10 +398,33 @@ func ViewSiteHandler(ctx *gin.Context) {
 	// Increment view count
 	database.DB.Model(&site).Update("view_count", site.ViewCount+1)
 
-	// Redirect to static site path
+	// Serve the site's index.html directly instead of redirecting,
+	// so the static /sites route order doesn't matter and missing-dir 404s are avoided.
 	siteDir := filepath.Dir(site.HTMLContent)
-	relPath := strings.TrimPrefix(siteDir, "./")
-	ctx.Redirect(http.StatusFound, "/"+relPath+"/index.html")
+	indexFile := filepath.Join(siteDir, "index.html")
+
+	// Normalise: strip leading "./" so filepath.Join works cleanly
+	indexFile = filepath.Clean(indexFile)
+
+	if _, err := os.Stat(indexFile); os.IsNotExist(err) {
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		ctx.Status(http.StatusNotFound)
+		ctx.Writer.WriteString(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Site Not Found</title>
+<style>body{font-family:system-ui,sans-serif;background:#0a0e1a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;padding:40px}.icon{font-size:64px;margin-bottom:16px}
+h1{font-size:24px;margin-bottom:8px}p{color:#64748b;margin-bottom:24px}
+a{background:#FF4500;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600}</style>
+</head><body><div class="box">
+<div class="icon">🌐</div>
+<h1>Site files not found</h1>
+<p>The owner needs to re-upload this site's files.</p>
+<a href="/public-sites">← Back to Explore</a>
+</div></body></html>`)
+		return
+	}
+
+	ctx.File(indexFile)
 }
 
 // ServeSiteAsset serves static assets for a site
