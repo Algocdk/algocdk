@@ -1865,6 +1865,17 @@
             isLoading = true;
             draw();
             ws = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+            ws._deliberateClose = false;
+
+            // Timeout: if no candles in 8s, reconnect
+            const loadTimeout = setTimeout(() => {
+                if (candles.length === 0 && ws.readyState !== WebSocket.CLOSED) {
+                    console.warn('[WS] No candles received, reconnecting...');
+                    ws._deliberateClose = true;
+                    ws.close();
+                    connect();
+                }
+            }, 8000);
 
             ws.onopen = () => {
                 console.log('WebSocket connected');
@@ -1894,6 +1905,7 @@
 
                 if (d.candles) {
                     console.log('Received candles:', d.candles.length);
+                    clearTimeout(loadTimeout);
                     candles = d.candles.map(c => ({
                         time: Math.floor(c.epoch / TIMEFRAME) * TIMEFRAME,
                         open: +c.open,
@@ -1924,6 +1936,15 @@
             ws.onclose = () => {
                 console.log('WebSocket closed');
                 isLoading = false;
+                // Auto-reconnect after 2s if not a deliberate restart
+                if (!ws._deliberateClose) {
+                    setTimeout(() => {
+                        if (!ws || ws.readyState === WebSocket.CLOSED) {
+                            console.log('[WS] Auto-reconnecting...');
+                            connect();
+                        }
+                    }, 2000);
+                }
             };
         }
 
@@ -1960,7 +1981,10 @@
         }
         
         function restart() {
-            if (ws) ws.close();
+            if (ws) {
+                ws._deliberateClose = true;
+                ws.close();
+            }
             candles = [];
             currentCandle = null;
             zoom = 1;
@@ -3970,28 +3994,7 @@
             // ── Crosshair ─────────────────────────────────────────────────
             drawCrosshair();
         }
-            
-            // Check if we have window 2 indicators (RSI, MACD, Stoch, ATR)
-            const hasWindow2Indicators = indicators.some(ind => 
-                ['rsi', 'macd', 'stoch', 'atr'].includes(ind.type)
-            );
-            
-            // Calculate indicator panel height dynamically
-            let indicatorPanelHeight = 0;
-            if (hasWindow2Indicators) {
-                const defaultHeight = isMobile ? 100 : 180;
-                const actualWindow2Height = window2Height || defaultHeight;
-                const handleHeight = 8;
-                indicatorPanelHeight = actualWindow2Height + handleHeight;
-            }
-            
-            // Use custom main chart height if set, otherwise calculate automatically
-            let h;
-            if (mainChartHeight) {
-                h = mainChartHeight;
-            } else {
-                h = canvas.height - pad * 2 - indicatorPanelHeight;
-            }
+        
         function drawLine(values, spacing, yFunc, pad) {
             ctx.beginPath();
             let first = true;
