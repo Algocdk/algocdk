@@ -138,11 +138,16 @@ function checkAlerts(price) {
 
 /* ===== STRATEGY LAB ===== */
 
-// Holds the currently selected bot/strategy
 let activeLabStrategy = null;
 let lastBacktestTrades = [];
+let backtestSignalOverlay = [];   // drawn on chart by draw()
+let btHistoricalData = [];        // candles used for last backtest
+let btPlaybackTimer = null;
+let btPlaybackIndex = 0;
+let btPlaybackRunning = false;
+let btPlaybackEquity = [];
 
-// Load user's bots into the selector
+// ── Load user bots ──────────────────────────────────────────────────────────
 async function loadUserBotsIntoSelector() {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -166,19 +171,15 @@ async function loadUserBotsIntoSelector() {
 function onBotStrategyChange(val) {
     const card = document.getElementById('botInfoCard');
     if (!val) { card.style.display = 'none'; activeLabStrategy = null; return; }
-
     if (val.startsWith('bot:')) {
         const opt = document.querySelector(`#botStrategySelect option[value="${val}"]`);
         const name = opt?.dataset.name || 'Bot';
-        const cat  = opt?.dataset.cat  || '';
-        const wr   = opt?.dataset.wr   || '—';
-        const img  = opt?.dataset.img  || '';
         document.getElementById('botInfoName').textContent = name;
-        document.getElementById('botInfoCategory').textContent = cat || 'Trading Bot';
-        document.getElementById('botInfoWinRate').textContent = wr || '—';
+        document.getElementById('botInfoCategory').textContent = opt?.dataset.cat || 'Trading Bot';
+        document.getElementById('botInfoWinRate').textContent = opt?.dataset.wr || '—';
         const imgEl = document.getElementById('botInfoImg');
-        if (img) imgEl.innerHTML = `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">`;
-        else imgEl.textContent = '🤖';
+        const img = opt?.dataset.img || '';
+        imgEl.innerHTML = img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">` : '🤖';
         card.style.display = 'block';
         activeLabStrategy = { type: 'bot', id: val.replace('bot:', ''), name };
     } else if (val.startsWith('builtin:')) {
@@ -193,115 +194,181 @@ function onBotStrategyChange(val) {
     }
 }
 
-/* ── Signal generators for each built-in strategy ── */
+// ── Signal generators ───────────────────────────────────────────────────────
 function signalMA(data, i) {
     if (i < 50) return null;
-    const fast = 20, slow = 50;
     const sma = (arr, n, end) => arr.slice(end - n, end).reduce((s, c) => s + c.close, 0) / n;
-    const f1 = sma(data, fast, i), s1 = sma(data, slow, i);
-    const f0 = sma(data, fast, i - 1), s0 = sma(data, slow, i - 1);
+    const f1 = sma(data, 20, i), s1 = sma(data, 50, i);
+    const f0 = sma(data, 20, i-1), s0 = sma(data, 50, i-1);
     if (f0 <= s0 && f1 > s1) return 'buy';
     if (f0 >= s0 && f1 < s1) return 'sell';
     return null;
 }
-
 function signalRSI(data, i) {
     if (i < 15) return null;
-    const period = 14;
     let gains = 0, losses = 0;
-    for (let j = i - period; j < i; j++) {
-        const d = data[j].close - data[j - 1].close;
+    for (let j = i - 14; j < i; j++) {
+        const d = data[j].close - data[j-1].close;
         if (d > 0) gains += d; else losses -= d;
     }
-    const rs = losses === 0 ? 100 : gains / losses;
-    const rsi = 100 - 100 / (1 + rs);
+    const rsi = 100 - 100 / (1 + (losses === 0 ? 100 : gains / losses));
     if (rsi < 30) return 'buy';
     if (rsi > 70) return 'sell';
     return null;
 }
-
 function signalBreakout(data, i) {
     if (i < 21) return null;
-    const period = 20;
-    const highs = data.slice(i - period, i).map(c => c.high);
-    const lows  = data.slice(i - period, i).map(c => c.low);
-    const highest = Math.max(...highs), lowest = Math.min(...lows);
-    if (data[i].close > highest) return 'buy';
-    if (data[i].close < lowest)  return 'sell';
+    const highs = data.slice(i-20, i).map(c => c.high);
+    const lows  = data.slice(i-20, i).map(c => c.low);
+    if (data[i].close > Math.max(...highs)) return 'buy';
+    if (data[i].close < Math.min(...lows))  return 'sell';
     return null;
 }
-
 function signalEngulfing(data, i) {
     if (i < 1) return null;
-    const prev = data[i - 1], curr = data[i];
-    const prevBear = prev.close < prev.open;
-    const prevBull = prev.close > prev.open;
-    if (prevBear && curr.open <= prev.close && curr.close >= prev.open) return 'buy';
-    if (prevBull && curr.open >= prev.close && curr.close <= prev.open) return 'sell';
+    const prev = data[i-1], curr = data[i];
+    if (prev.close < prev.open && curr.open <= prev.close && curr.close >= prev.open) return 'buy';
+    if (prev.close > prev.open && curr.open >= prev.close && curr.close <= prev.open) return 'sell';
     return null;
 }
-
 function getSignal(data, i, strategy) {
     if (!strategy) return null;
     if (strategy.type === 'builtin') {
-        if (strategy.key === 'ma_cross')    return signalMA(data, i);
+        if (strategy.key === 'ma_cross')     return signalMA(data, i);
         if (strategy.key === 'rsi_reversal') return signalRSI(data, i);
-        if (strategy.key === 'breakout')    return signalBreakout(data, i);
-        if (strategy.key === 'engulfing')   return signalEngulfing(data, i);
+        if (strategy.key === 'breakout')     return signalBreakout(data, i);
+        if (strategy.key === 'engulfing')    return signalEngulfing(data, i);
     }
-    // For user bots, fall back to engulfing as a proxy (bot logic runs on Deriv, not here)
     if (strategy.type === 'bot') return signalEngulfing(data, i);
     return null;
 }
 
-/* ── Main backtest runner ── */
-function runStrategyBacktest() {
+// ── Fetch historical candles from Deriv WS ──────────────────────────────────
+function fetchHistoricalCandles(symbol, granularity, startEpoch, endEpoch, count) {
+    return new Promise((resolve, reject) => {
+        const histWs = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+        const timeout = setTimeout(() => { histWs.close(); reject(new Error('Timeout')); }, 15000);
+        histWs.onopen = () => {
+            const req = { ticks_history: symbol, style: 'candles', granularity, adjust_start_time: 1 };
+            if (startEpoch && endEpoch) {
+                req.start = startEpoch;
+                req.end   = endEpoch;
+            } else {
+                req.count = count || 1000;
+                req.end   = 'latest';
+            }
+            histWs.send(JSON.stringify(req));
+        };
+        histWs.onmessage = e => {
+            const d = JSON.parse(e.data);
+            clearTimeout(timeout);
+            histWs.close();
+            if (d.error) { reject(new Error(d.error.message)); return; }
+            if (d.candles) {
+                resolve(d.candles.map(c => ({
+                    time: +c.epoch, open: +c.open, high: +c.high, low: +c.low, close: +c.close
+                })));
+            } else { reject(new Error('No candles')); }
+        };
+        histWs.onerror = () => { clearTimeout(timeout); reject(new Error('WS error')); };
+    });
+}
+
+// ── Core backtest engine ────────────────────────────────────────────────────
+function runBacktestOnData(data, strategy, capital, riskPct) {
+    let balance = capital, wins = 0, losses = 0, maxBal = capital, maxDD = 0;
+    const trades = [], equity = [capital], signals = [];
+
+    for (let i = 1; i < data.length - 1; i++) {
+        const signal = getSignal(data, i, strategy);
+        if (!signal) continue;
+        const entry = data[i+1].open;
+        const exit  = data[i+1].close;
+        const lot   = balance * riskPct;
+        const pnl   = signal === 'buy' ? (exit - entry) / entry * lot : (entry - exit) / entry * lot;
+        balance += pnl;
+        if (pnl > 0) wins++; else losses++;
+        maxBal = Math.max(maxBal, balance);
+        maxDD  = Math.max(maxDD, (maxBal - balance) / maxBal * 100);
+        trades.push({ signal, entry, exit, pnl, candleIndex: i + 1, price: entry });
+        signals.push({ signal, candleIndex: i + 1, price: entry, pnl });
+        equity.push(balance);
+    }
+    return { trades, signals, equity, wins, losses, maxDD, finalBalance: balance };
+}
+
+// ── Main entry point ────────────────────────────────────────────────────────
+async function runStrategyBacktest(mode) {
     if (!activeLabStrategy) {
-        // Flash the selector
         const sel = document.getElementById('botStrategySelect');
         sel.style.borderColor = '#FF4500';
         setTimeout(() => sel.style.borderColor = '', 1200);
         return;
     }
 
-    const from    = Math.max(0, parseInt(document.getElementById('btFrom').value) || 0);
-    const to      = Math.min(parseInt(document.getElementById('btTo').value) || 500, candles.length);
     const capital = parseFloat(document.getElementById('btCapital').value) || 1000;
     const riskPct = parseFloat(document.getElementById('btRisk').value) / 100 || 0.02;
-    const data    = candles.slice(from, to);
+    const btn = document.querySelector('[onclick*="runStrategyBacktest"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
 
-    if (data.length < 20) {
-        alert('Need at least 20 candles — wait for more data to load or adjust the range.');
+    let data;
+    try {
+        if (mode === 'range') {
+            const fromVal = document.getElementById('btFromDate').value;
+            const toVal   = document.getElementById('btToDate').value;
+            if (!fromVal || !toVal) { alert('Please set both From and To dates.'); return; }
+            const startEpoch = Math.floor(new Date(fromVal).getTime() / 1000);
+            const endEpoch   = Math.floor(new Date(toVal).getTime() / 1000);
+            if (endEpoch <= startEpoch) { alert('To date must be after From date.'); return; }
+            data = await fetchHistoricalCandles(SYMBOL, TIMEFRAME, startEpoch, endEpoch, null);
+        } else {
+            const count = parseInt(document.getElementById('btTickCount').value) || 500;
+            // Use already-loaded candles if enough, else fetch
+            if (candles.length >= count) {
+                data = candles.slice(-count);
+            } else {
+                data = await fetchHistoricalCandles(SYMBOL, TIMEFRAME, null, null, count);
+            }
+        }
+    } catch(e) {
+        alert('Failed to load historical data: ' + e.message);
         return;
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = mode === 'range' ? '📅 Date Range' : '▶ Run (N candles)'; }
     }
 
-    let balance = capital, wins = 0, losses = 0, maxBal = capital, maxDD = 0;
-    const trades = [], equity = [capital];
+    if (!data || data.length < 20) { alert('Not enough candles in range (need at least 20).'); return; }
 
-    for (let i = 1; i < data.length - 1; i++) {
-        const signal = getSignal(data, i, activeLabStrategy);
-        if (!signal) continue;
+    btHistoricalData = data;
+    const result = runBacktestOnData(data, activeLabStrategy, capital, riskPct);
+    lastBacktestTrades = result.trades;
+    btPlaybackEquity   = result.equity;
 
-        const entry = data[i + 1].open;
-        const exit  = data[i + 1].close;
-        const lot   = balance * riskPct;
-        const pnl   = signal === 'buy'
-            ? (exit - entry) / entry * lot
-            : (entry - exit) / entry * lot;
+    // Store signals for overlay — indexed relative to btHistoricalData
+    backtestSignalOverlay = result.signals;
 
-        balance += pnl;
-        if (pnl > 0) wins++; else losses++;
-        maxBal = Math.max(maxBal, balance);
-        const dd = (maxBal - balance) / maxBal * 100;
-        maxDD = Math.max(maxDD, dd);
-        trades.push({ signal, entry, exit, pnl });
-        equity.push(balance);
-    }
+    // Load historical data onto chart so signals are visible
+    candles = [...data];
+    currentCandle = null;
+    offset = 0;
+    if (typeof draw === 'function') draw();
 
-    lastBacktestTrades = trades;
+    // Show results
+    renderBacktestResults(result, capital);
+
+    // Show playback bar
+    document.getElementById('btPlaybackBar').style.display = 'block';
+    btPlaybackIndex = 0;
+    btPlaybackRunning = false;
+    updatePlaybackStatus();
+}
+
+// ── Render results panel ────────────────────────────────────────────────────
+function renderBacktestResults(result, capital) {
+    const { trades, equity, wins, losses, maxDD, finalBalance } = result;
     const total    = wins + losses;
+    const netPnl   = finalBalance - capital;
     const winRate  = total ? (wins / total * 100).toFixed(1) : 0;
-    const netPnl   = balance - capital;
     const grossWin = trades.filter(t => t.pnl > 0).reduce((s, t) => s + t.pnl, 0);
     const grossLoss= Math.abs(trades.filter(t => t.pnl < 0).reduce((s, t) => s + t.pnl, 0));
     const pf       = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : '∞';
@@ -311,21 +378,11 @@ function runStrategyBacktest() {
     const sharpe   = std > 0 ? (mean / std * Math.sqrt(252)).toFixed(2) : '0';
     const expectancy = total ? (netPnl / total).toFixed(2) : '0';
 
-    // Update risk metrics panel too
-    const ddEl = document.getElementById('riskDrawdown');
-    if (ddEl) { ddEl.textContent = maxDD.toFixed(1) + '%'; ddEl.className = 'sb-risk-val ' + (maxDD < 10 ? 'good' : maxDD < 25 ? 'warn' : 'bad'); }
-    const shEl = document.getElementById('riskSharpe');
-    if (shEl) shEl.textContent = sharpe;
-    const exEl = document.getElementById('riskExpectancy');
-    if (exEl) exEl.textContent = '$' + expectancy;
-
-    // Show results panel
     document.getElementById('btResults').style.display = 'block';
 
     const pnlEl = document.getElementById('btPnl');
     pnlEl.textContent = (netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2);
     pnlEl.style.color = netPnl >= 0 ? '#00c176' : '#ff4d4f';
-
     document.getElementById('btWinRate').textContent = winRate + '%';
     document.getElementById('btWinRate').style.color = parseFloat(winRate) >= 50 ? '#00c176' : '#ff4d4f';
     document.getElementById('btTrades').textContent = total;
@@ -335,45 +392,16 @@ function runStrategyBacktest() {
     document.getElementById('btDD').style.color = maxDD < 10 ? '#00c176' : maxDD < 25 ? '#ffa500' : '#ff4d4f';
     document.getElementById('btSharpe').textContent = sharpe;
 
-    // Draw equity curve
-    const ec = document.getElementById('equityCanvas');
-    if (ec && equity.length > 1) {
-        const ectx = ec.getContext('2d');
-        ec.width = ec.offsetWidth || 220;
-        ec.height = 80;
-        ectx.clearRect(0, 0, ec.width, ec.height);
-        const minE = Math.min(...equity), maxE = Math.max(...equity);
-        const range = maxE - minE || 1;
+    // Update risk panel
+    const ddEl = document.getElementById('riskDrawdown');
+    if (ddEl) { ddEl.textContent = maxDD.toFixed(1) + '%'; ddEl.className = 'sb-risk-val ' + (maxDD < 10 ? 'good' : maxDD < 25 ? 'warn' : 'bad'); }
+    const shEl = document.getElementById('riskSharpe');
+    if (shEl) shEl.textContent = sharpe;
+    const exEl = document.getElementById('riskExpectancy');
+    if (exEl) exEl.textContent = '$' + expectancy;
 
-        // Fill gradient
-        const grad = ectx.createLinearGradient(0, 0, 0, ec.height);
-        const col = netPnl >= 0 ? '0,193,118' : '255,77,79';
-        grad.addColorStop(0, `rgba(${col},0.25)`);
-        grad.addColorStop(1, `rgba(${col},0)`);
-
-        ectx.beginPath();
-        equity.forEach((v, i) => {
-            const x = (i / (equity.length - 1)) * ec.width;
-            const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
-            i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
-        });
-        ectx.lineTo(ec.width, ec.height);
-        ectx.lineTo(0, ec.height);
-        ectx.closePath();
-        ectx.fillStyle = grad;
-        ectx.fill();
-
-        // Line
-        ectx.beginPath();
-        equity.forEach((v, i) => {
-            const x = (i / (equity.length - 1)) * ec.width;
-            const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
-            i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
-        });
-        ectx.strokeStyle = `rgb(${col})`;
-        ectx.lineWidth = 1.5;
-        ectx.stroke();
-    }
+    // Equity curve
+    drawEquityCurve(equity, netPnl);
 
     // Trade list
     document.getElementById('btTradeList').innerHTML = trades.slice(-30).reverse().map(t =>
@@ -384,56 +412,161 @@ function runStrategyBacktest() {
             <span style="color:${t.pnl >= 0 ? '#00c176' : '#ff4d4f'};font-weight:700;text-align:right;">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</span>
         </div>`
     ).join('');
-
-    // Draw signals on chart
-    drawBacktestSignals(trades, data, from);
 }
 
-// Draw buy/sell arrows on the chart canvas for the last backtest
-let backtestSignalOverlay = [];
-function drawBacktestSignals(trades, data, offset) {
-    backtestSignalOverlay = trades.map((t, i) => ({
-        ...t,
-        candleIndex: offset + i + 1
-    }));
-    if (typeof draw === 'function') draw();
+function drawEquityCurve(equity, netPnl) {
+    const ec = document.getElementById('equityCanvas');
+    if (!ec || equity.length < 2) return;
+    const ectx = ec.getContext('2d');
+    ec.width = ec.offsetWidth || 220;
+    ec.height = 80;
+    ectx.clearRect(0, 0, ec.width, ec.height);
+    const minE = Math.min(...equity), maxE = Math.max(...equity);
+    const range = maxE - minE || 1;
+    const col = netPnl >= 0 ? '0,193,118' : '255,77,79';
+    const grad = ectx.createLinearGradient(0, 0, 0, ec.height);
+    grad.addColorStop(0, `rgba(${col},0.3)`);
+    grad.addColorStop(1, `rgba(${col},0)`);
+    ectx.beginPath();
+    equity.forEach((v, i) => {
+        const x = (i / (equity.length - 1)) * ec.width;
+        const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
+        i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
+    });
+    ectx.lineTo(ec.width, ec.height); ectx.lineTo(0, ec.height); ectx.closePath();
+    ectx.fillStyle = grad; ectx.fill();
+    ectx.beginPath();
+    equity.forEach((v, i) => {
+        const x = (i / (equity.length - 1)) * ec.width;
+        const y = ec.height - ((v - minE) / range) * (ec.height - 6) - 3;
+        i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
+    });
+    ectx.strokeStyle = `rgb(${col})`; ectx.lineWidth = 1.5; ectx.stroke();
 }
 
-// Called from the main draw() loop — overlay arrows on chart
-function drawBacktestOverlay(ctx, canvas, candles, zoom, scrollOffset, pad) {
+// ── Playback ────────────────────────────────────────────────────────────────
+function btPlayback(action) {
+    if (action === 'reset') {
+        clearInterval(btPlaybackTimer);
+        btPlaybackRunning = false;
+        btPlaybackIndex = 0;
+        backtestSignalOverlay = [];
+        candles = [...btHistoricalData];
+        currentCandle = null;
+        offset = 0;
+        if (typeof draw === 'function') draw();
+        updatePlaybackStatus();
+        document.getElementById('btPlayBtn').textContent = '▶ Play';
+        return;
+    }
+    if (action === 'pause') {
+        clearInterval(btPlaybackTimer);
+        btPlaybackRunning = false;
+        document.getElementById('btPlayBtn').textContent = '▶ Play';
+        return;
+    }
+    if (action === 'play') {
+        if (btPlaybackRunning) return;
+        if (btPlaybackIndex >= btHistoricalData.length) btPlaybackIndex = 0;
+        btPlaybackRunning = true;
+        document.getElementById('btPlayBtn').textContent = '⏸ Playing…';
+
+        const speed = parseInt(document.getElementById('btSpeed').value) || 3;
+        // Interval: faster speed = shorter interval
+        const intervalMs = Math.max(30, 300 / speed);
+
+        btPlaybackTimer = setInterval(() => {
+            if (btPlaybackIndex >= btHistoricalData.length) {
+                clearInterval(btPlaybackTimer);
+                btPlaybackRunning = false;
+                document.getElementById('btPlayBtn').textContent = '▶ Play';
+                // Show all signals at end
+                backtestSignalOverlay = lastBacktestTrades.map(t => ({
+                    signal: t.signal, candleIndex: t.candleIndex, price: t.price, pnl: t.pnl
+                }));
+                drawEquityCurve(btPlaybackEquity, btPlaybackEquity[btPlaybackEquity.length - 1] - btPlaybackEquity[0]);
+                if (typeof draw === 'function') draw();
+                return;
+            }
+
+            // Reveal candles up to current playback index
+            candles = btHistoricalData.slice(0, btPlaybackIndex + 1);
+            currentCandle = null;
+            offset = 0;
+
+            // Show signals up to current index
+            backtestSignalOverlay = lastBacktestTrades
+                .filter(t => t.candleIndex <= btPlaybackIndex)
+                .map(t => ({ signal: t.signal, candleIndex: t.candleIndex, price: t.price, pnl: t.pnl }));
+
+            // Update equity curve progressively
+            const equitySlice = btPlaybackEquity.slice(0, backtestSignalOverlay.length + 1);
+            const netSoFar = equitySlice.length > 1 ? equitySlice[equitySlice.length - 1] - equitySlice[0] : 0;
+            drawEquityCurve(equitySlice, netSoFar);
+
+            btPlaybackIndex++;
+            updatePlaybackStatus();
+            if (typeof draw === 'function') draw();
+        }, intervalMs);
+    }
+}
+
+function updatePlaybackStatus() {
+    const el = document.getElementById('btPlaybackStatus');
+    if (el) el.textContent = `Candle: ${btPlaybackIndex} / ${btHistoricalData.length}`;
+}
+
+// ── Draw overlay on chart canvas ────────────────────────────────────────────
+// Called from draw() in marketchart.html with: drawBacktestOverlay(ctx, canvas, data, start, visible, candleSpacing, pad, y)
+function drawBacktestOverlay(ctx, canvas, data, start, visible, candleSpacing, pad, yFunc) {
     if (!backtestSignalOverlay.length) return;
-    const w = canvas.width, h = canvas.height;
-    const visibleCount = Math.floor((w - pad * 2) / (8 * zoom));
-    const startIdx = Math.max(0, candles.length - visibleCount - scrollOffset);
-
     backtestSignalOverlay.forEach(sig => {
         const ci = sig.candleIndex;
-        if (ci < startIdx || ci >= startIdx + visibleCount) return;
-        const x = pad + (ci - startIdx) * 8 * zoom + 4 * zoom;
-        const price = sig.entry;
-        // Get y from price — approximate using canvas height
-        const prices = candles.slice(startIdx, startIdx + visibleCount);
-        const maxP = Math.max(...prices.map(c => c.high));
-        const minP = Math.min(...prices.map(c => c.low));
-        const range = maxP - minP || 1;
-        const y = h - pad - ((price - minP) / range) * (h - pad * 2);
+        if (ci < start || ci >= start + visible) return;
+        const relIdx = ci - start;
+        const x = pad + relIdx * candleSpacing + candleSpacing / 2;
+        const price = sig.price;
+        const y = yFunc(price);
 
         ctx.save();
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 13px Arial';
         ctx.textAlign = 'center';
         if (sig.signal === 'buy') {
+            // Green upward triangle below candle
             ctx.fillStyle = '#00c176';
-            ctx.fillText('▲', x, y + 18);
+            ctx.beginPath();
+            ctx.moveTo(x, y + 16);
+            ctx.lineTo(x - 6, y + 26);
+            ctx.lineTo(x + 6, y + 26);
+            ctx.closePath();
+            ctx.fill();
+            // P&L label
+            if (sig.pnl !== undefined) {
+                ctx.fillStyle = sig.pnl >= 0 ? '#00c176' : '#ff4d4f';
+                ctx.font = 'bold 9px Arial';
+                ctx.fillText((sig.pnl >= 0 ? '+' : '') + '$' + sig.pnl.toFixed(1), x, y + 38);
+            }
         } else {
+            // Red downward triangle above candle
             ctx.fillStyle = '#ff4d4f';
-            ctx.fillText('▼', x, y - 8);
+            ctx.beginPath();
+            ctx.moveTo(x, y - 16);
+            ctx.lineTo(x - 6, y - 26);
+            ctx.lineTo(x + 6, y - 26);
+            ctx.closePath();
+            ctx.fill();
+            if (sig.pnl !== undefined) {
+                ctx.fillStyle = sig.pnl >= 0 ? '#00c176' : '#ff4d4f';
+                ctx.font = 'bold 9px Arial';
+                ctx.fillText((sig.pnl >= 0 ? '+' : '') + '$' + sig.pnl.toFixed(1), x, y - 38);
+            }
         }
         ctx.restore();
     });
 }
-
-// Init on page load
+// Init on page load — only run on the marketchart page
 document.addEventListener('DOMContentLoaded', function() {
+    if (!document.getElementById('chart')) return; // not on marketchart page
     loadUserBotsIntoSelector();
     renderAlerts();
 });
@@ -506,9 +639,10 @@ function updateMTF() {
 
 /* ===== CONTEXT MENU ===== */
 (function initCtxMenu() {
-    let ctxTarget = null;
     const chartCanvas = document.getElementById('chart');
     if (!chartCanvas) return;
+
+    let ctxTarget = null;
 
     chartCanvas.addEventListener('contextmenu', function(e) {
         e.preventDefault();
@@ -524,7 +658,8 @@ function updateMTF() {
     });
 
     document.addEventListener('click', function() {
-        document.getElementById('ctxMenu').classList.remove('show');
+        const m = document.getElementById('ctxMenu');
+        if (m) m.classList.remove('show');
     });
 })();
 

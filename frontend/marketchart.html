@@ -1333,18 +1333,50 @@
                             <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Risk per trade (%)</div>
                             <input type="number" id="btRisk" value="2" min="0.1" max="20" step="0.1" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
                         </div>
-                        <div>
-                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">From candle</div>
-                            <input type="number" id="btFrom" value="0" min="0" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
-                        </div>
-                        <div>
-                            <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">To candle</div>
-                            <input type="number" id="btTo" value="500" min="10" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
-                        </div>
                     </div>
-                    <button onclick="runStrategyBacktest()" style="width:100%;padding:9px;background:linear-gradient(135deg,#FF4500,#FF8C00);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.5px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                        ▶ Run Backtest
-                    </button>
+                    <!-- Date range -->
+                    <div style="margin-bottom:6px;">
+                        <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">From date</div>
+                        <input type="datetime-local" id="btFromDate" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:11px;outline:none;font-family:inherit;">
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">To date</div>
+                        <input type="datetime-local" id="btToDate" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:11px;outline:none;font-family:inherit;">
+                    </div>
+                    <!-- OR tick count -->
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                        <div style="flex:1;height:1px;background:#1a2035;"></div>
+                        <span style="font-size:9px;color:#3a4a60;">OR</span>
+                        <div style="flex:1;height:1px;background:#1a2035;"></div>
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <div style="font-size:9px;color:#4a6080;margin-bottom:3px;">Last N candles (uses loaded data)</div>
+                        <input type="number" id="btTickCount" value="500" min="20" max="5000" style="width:100%;background:#161b22;border:1px solid #2b2f3a;color:#e6edf3;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;font-family:inherit;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                        <button onclick="runStrategyBacktest('range')" style="padding:9px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;" title="Fetch historical data for date range">
+                            📅 Date Range
+                        </button>
+                        <button onclick="runStrategyBacktest('ticks')" style="padding:9px;background:linear-gradient(135deg,#FF4500,#FF8C00);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;" title="Use last N candles from loaded data">
+                            ▶ Run (N candles)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Playback controls (shown after backtest) -->
+                <div id="btPlaybackBar" style="display:none;background:#0d1117;border:1px solid #1a2035;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+                    <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#3a4a60;margin-bottom:8px;">Playback</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                        <button id="btPlayBtn" onclick="btPlayback('play')" style="flex:1;padding:7px;background:#00c176;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">▶ Play</button>
+                        <button onclick="btPlayback('pause')" style="flex:1;padding:7px;background:#2b2f3a;color:#d1d4dc;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">⏸ Pause</button>
+                        <button onclick="btPlayback('reset')" style="padding:7px 10px;background:#2b2f3a;color:#d1d4dc;border:none;border-radius:7px;font-size:12px;cursor:pointer;">↺</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:9px;color:#4a6080;white-space:nowrap;">Speed</span>
+                        <input type="range" id="btSpeed" min="1" max="10" value="3" style="flex:1;accent-color:#FF4500;">
+                        <span id="btSpeedLabel" style="font-size:10px;color:#e6edf3;font-weight:700;min-width:24px;">3x</span>
+                    </div>
+                    <div style="margin-top:6px;font-size:10px;color:#4a6080;text-align:center;" id="btPlaybackStatus">Candle: 0 / 0</div>
                 </div>
 
                 <!-- Results (hidden until run) -->
@@ -3982,11 +4014,45 @@
                 }
             }
 
+            // ── Strategy Lab indicator overlay ────────────────────────────
+            if (typeof activeLabStrategy !== 'undefined' && activeLabStrategy) {
+                const fullData = [...candles];
+                if (currentCandle) fullData.push(currentCandle);
+                const key = activeLabStrategy.key || '';
+                if (key === 'ma_cross' || activeLabStrategy.type === 'bot') {
+                    // Fast MA (green) + Slow MA (red)
+                    ctx.strokeStyle = '#00c176'; ctx.lineWidth = 1.5;
+                    const fma = calculateSMA(fullData, 20);
+                    drawLine(fma.slice(start, start + visible), candleSpacing, y, pad);
+                    ctx.strokeStyle = '#ff4d4f'; ctx.lineWidth = 1.5;
+                    const sma = calculateSMA(fullData, 50);
+                    drawLine(sma.slice(start, start + visible), candleSpacing, y, pad);
+                } else if (key === 'rsi_reversal') {
+                    // Draw RSI as oscillator
+                    const rsiVals = calculateRSI(fullData, 14);
+                    const fakeInd = { id: -1, type: 'rsi', color: '#32cd32', params: { period: 14 } };
+                    drawOscillator(rsiVals.slice(start, start + visible), candleSpacing, pad, view.length, fakeInd, 'RSI');
+                } else if (key === 'breakout') {
+                    // Draw 20-period high/low channel
+                    const highs = fullData.map((_, i) => i < 20 ? null : Math.max(...fullData.slice(i-20, i).map(c => c.high)));
+                    const lows  = fullData.map((_, i) => i < 20 ? null : Math.min(...fullData.slice(i-20, i).map(c => c.low)));
+                    ctx.strokeStyle = 'rgba(255,165,0,0.6)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+                    drawLine(highs.slice(start, start + visible), candleSpacing, y, pad);
+                    drawLine(lows.slice(start, start + visible), candleSpacing, y, pad);
+                    ctx.setLineDash([]);
+                }
+            }
+
             // ── Watermark ─────────────────────────────────────────────────
             drawLogo();
 
             // ── Strategy signals ──────────────────────────────────────────
             if (activeStrategy && strategySignals.length > 0) drawStrategySignals();
+
+            // ── Backtest signal overlay ───────────────────────────────────
+            if (typeof backtestSignalOverlay !== 'undefined' && backtestSignalOverlay.length > 0) {
+                drawBacktestOverlay(ctx, canvas, data, start, visible, candleSpacing, pad, y);
+            }
 
             // ── Drawings ──────────────────────────────────────────────────
             drawObjects();
@@ -5108,6 +5174,21 @@
             // Start connection
             connect();
             loadDrawings();
+
+            // Set default date range (last 7 days → now)
+            const now = new Date();
+            const weekAgo = new Date(now - 7 * 24 * 3600 * 1000);
+            const toLocal = d => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            const toDateEl = document.getElementById('btToDate');
+            const fromDateEl = document.getElementById('btFromDate');
+            if (toDateEl) toDateEl.value = toLocal(now);
+            if (fromDateEl) fromDateEl.value = toLocal(weekAgo);
+
+            // Speed label
+            const speedEl = document.getElementById('btSpeed');
+            if (speedEl) speedEl.addEventListener('input', () => {
+                document.getElementById('btSpeedLabel').textContent = speedEl.value + 'x';
+            });
         }
         
         function drawChart(view, pad, candleSpacing, yFunc, h) {
